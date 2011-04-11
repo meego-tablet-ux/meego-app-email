@@ -12,9 +12,9 @@ function textForInterval(minutes) {
     if (minutes === 0) {
         return qsTr("Manual update only");
     } else if (minutes === 60) {
-        return qsTr("Every hour");
+        return qsTr("Update every hour");
     } else {
-        return qsTr("%1 minutes").arg(minutes);
+        return qsTr("Update every %1 minutes").arg(minutes);
     }
 }
 

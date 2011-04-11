@@ -67,7 +67,7 @@ Item {
                             font.pixelSize: theme_fontPixelSizeLarge
                             elide: Text.ElideRight
                             color: theme_fontColorNormal
-                            text: qsTr("Update every")
+                            text: qsTr("Update:")
                         }
                         Text {
                             anchors.right: parent.right
