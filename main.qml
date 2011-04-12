@@ -28,8 +28,8 @@ Window {
     property string currentAccountDisplayName;
 
     property string subjectLabel: qsTr("Subject:")
-    property string foldersLabel: qsTr("Folders")
     property string sortLabel: qsTr("Sort messages by:")
+    property string goToFolderLabel: qsTr("Go to folder:")
 
     property int currentMessageIndex;
     property string mailSender: "";
@@ -51,7 +51,6 @@ Window {
     property bool callFromRemote: false
     property bool composerIsCurrentPage: false
     property string errMsg: "";
-    property string inboxLabel: qsTr("Inbox");
 
     title: qsTr("Email")
     showsearch: true
@@ -301,7 +300,6 @@ Window {
         }
     }
 
-
     ///When a selection is made in the filter menu, you will get a signal here:
     onFilterTriggered: {
         if (index == (scene.filterModel.length - 1)) {
@@ -312,7 +310,7 @@ Window {
             scene.currentMailAccountId = mailAccountListModel.getAccountIdByIndex(index);
             scene.currentMailAccountIndex = index;
             scene.currentAccountDisplayName = mailAccountListModel.getDisplayNameByIndex(index);
-            scene.folderListViewTitle = qsTr("%1 %2").arg(currentAccountDisplayName).arg(scene.inboxLabel);
+            scene.folderListViewTitle = qsTr("%1 %2").arg(currentAccountDisplayName).arg(mailFolderListModel.inboxFolderName());
             scene.applicationPage = null;
             scene.applicationPage = folderList;
             messageListModel.setAccountKey (scene.currentMailAccountId);
@@ -357,11 +355,12 @@ Window {
              property int senderSortKey: 1
              property int subjectSortKey: 1
 
-             menuContent: Rectangle {
-                 anchors.fill: parent
-                 height: 200
-                 radius: 10
-                 FolderListMenu {}
+             menuContent: Item {
+                 height: folderListMenu.height
+                 width: folderListMenu.width
+                 FolderListMenu {
+                     id: folderListMenu
+                 }
              }
 
              FolderListView {}

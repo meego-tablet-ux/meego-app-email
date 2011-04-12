@@ -159,6 +159,23 @@ Item {
         }
     }
 
+    Item {
+        id: emptyMailboxView
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: folderListViewToolbar.top
+        anchors.top: parent.top
+        opacity: messageListView.count > 0 ? 0 : 1
+        Text {
+            id:confirmMsg
+            text: qsTr ("There are no messages in this folder.")
+            anchors.centerIn: emptyMailboxView
+            color:theme_fontColorNormal
+            font.pixelSize: theme_fontPixelSizeLarge
+            elide: Text.ElideRight
+        }
+    }
+
     ListView {
         id: messageListView
         anchors.left: parent.left
@@ -167,6 +184,8 @@ Item {
         anchors.bottom: folderListViewToolbar.top
         width: parent.width
         clip: true
+
+        opacity: count > 0 ? 1 : 0
 
         model: messageListModel
 

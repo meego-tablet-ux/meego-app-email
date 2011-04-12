@@ -89,7 +89,6 @@ EAccount * FolderListModel::getAccountById(EAccountList *account_list, char *id)
 
 void FolderListModel::setAccountKey(QVariant id)
 {
-
     GConfClient *client;
     EAccountList *account_list;
     QString quid;
@@ -196,4 +195,21 @@ QVariant FolderListModel::inboxFolderId()
     }
 
     return QVariant();
+}
+
+QVariant FolderListModel::inboxFolderName()
+{
+    for (int i = 0; i < m_mailFolderIds.size(); i++)
+    {
+        QMailFolder folder(m_mailFolderIds[i]);
+        QString folderName = folder.displayName();
+        if (QString::compare(folderName, "INBOX", Qt::CaseInsensitive) == 0)
+            return folderName;
+    }
+    return QVariant("");
+}
+
+int FolderListModel::totalNumberOfFolders()
+{
+    return m_mailFolderIds.count();
 }

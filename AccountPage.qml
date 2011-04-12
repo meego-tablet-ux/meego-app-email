@@ -150,7 +150,7 @@ Item {
                         scene.currentMailAccountIndex = index;
                         scene.currentAccountDisplayName = displayName;
                         messageListModel.setAccountKey (mailAccountId);
-                        scene.folderListViewTitle = qsTr("%1 %2").arg(scene.currentAccountDisplayName).arg(scene.inboxLabel);
+                        scene.folderListViewTitle = qsTr("%1 %2").arg(scene.currentAccountDisplayName).arg(mailFolderListModel.inboxFolderName());
                         scene.applicationPage = folderList;
                         scene.currentFolderId = mailFolderListModel.inboxFolderId();
                     }
