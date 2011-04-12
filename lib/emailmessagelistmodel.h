@@ -76,8 +76,7 @@ public:
     int rowCount (const QModelIndex & parent = QModelIndex()) const;
     QVariant mydata (int row, int role = Qt::DisplayRole) const;    
     QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const;
-    QString bodyHtmlText(const QString &) const;
-    QString bodyPlainText(const QString&) const;
+    QString bodyText(const QString&, bool plain) const;
 
     QModelIndex index(int row, int column = 0, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &idx) const;

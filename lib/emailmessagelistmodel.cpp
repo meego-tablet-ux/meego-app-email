@@ -151,7 +151,7 @@ void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 	str.append ((const char *)ba->data, ba->len);
 }
 
-QString EmailMessageListModel::bodyPlainText(const QString &uid) const
+QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 {
     	QDBusPendingReply<QString> reply;
 	QString qmsg;
@@ -162,7 +162,7 @@ QString EmailMessageListModel::bodyPlainText(const QString &uid) const
 	int parts, i;
 	CamelDataWrapper *containee;
 	CamelContentType *ct;
-
+	const char *textType = plain ? "plain" : "html";
 
 	reply = m_folder_proxy->getMessage(uid);
         reply.waitForFinished();
@@ -186,14 +186,14 @@ QString EmailMessageListModel::bodyPlainText(const QString &uid) const
 
 			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
 			ct = ((CamelDataWrapper *)subc)->mime_type;
-	                if (camel_content_type_is(ct, "text", "plain")) {
+	                if (camel_content_type_is(ct, "text", textType)) {
 				append_part_to_string (reparray, (CamelMimePart *)subc);
 	                }
 
 		}
 	} else if (CAMEL_IS_MIME_MESSAGE(containee)) {
 		ct = ((CamelDataWrapper *)containee)->mime_type;
-		if (camel_content_type_is(ct, "text", "plain")) {
+		if (camel_content_type_is(ct, "text", textType)) {
 			append_part_to_string (reparray, (CamelMimePart *)containee);
 		}
 
@@ -457,19 +457,18 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageBodyTextRole)
     {
         QString uid = folder_uids[row];
-        return bodyPlainText (uid);
+        return bodyText (uid, TRUE);
     }
     else if (role == MessageHtmlBodyRole)
     {
-        //QMailMessage message (idFromIndex(index));
-        //return (bodyHtmlText(&message));
         QString uid = folder_uids[row];
-        return bodyPlainText (uid);
+        //QMailMessage message (idFromIndex(index));
+        return bodyText (uid, FALSE);
     }
     else if (role == MessageQuotedBodyRole)
     {	
 	  QString uid = folder_uids[row];
-	  return bodyPlainText (uid);
+	  return bodyText (uid, TRUE);
     }
     else if (role == MessageUuidRole || role == MessageIdRole)
     {
@@ -543,7 +542,7 @@ void EmailMessageListModel::updateSearch ()
     folder_uids = reply.value ();
     endInsertRows();
 
-    qDebug() << "********************************* Search count "<< folder_uids.length();
+    qDebug() << "Search count: "<< folder_uids.length();
     foreach (QString uid, folder_uids)
 	qDebug() << "Search result: " << uid;
     if (m_sortById == EmailMessageListModel::SortSender)
@@ -565,7 +564,7 @@ void EmailMessageListModel::setSearch(const QString search)
                       "(header-contains \"Bcc\" \"%s\")"
 		      "(header-contains \"Subject\" \"%s\")))", str, str, str, str, str);
 
-    qDebug() << "****************Search is " << search;
+    qDebug() << "Search for: " << search;
     
     search_str = QString(query);
     /* Start search when the user gives a keyb bread, in 1.5 secs*/
@@ -663,7 +662,7 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 
 void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent)
 {
-	qDebug () << "********************************************" << added.length() << " " << removed.length() << " " << changed.length() << " " << recent.length();
+	qDebug () << "Folder changed event: " << added.length() << " " << removed.length() << " " << changed.length() << " " << recent.length();
         beginInsertRows(QModelIndex(), folder_uids.length(), folder_uids.length()+added.length()-1);
 	foreach (QString uid, added) {
 		/* Add uid */
@@ -923,7 +922,7 @@ void EmailMessageListModel::sortByDate(int key)
                 folder_uids << info.uid;
         }
         endInsertRows();
-        qDebug() << "**************Sorted " << folder_uids.length();
+        qDebug() << "Sorted: " << folder_uids.length();
 
 #if 0
     QMailMessageSortKey sortKey;
