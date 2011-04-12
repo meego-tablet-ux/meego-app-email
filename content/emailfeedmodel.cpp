@@ -54,6 +54,7 @@ EmailFeedModel::~EmailFeedModel()
 //
 void EmailFeedModel::setSearchText(const QString &text)
 {
+    qDebug () << "Set Search: " << text;
     if (text.isEmpty() || m_searchText!=text) {
         m_source->setSearch(text);
         m_searchText=text;
@@ -103,6 +104,7 @@ QVariant EmailFeedModel::data(const QModelIndex &index, int role) const
 bool EmailFeedModel::canFetchMore(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
+
     return (m_messages.count() < m_source->rowCount()) || m_source->canFetchMore(QModelIndex());
 }
 
@@ -111,6 +113,7 @@ void EmailFeedModel::fetchMore(const QModelIndex &parent)
     Q_UNUSED(parent)
     int first = m_messages.count();
     int count = m_source->rowCount() - first;
+
     if (count > FetchBatch)
         count = FetchBatch;
     if (count > 0)
@@ -130,6 +133,7 @@ bool EmailFeedModel::removeRows ( int row, int count, const QModelIndex & parent
         m_messages.removeAt(first);
     }
     endRemoveRows();
+    qDebug() << "Removed rows at EmaiLFee: Length " << m_messages.length();
     return true;
 }
 
@@ -143,11 +147,13 @@ void EmailFeedModel::sourceRowsInserted(const QModelIndex& parent, int first, in
     beginInsertRows(QModelIndex(), first, last);
     copyRowsFromSource(first, last);
     endInsertRows();
-
+    
+    qDebug() << "*********************** rows inserted " << m_messages.length();
 }
 
 void EmailFeedModel::sourceRowsRemoved(const QModelIndex& parent, int first, int last)
 {
+    qDebug() << "########## rows removed ############";
     Q_UNUSED(parent)
     removeRows(first,last-first+1, parent);
 }
@@ -209,10 +215,10 @@ void EmailFeedModel::readRow(EmailMessage *message, int row)
         message->contact = m_source->data(sourceIndex, EmailMessageListModel::MessageSenderEmailAddressRole).toString();
 
     // TODO: handle HTML mail more intelligently somehow, for now body is empty for HTML
-    message->preview = m_source->data(sourceIndex, QMailMessageModelBase::MessageSubjectTextRole).toString();
+    message->preview = m_source->data(sourceIndex, EmailMessageListModel::MessageSubjectTextRole).toString();
     if (message->preview.isEmpty()) {
         // TODO: use Carl's body preview role when he adds that
-        QString body = m_source->data(sourceIndex, QMailMessageModelBase::MessageBodyTextRole).toString();
+        QString body = m_source->data(sourceIndex, EmailMessageListModel::MessageBodyTextRole).toString();
         message->preview = body.left(BodyPreviewSize);
     }
 
@@ -220,4 +226,5 @@ void EmailFeedModel::readRow(EmailMessage *message, int row)
 
     message->id = m_source->data(sourceIndex, EmailMessageListModel::MessageUuidRole).toString();
     message->timestamp = m_source->data(sourceIndex, EmailMessageListModel::MessageTimeStampRole).toDateTime();
+
 }

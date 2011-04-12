@@ -22,16 +22,39 @@
 #include <QMailServiceAction>
 #include <QMailAccount>
 #include <QProcess>
+#include <libedataserver/e-account.h>
+#include "dbustypes.h"
+#include "e-gdbus-emailsession-proxy.h"
+#include "e-gdbus-emailstore-proxy.h"
+#include "e-gdbus-emailfolder-proxy.h"
 
-
-class EmailMessageListModel : public QMailMessageListModel
+class EmailMessageListModel : public QAbstractItemModel
 {
     Q_OBJECT
 
 public:
+    enum SortBy
+    {
+	SortSubject = 1,
+	SortSender,
+	SortDate,
+	SortAttachment
+    };
+
     enum Roles
     {
-        MessageAttachmentCountRole = QMailMessageModelBase::MessageIdRole + 1, // returns number of attachment
+        MessageAddressTextRole = Qt::UserRole,
+        MessageSubjectTextRole,
+        MessageFilterTextRole,
+        MessageTimeStampTextRole,
+        MessageSizeTextRole,
+        MessageTypeIconRole,
+        MessageStatusIconRole,
+        MessageDirectionIconRole,
+        MessagePresenceIconRole,
+        MessageBodyTextRole,
+        MessageIdRole,
+        MessageAttachmentCountRole, // returns number of attachment
         MessageAttachmentsRole,                                // returns a list of attachments
         MessageRecipientsRole,                                 // returns a list of recipients (email address)
         MessageRecipientsDisplayNameRole,                      // returns a list of recipients (displayName)
@@ -51,9 +74,18 @@ public:
     EmailMessageListModel (QObject *parent = 0);
     ~EmailMessageListModel();
     int rowCount (const QModelIndex & parent = QModelIndex()) const;
+    QVariant mydata (int row, int role = Qt::DisplayRole) const;    
     QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const;
-    QString bodyHtmlText(QMailMessagePartContainer *container) const;
-    QString bodyPlainText(const QMailMessage &) const;
+    QString bodyHtmlText(const QString &) const;
+    QString bodyPlainText(const QString&) const;
+
+    QModelIndex index(int row, int column = 0, const QModelIndex &parent = QModelIndex()) const;
+    QModelIndex parent(const QModelIndex &idx) const;
+    int columnCount(const QModelIndex& idx) const;
+
+    QModelIndex generateIndex(int row, int column, void *ptr);
+
+    
 
 signals:
     void messageDownloadCompleted();
@@ -90,9 +122,28 @@ public slots:
 
 private slots:
     void downloadActivityChanged(QMailServiceAction::Activity);
+    void myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
+    void updateSearch ();
 
 private:
     void initMailServer ();
+    void createChecksum ();
+
+    CamelFolderInfoArrayVariant m_folders; 
+    QStringList folder_uids;
+    QStringList folder_vuids;
+    QTimer *timer;
+    QString search_str;
+
+    QString accout_id;
+    QString m_current_folder;
+    QString m_current_hash;
+    QHash<QString, CamelMessageInfoVariant> m_infos;
+    EAccount *m_account;
+    QDBusObjectPath m_store_proxy_id;
+    OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
+    QDBusObjectPath m_folder_proxy_id;
+    OrgGnomeEvolutionDataserverMailFolderInterface *m_folder_proxy;
   
     QProcess m_msgAccount;
     QMailFolderId m_currentFolderId;
@@ -101,8 +152,10 @@ private:
     QMailRetrievalAction *m_retrievalAction;
     QMailStorageAction *m_storageAction;
     QString m_search;
+    EmailMessageListModel::SortBy m_sortById;
+    int m_sortKey;
     QMailMessageKey m_key;                  // key set externally other than search
-    QList<QMailMessageId> m_selectedMsgIds;
+    QList<QString> m_selectedMsgIds;
 };
 
 #endif

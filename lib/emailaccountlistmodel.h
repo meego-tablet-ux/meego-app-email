@@ -16,11 +16,12 @@
 #undef Status
 #endif
 
-#include <QMailAccountListModel>
 #include <QAbstractListModel>
 #include <QMailAccount>
+#include <libedataserver/e-account-list.h>
+#include <gconf/gconf-client.h>
 
-class EmailAccountListModel : public QMailAccountListModel
+class EmailAccountListModel : public QAbstractListModel
 {
     Q_OBJECT
 
@@ -29,12 +30,12 @@ public:
     ~EmailAccountListModel();
 
     enum Role {
-        DisplayName = Qt::UserRole + 4,
-        EmailAddress = Qt::UserRole + 5,
-        MailServer = Qt::UserRole + 6,
-        UnreadCount = Qt::UserRole + 7,
-        MailAccountId  = Qt::UserRole + 8,
-        Index = Qt::UserRole + 9,
+        DisplayName = Qt::UserRole,
+        EmailAddress, 
+        MailServer, 
+        UnreadCount,
+        MailAccountId,
+        Index,
     };
 
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
@@ -54,11 +55,16 @@ signals:
     void modelReset();
 
 private slots:
-    void onAccountsAdded(const QMailAccountIdList &);
-    void onAccountsRemoved(const QMailAccountIdList &);
-    void onAccountsUpdated(const QMailAccountIdList &);
+    EAccount * getAccountByIndex (int idx) const;
+    EAccount * getAccountById(char *id);
+    int getIndexById(char *id);
+
+//    void onAccountsAdded(const QMailAccountIdList &);
+//    void onAccountsRemoved(const QMailAccountIdList &);
+//    void onAccountsUpdated(const QMailAccountIdList &);
 
 private:
+EAccountList *account_list;
 };
 
 #endif

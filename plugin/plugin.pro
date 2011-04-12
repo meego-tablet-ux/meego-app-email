@@ -10,7 +10,8 @@ CONFIG += qt \
 
 PKGCONFIG += qmfmessageserver\
     qmfclient \
-    mlite
+    mlite	\
+    libedataserver-1.2
 
 INCLUDEPATH += ../lib
 LIBS += -L../lib -lmeegoemail

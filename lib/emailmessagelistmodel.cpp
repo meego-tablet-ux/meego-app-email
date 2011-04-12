@@ -5,8 +5,10 @@
  * Apache License, version 2.0.  The full text of the Apache License is at 	
  * http://www.apache.org/licenses/LICENSE-2.0
  */
-
-
+#define CAMEL_COMPILATION 1
+#include <camel/camel-mime-message.h>
+#include <camel/camel-stream-mem.h>
+#include <camel/camel-multipart.h>
 #include "emailmessagelistmodel.h"
 #include <QMailMessage>
 #include <QMailMessageKey>
@@ -16,7 +18,40 @@
 #include <QTimer>
 #include <QProcess>
 #include <qmailnamespace.h>
+#include <glib.h>
+#include <libedataserver/e-account-list.h>
+#include <gconf/gconf-client.h>
 
+typedef enum _CamelMessageFlags {
+	CAMEL_MESSAGE_ANSWERED = 1<<0,
+	CAMEL_MESSAGE_DELETED = 1<<1,
+	CAMEL_MESSAGE_DRAFT = 1<<2,
+	CAMEL_MESSAGE_FLAGGED = 1<<3,
+	CAMEL_MESSAGE_SEEN = 1<<4,
+
+	/* these aren't really system flag bits, but are convenience flags */
+	CAMEL_MESSAGE_ATTACHMENTS = 1<<5,
+	CAMEL_MESSAGE_ANSWERED_ALL = 1<<6,
+	CAMEL_MESSAGE_JUNK = 1<<7,
+	CAMEL_MESSAGE_SECURE = 1<<8,
+	CAMEL_MESSAGE_USER_NOT_DELETABLE = 1<<9,
+	CAMEL_MESSAGE_HIDDEN = 1<<10,
+	CAMEL_MESSAGE_NOTJUNK = 1<<11,
+	CAMEL_MESSAGE_FORWARDED = 1<<12,
+
+	/* following flags are for the folder, and are not really permanent flags */
+	CAMEL_MESSAGE_FOLDER_FLAGGED = 1<<16, /* for use by the folder implementation */
+	/* flags after 1<<16 are used by camel providers,
+           if adding non permanent flags, add them to the end  */
+
+	CAMEL_MESSAGE_JUNK_LEARN = 1<<30, /* used when setting CAMEL_MESSAGE_JUNK flag
+					     to say that we request junk plugin
+					     to learn that message as junk/non junk */
+	CAMEL_MESSAGE_USER = 1<<31 /* supports user flags */
+} CamelMessageFlags;
+
+
+#if 0
 QString EmailMessageListModel::bodyHtmlText(QMailMessagePartContainer *container) const
 {
     QMailMessageContentType contentType = container->contentType();
@@ -101,9 +136,74 @@ QString EmailMessageListModel::bodyHtmlText(QMailMessagePartContainer *container
     }
     return text;
 }
+#endif
 
-QString EmailMessageListModel::bodyPlainText(const QMailMessage &mailMsg) const
+void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 {
+	CamelStream *stream;
+	GByteArray *ba;
+
+	stream = camel_stream_mem_new ();
+	camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)part, stream, NULL);
+	camel_stream_close(stream, NULL);
+	
+	ba = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
+	str.append ((const char *)ba->data, ba->len);
+}
+
+QString EmailMessageListModel::bodyPlainText(const QString &uid) const
+{
+    	QDBusPendingReply<QString> reply;
+	QString qmsg;
+	QByteArray reparray;
+	CamelMimeMessage *message;
+	CamelStream *stream;
+	const char*msg;
+	int parts, i;
+	CamelDataWrapper *containee;
+	CamelContentType *ct;
+
+
+	reply = m_folder_proxy->getMessage(uid);
+        reply.waitForFinished();
+        qmsg = reply.value ();
+  	msg = qmsg.toLocal8Bit().constData();
+
+	message = camel_mime_message_new();
+	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
+	camel_stream_reset (stream, NULL);
+	g_object_unref(stream);
+
+	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
+
+	parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
+
+	if (CAMEL_IS_MULTIPART(containee)) {
+		for (i=0;i<parts;i++) {
+			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
+		        CamelDataWrapper *subc;
+
+			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
+			ct = ((CamelDataWrapper *)subc)->mime_type;
+	                if (camel_content_type_is(ct, "text", "plain")) {
+				append_part_to_string (reparray, (CamelMimePart *)subc);
+	                }
+
+		}
+	} else if (CAMEL_IS_MIME_MESSAGE(containee)) {
+		ct = ((CamelDataWrapper *)containee)->mime_type;
+		if (camel_content_type_is(ct, "text", "plain")) {
+			append_part_to_string (reparray, (CamelMimePart *)containee);
+		}
+
+
+	} else {
+		qDebug() << "********************************* empty body**********************";
+	}
+
+	return QString (reparray);
+#if 0
     QMailMessagePartContainer *container = (QMailMessagePartContainer *)&mailMsg;
     QMailMessageContentType contentType = container->contentType();
     if (container->hasBody() && contentType.type().toLower() == "text" &&
@@ -135,26 +235,52 @@ QString EmailMessageListModel::bodyPlainText(const QMailMessage &mailMsg) const
         }
     }
     return text;
+#endif
+}
+
+void EmailMessageListModel::createChecksum()
+{
+	GChecksum *checksum;
+	guint8 *digest;
+	gsize length;
+	char buffer[9];
+	gint state = 0, save = 0;
+
+	length = g_checksum_type_get_length (G_CHECKSUM_MD5);
+	digest = (guint8 *)g_alloca (length);
+
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update  (checksum, (const guchar *)m_current_folder.toLocal8Bit().constData(), -1);
+
+	g_checksum_get_digest (checksum, digest, &length);
+	g_checksum_free (checksum);
+
+	g_base64_encode_step (digest, 6, FALSE, buffer, &state, &save);
+	g_base64_encode_close (FALSE, buffer, &state, &save);
+	buffer[8] = 0;
+	
+	m_current_hash = QString ((const char *)buffer);
+	
+    	return;
+    
 }
 
 //![0]
 EmailMessageListModel::EmailMessageListModel(QObject *parent)
-    : QMailMessageListModel(parent),
-      m_retrievalAction(new QMailRetrievalAction(this)),
-      m_storageAction(new QMailStorageAction(this))
+    : QAbstractItemModel (parent)
 {
     QHash<int, QByteArray> roles;
-    roles[QMailMessageModelBase::MessageAddressTextRole] = "sender";
-    roles[QMailMessageModelBase::MessageSubjectTextRole] = "subject";
-    roles[QMailMessageModelBase::MessageFilterTextRole] = "messageFilter";
-    roles[QMailMessageModelBase::MessageTimeStampTextRole] = "timeStamp";
-    roles[QMailMessageModelBase::MessageSizeTextRole] = "size";
-    roles[QMailMessageModelBase::MessageTypeIconRole] = "icon";
-    roles[QMailMessageModelBase::MessageStatusIconRole] = "statusIcon";
-    roles[QMailMessageModelBase::MessageDirectionIconRole] = "directionIcon";
-    roles[QMailMessageModelBase::MessagePresenceIconRole] = "presenceIcon";
-    roles[QMailMessageModelBase::MessageBodyTextRole] = "body";
-    roles[QMailMessageModelBase::MessageIdRole] = "messageId";
+    roles[MessageAddressTextRole] = "sender";
+    roles[MessageSubjectTextRole] = "subject";
+    roles[MessageFilterTextRole] = "messageFilter";
+    roles[MessageTimeStampTextRole] = "timeStamp";
+    roles[MessageSizeTextRole] = "size";
+    roles[MessageTypeIconRole] = "icon";
+    roles[MessageStatusIconRole] = "statusIcon";
+    roles[MessageDirectionIconRole] = "directionIcon";
+    roles[MessagePresenceIconRole] = "presenceIcon";
+    roles[MessageBodyTextRole] = "body";
+    roles[MessageIdRole] = "messageId";
     roles[MessageAttachmentCountRole] = "numberOfAttachments";
     roles[MessageAttachmentsRole] = "listOfAttachments";
     roles[MessageRecipientsRole] = "recipients";
@@ -171,7 +297,14 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageSelectModeRole] = "selected";
     setRoleNames(roles);
 
+    m_sortById = EmailMessageListModel::SortDate;
+    m_sortKey = 0;
+    timer = new QTimer(this);
+    search_str = QString();
+    connect(timer, SIGNAL(timeout()), this, SLOT(updateSearch()));
+
     initMailServer();
+/*
     QMailAccountIdList ids = QMailStore::instance()->queryAccounts(
             QMailAccountKey::status(QMailAccount::Enabled, QMailDataComparator::Includes),
             QMailAccountSortKey::name());
@@ -182,31 +315,52 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     QMailMessageSortKey sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
     QMailMessageListModel::setSortKey(sortKey);
     m_selectedMsgIds.clear();
+*/    
 }
 
 EmailMessageListModel::~EmailMessageListModel()
 {
-    delete m_retrievalAction;
-    delete m_storageAction;
 }
 
 int EmailMessageListModel::rowCount(const QModelIndex & parent) const {
-    return QMailMessageListModel::rowCount(parent);
+    Q_UNUSED(parent);
+    return folder_uids.length();
 }
 
 QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const {
-    if (!index.isValid() || index.row() > rowCount(parent(index)))
+    int row = index.row ();
+    const QHash<int, QByteArray> roles = roleNames();
+
+    return  mydata(row, role);
+}
+
+QVariant EmailMessageListModel::mydata(int row, int role) const {
+	
+    QString iuid;
+    CamelMessageInfoVariant minfo; 
+
+    if (row  > folder_uids.length())
         return QVariant();
 
-    if (role == QMailMessageModelBase::MessageTimeStampTextRole)
+    iuid = folder_uids[row];
+    minfo = m_infos[iuid];
+
+    if (role == MessageTimeStampTextRole)
     {
-        QMailMessageId msgId = idFromIndex(index);
-        QMailMessage message(msgId);
-        QDateTime timeStamp = message.receivedDate().toLocalTime();
+        QDateTime timeStamp = QDateTime::fromTime_t ((uint) minfo.date_received);	    
         return (timeStamp.toString("hh:mm MM/dd/yyyy"));
     }
+    else if (role == MessageSubjectTextRole) 
+    {
+	return QVariant(minfo.subject);
+    }    
     else if (role == MessageAttachmentCountRole)
     {
+	int numberOfAttachments = 0;
+	
+	if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) != 0)
+		numberOfAttachments = 1; /* For now show just the presence of attachments */
+#if 0	    
         // return number of attachments
         QMailMessage message(idFromIndex(index));
         if (!message.status() & QMailMessageMetaData::HasAttachments)
@@ -229,10 +383,18 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
 
             numberOfAttachments += 1;
         }
+#endif
         return numberOfAttachments;
     }
     else if (role == MessageAttachmentsRole)
     {
+
+        if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) != 0)
+		return QStringList();
+
+	QStringList attachments;
+	attachments << QString("TempAttachment");
+#if 0
         // return a stringlist of attachments
         QMailMessage message(idFromIndex(index));
         if (!message.status() & QMailMessageMetaData::HasAttachments)
@@ -255,109 +417,162 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
 
             attachments << sourcePart.displayName();
         }
-
+#endif
         return attachments;
     }
     else if (role == MessageRecipientsRole)
     {
-        QMailMessage message (idFromIndex(index));
-        QStringList recipients;
-        QList<QMailAddress> addresses = message.to();
-        foreach (QMailAddress address, addresses)
-        {
-            recipients << address.address();
-        }
+	QStringList recipients;
+	QStringList mto = minfo.to.split (">,");
+	foreach (QString str, mto) {
+		QStringList email = str.split ("<", QString::KeepEmptyParts);
+		if (email.length() == 1)
+			recipients << email[0];
+		else 
+			recipients << email[1];
+	}
         return recipients;
     }
     else if (role == MessageRecipientsDisplayNameRole)
     {
-        QMailMessage message (idFromIndex(index));
         QStringList recipients;
-        QList<QMailAddress> addresses = message.to();
-        foreach (QMailAddress address, addresses)
-        {
-            recipients << address.name();
+        QStringList mto = minfo.to.split (">,");
+
+        foreach (QString str, mto) {
+                QStringList email = str.split ("<", QString::KeepEmptyParts);
+		if (!email[0].isEmpty())
+	                recipients << email[0];
+		else
+			recipients << email[1]; //Append email if name isn't present.
         }
         return recipients;
     }
     else if (role == MessageReadStatusRole)
     {
-        QMailMessage message (idFromIndex(index));
-        quint64 status = message.status();
-
-        if (status & QMailMessage::Read)
-            return 1;			// 1 for read
-        else
-            return 0;			// 0 for unread
+        if (minfo.flags & CAMEL_MESSAGE_SEEN)
+		return 1;
+	else
+		return 0;
     }
-    else if (role == QMailMessageModelBase::MessageBodyTextRole)
+    else if (role == MessageBodyTextRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return (bodyPlainText(message));
+        QString uid = folder_uids[row];
+        return bodyPlainText (uid);
     }
     else if (role == MessageHtmlBodyRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return (bodyHtmlText(&message));
+        //QMailMessage message (idFromIndex(index));
+        //return (bodyHtmlText(&message));
+        QString uid = folder_uids[row];
+        return bodyPlainText (uid);
     }
     else if (role == MessageQuotedBodyRole)
-    {
-        QMailMessage message (idFromIndex(index));
-        QString body = bodyPlainText(message);
-        body.prepend('\n');
-        body.replace('\n', "\n>");
-        body.truncate(body.size() - 1);  // remove the extra ">" put there by QString.replace
-        return body;
+    {	
+	  QString uid = folder_uids[row];
+	  return bodyPlainText (uid);
     }
-    else if (role == MessageUuidRole)
+    else if (role == MessageUuidRole || role == MessageIdRole)
     {
-        QMailMessageId messageId = idFromIndex(index);
-        QString uuid = QString::number(messageId.toULongLong());
-        QMailMessage newId = QMailMessageId (uuid.toULongLong());
-        QMailMessage message (newId);
-        QString body = message.body().data();
+	QString uuid = m_current_hash +  minfo.uid;
         return uuid;
     }
     else if (role == MessageSenderDisplayNameRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return message.from().name();
+	QString str = minfo.from;
+	QString name;
+	QStringList email = str.split ("<", QString::KeepEmptyParts);
+
+	if (email[0].isEmpty())
+		name = email[1];
+	else
+		name = email[0];
+        return name;
     }
-    else if (role == MessageSenderEmailAddressRole)
+    else if (role == MessageSenderEmailAddressRole || role == MessageAddressTextRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return message.from().address();
+        QString str = minfo.from;
+        QString address;
+        QStringList email = str.split ("<", QString::KeepEmptyParts);
+
+	address = email[1];
+	address.chop (1);
+        return address;
     }
     else if (role == MessageCcRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return QMailAddress::toStringList (message.cc());
+        QStringList mcc = minfo.cc.split (">,");
+        foreach (QString str, mcc) {
+		str += ">";
+        }
+
+        return mcc;
     }
     else if (role == MessageBccRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return QMailAddress::toStringList (message.bcc());
+        return QStringList ();
     }
     else if (role == MessageTimeStampRole)
     {
-        QMailMessage message (idFromIndex(index));
-        return (message.date().toLocalTime());
+        QDateTime timeStamp = QDateTime::fromTime_t ((uint) minfo.date_received);
+        return (timeStamp.toLocalTime());	    
     }
     else if (role == MessageSelectModeRole)
     {
        int selected = 0;
-       QMailMessageId msgId = idFromIndex(index);
-       if (m_selectedMsgIds.contains(msgId) == true)
+       QString uid = folder_uids[row];
+       if (m_selectedMsgIds.contains(uid) == true)
            selected = 1;
         return (selected);
+    } else {
+	const QHash<int, QByteArray> roles = roleNames();
+	g_print("Implement to fetch role: %s\n", (const char *)roles[role].constData());
     }
 
-    return QMailMessageListModel::data(index, role);
+    return QVariant();
+}
+
+void EmailMessageListModel::updateSearch ()
+{
+    QDBusPendingReply<QStringList> reply = m_folder_proxy->searchByExpression (search_str);
+    reply.waitForFinished();
+    
+    beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
+    folder_uids.clear ();
+    endRemoveRows ();
+    beginInsertRows (QModelIndex(), 0, folder_uids.length()-1);
+    folder_uids = reply.value ();
+    endInsertRows();
+
+    qDebug() << "********************************* Search count "<< folder_uids.length();
+    foreach (QString uid, folder_uids)
+	qDebug() << "Search result: " << uid;
+    if (m_sortById == EmailMessageListModel::SortSender)
+        sortBySender (m_sortKey);
+    else if (m_sortById == EmailMessageListModel::SortSubject)
+        sortBySender (m_sortKey);
+    else
+        sortByDate (m_sortKey);
+    timer->stop();
 }
 
 void EmailMessageListModel::setSearch(const QString search)
 {
+    char *query;
+    const char *str = search.toLocal8Bit().constData();
+    query = g_strdup_printf("(match-all (or (header-contains \"From\" \"%s\")"
+                      "(header-contains \"To\" \"%s\")"
+                      "(header-contains \"Cc\" \"%s\")"
+                      "(header-contains \"Bcc\" \"%s\")"
+		      "(header-contains \"Subject\" \"%s\")))", str, str, str, str, str);
 
+    qDebug() << "****************Search is " << search;
+    
+    search_str = QString(query);
+    /* Start search when the user gives a keyb bread, in 1.5 secs*/
+    timer->stop();
+    timer->start(1500);
+
+#if 0
     if(search.isEmpty())
     {
         setKey(QMailMessageKey::nonMatchingKey());
@@ -371,10 +586,70 @@ void EmailMessageListModel::setSearch(const QString search)
         setKey(m_key & (subjectKey | toKey | fromKey));
     }
     m_search = search;
+#endif
 }
 
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
+    if (m_current_folder == id.toString()) {
+	return;
+    }
+    m_current_folder = id.toString ();
+    CamelFolderInfoVariant c_info;
+    const char *fstr = m_current_folder.toLocal8Bit().constData();
+
+    if (!fstr || !*fstr) {
+	return;
+    }
+    
+    qDebug() << "Set folder key: " << m_current_folder;
+    foreach (CamelFolderInfoVariant info, m_folders) {
+	if (m_current_folder == info.uri)
+		c_info = info;	
+    }
+
+    if (m_store_proxy && m_store_proxy->isValid()) {
+	QDBusPendingReply<QDBusObjectPath> reply = m_store_proxy->getFolder (QString(c_info.full_name));
+	reply.waitForFinished();
+	m_folder_proxy_id = reply.value ();
+    }
+
+    m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                                        m_folder_proxy_id.path(),
+                                                                        QDBusConnection::sessionBus(), this);
+	{
+		QDBusPendingReply<QStringList> reply = m_folder_proxy->getUids ();
+	        reply.waitForFinished();
+		folder_uids = reply.value ();
+	}
+	{
+		QDBusPendingReply<> reply = m_folder_proxy->prepareSummary();
+		reply.waitForFinished();
+	}
+	beginInsertRows(QModelIndex(), 0, folder_uids.length()-1);
+	foreach (QString uid, folder_uids) {
+		QDBusError error;
+		CamelMessageInfoVariant info;
+		qDebug() << "Fetching uid " << uid;
+		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+                reply.waitForFinished();
+		qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+		if (reply.isError()) {
+			error = reply.error();	
+			qDebug() << "Error: " << error.name () << " " << error.message();
+			continue;
+		}	
+		info = reply.value ();
+		m_infos.insert (uid, info);
+	}
+	endInsertRows();
+
+        connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
+                                            this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
+
+
+
+#if 0
     m_currentFolderId = id.value<QMailFolderId>();
     if (!m_currentFolderId.isValid())
         return;
@@ -383,10 +658,91 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     m_key=key();
     QMailMessageSortKey sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
     QMailMessageListModel::setSortKey(sortKey);
+#endif
+}
+
+void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent)
+{
+	qDebug () << "********************************************" << added.length() << " " << removed.length() << " " << changed.length() << " " << recent.length();
+        beginInsertRows(QModelIndex(), folder_uids.length(), folder_uids.length()+added.length()-1);
+	foreach (QString uid, added) {
+		/* Add uid */
+		qDebug() << "Adding UID: " << uid;
+		folder_uids << uid;
+
+		/* Add message info */
+                QDBusError error;
+                CamelMessageInfoVariant info;
+                qDebug() << "Fetching uid " << uid;
+                QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+                reply.waitForFinished();
+                qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+                if (reply.isError()) {
+                        error = reply.error();
+                        qDebug() << "Error: " << error.name () << " " << error.message();
+                        continue;
+                }
+                info = reply.value ();
+                m_infos.insert (uid, info);
+
+	}
+        endInsertRows();
+
 }
 
 void EmailMessageListModel::setAccountKey (QVariant id)
 {
+    GConfClient *client;
+    EIterator *iter;
+    EAccountList *account_list;
+    EAccount *acc;
+    QString aid = id.toString ();
+    int index=-1;
+
+    if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
+	g_debug("Setting same account");
+	return;
+    }
+	 
+    qDebug() << "Set Account: " << id.toString();
+    client = gconf_client_get_default ();
+    account_list = e_account_list_new (client);
+    g_object_unref (client);
+
+    iter = e_list_get_iterator (E_LIST (account_list));
+    while (e_iterator_is_valid (iter)) {
+        index++;
+        acc = (EAccount *) e_iterator_get (iter);
+        if (strcmp ((const char *)aid.toLocal8Bit().constData(), acc->uid) == 0)
+             m_account = acc;
+        e_iterator_next (iter);
+    }
+
+    g_object_unref (iter);
+    const char *url;
+
+    url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
+OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+    if (instance && instance->isValid()) {
+        QDBusPendingReply<QDBusObjectPath> reply = instance->getStore (QString(url));
+        reply.waitForFinished();
+        m_store_proxy_id = reply.value();
+        m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                                        m_store_proxy_id.path(),
+                                                                        QDBusConnection::sessionBus(), this);
+
+        if (m_store_proxy && m_store_proxy->isValid()) {
+                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(""),
+                                                                        CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+                reply.waitForFinished();
+                m_folders = reply.value ();
+
+        }
+    }
+
+    
+
+#if 0
     QMailAccountId accountId = id.value<QMailAccountId>();
     QMailAccountIdList ids;
     if (!accountId.isValid() || id == -1)
@@ -426,11 +782,80 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     QMailMessageListModel::setSortKey(sortKey);
 
     m_key= key();
-    
+#endif 
 }
+
+bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2, int id, int asc)
+{
+  	bool ret;
+
+	if (id == EmailMessageListModel::SortSender) {
+		ret = info1.from < info2.from;
+	} else if (id == EmailMessageListModel::SortSubject) {
+		ret = info1.subject < info2.subject;
+        } else if (id == EmailMessageListModel::SortDate) {
+		ret = info1.date_received < info2.date_received;
+        } else {
+		return FALSE;
+	}
+	if (asc)
+		return ret;
+	else
+		return !ret;
+
+}
+
+bool sortInfoSenderFunctionAsc (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+	return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 1);
+}
+bool sortInfoSubFunctionAsc (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 1);
+}
+bool sortInfoDateFunctionAsc (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 1);
+}
+
+bool sortInfoSenderFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 0);
+}
+bool sortInfoSubFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 0);
+}
+bool sortInfoDateFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 0);
+}
+
 
 void EmailMessageListModel::sortBySender(int key)
 {
+	m_sortById = EmailMessageListModel::SortSender;
+	m_sortKey = key;
+	
+        QList<CamelMessageInfoVariant> mlist;
+        foreach (QString uid, folder_uids)
+                mlist << m_infos[uid];
+
+	if (key)
+		qSort(mlist.begin(), mlist.end(), sortInfoSenderFunctionAsc);
+	else
+		qSort(mlist.begin(), mlist.end(), sortInfoSenderFunctionDes);
+
+	beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
+	folder_uids.clear();
+	endRemoveRows ();
+	beginInsertRows (QModelIndex(), 0, mlist.length()-1);
+	foreach (CamelMessageInfoVariant info, mlist) {
+		folder_uids << info.uid;
+	}
+	endInsertRows();
+
+#if 0
     impl()->reset();
     QMailMessageSortKey sortKey;
     if (key == 0)  // descending
@@ -439,10 +864,33 @@ void EmailMessageListModel::sortBySender(int key)
         sortKey = QMailMessageSortKey::sender(Qt::AscendingOrder);
 
     QMailMessageListModel::setSortKey(sortKey);
+#endif
 }
 
 void EmailMessageListModel::sortBySubject(int key)
 {
+	m_sortById = EmailMessageListModel::SortSubject;
+	m_sortKey = key;
+
+	QList<CamelMessageInfoVariant> mlist;
+	foreach (QString uid, folder_uids)
+		mlist << m_infos[uid];
+
+	if (key)
+		qSort(mlist.begin(), mlist.end(), sortInfoSubFunctionAsc);
+	else
+	        qSort(mlist.begin(), mlist.end(), sortInfoSubFunctionDes);
+
+        beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
+        folder_uids.clear();
+        endRemoveRows ();
+        beginInsertRows (QModelIndex(), 0, mlist.length()-1);
+        foreach (CamelMessageInfoVariant info, mlist) {
+                folder_uids << info.uid;
+        }
+        endInsertRows();
+
+#if 0
     QMailMessageSortKey sortKey;
     if (key == 0)  // descending
         sortKey = QMailMessageSortKey::subject(Qt::DescendingOrder);
@@ -450,10 +898,34 @@ void EmailMessageListModel::sortBySubject(int key)
         sortKey = QMailMessageSortKey::subject(Qt::AscendingOrder);
 
     QMailMessageListModel::setSortKey(sortKey);
+#endif
 }
 
 void EmailMessageListModel::sortByDate(int key)
 {
+	m_sortById = EmailMessageListModel::SortDate;
+	m_sortKey = key;
+
+        QList<CamelMessageInfoVariant> mlist;
+        foreach (QString uid, folder_uids)
+                mlist << m_infos[uid];
+
+	if (key)
+	        qSort(mlist.begin(), mlist.end(), sortInfoDateFunctionAsc);
+	else
+                qSort(mlist.begin(), mlist.end(), sortInfoDateFunctionDes);
+
+        beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
+        folder_uids.clear();
+        endRemoveRows ();
+        beginInsertRows (QModelIndex(), 0, mlist.length()-1);
+        foreach (CamelMessageInfoVariant info, mlist) {
+                folder_uids << info.uid;
+        }
+        endInsertRows();
+        qDebug() << "**************Sorted " << folder_uids.length();
+
+#if 0
     QMailMessageSortKey sortKey;
     if (key == 0)  // descending
         sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
@@ -461,38 +933,29 @@ void EmailMessageListModel::sortByDate(int key)
         sortKey = QMailMessageSortKey::timeStamp(Qt::AscendingOrder);
 
     QMailMessageListModel::setSortKey(sortKey);
+#endif
 }
 
 void EmailMessageListModel::sortByAttachment(int key)
 {
+    m_sortById = EmailMessageListModel::SortAttachment;
+    m_sortKey = key;
     // TDB
-    Q_UNUSED(key);
 }
 
 void EmailMessageListModel::initMailServer()
 {
-    QString lockfile = "messageserver-instance.lock";
-    int id = QMail::fileLock(lockfile);
-    if (id == -1) {
-        // Server is currently running
-        return;
-    }
-    QMail::fileUnlock(id);
-
-    m_messageServerProcess.start("/usr/bin/messageserver");
-    m_messageServerProcess.waitForStarted();
     return;
 }
 
 QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
 {
-    quint64 id = uuid.toULongLong();
-    QMailMessageId msgId (id);
+    QString uid = uuid.right(uuid.length()-8);
+    CamelMessageInfoVariant info = m_infos[uid];
+
     for (int row = 0; row < rowCount(); row++)
     {
-        QVariant vMsgId = data(index(row), QMailMessageModelBase::MessageIdRole);
-        
-        if (msgId == vMsgId.value<QMailMessageId>())
+	if (info.uid == uid)
             return row;
     }
     return -1;
@@ -500,90 +963,92 @@ QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
 
 QVariant EmailMessageListModel::messageId (int idx)
 {
-    QMailMessageId id = idFromIndex (index(idx));
-    return id;
+    QString uid = m_current_hash+folder_uids[idx];
+
+    return uid;
 }
 
 QVariant EmailMessageListModel::subject (int idx)
 {
-    QMailMessageId id = idFromIndex (index(idx));
-    QMailMessage msg(id);
-    return msg.subject();
+    QString uid = folder_uids[idx];
+    CamelMessageInfoVariant info = m_infos[uid];
+
+    return info.subject;
 }
 
 QVariant EmailMessageListModel::mailSender (int idx)
 {
-    return data(index(idx), QMailMessageModelBase::MessageAddressTextRole);
+    return mydata(idx, MessageAddressTextRole);
 }
 
 QVariant EmailMessageListModel::timeStamp (int idx)
 {
-    return data(index(idx), QMailMessageModelBase::MessageTimeStampTextRole);
+    return mydata(idx, MessageTimeStampTextRole);
 }
 
 QVariant EmailMessageListModel::body (int idx)
 {
-    return data(index(idx), QMailMessageModelBase::MessageBodyTextRole);
+    return mydata(idx, MessageBodyTextRole);
 }
 
 QVariant EmailMessageListModel::quotedBody (int idx)
 {
-    return data(index(idx), MessageQuotedBodyRole);
+    return mydata(idx, MessageQuotedBodyRole);
 }
 
 QVariant EmailMessageListModel::htmlBody (int idx)
 {
-    return data(index(idx), MessageHtmlBodyRole);
+    return mydata(idx, MessageHtmlBodyRole);
 }
 
 QVariant EmailMessageListModel::attachments (int idx)
 {
-    return data(index(idx), MessageAttachmentsRole);
+    return mydata(idx, MessageAttachmentsRole);
 }
 
 QVariant EmailMessageListModel::numberOfAttachments (int idx)
 {
-    return data(index(idx), MessageAttachmentCountRole);
+    return mydata(idx, MessageAttachmentCountRole);
 }
 
 QVariant EmailMessageListModel::toList (int idx)
 {
-    return data(index(idx), MessageRecipientsRole);
+    return mydata(idx, MessageRecipientsRole);
 }
 
 QVariant EmailMessageListModel::recipients (int idx)
 {
-    QMailMessageId msgId = idFromIndex(index(idx));
-    QMailMessage message(msgId);
-    QStringList recipients;
-     
-    QMailAccount mailAccount (message.parentAccountId());
-    QString myEmailAddress = mailAccount.fromAddress().address();
+        QStringList recipients;
+	QString uid = folder_uids[idx];
+	CamelMessageInfoVariant info = m_infos[uid];
 
-    QList<QMailAddress> addresses;
-    addresses = message.to() + message.cc() + message.bcc();
-    foreach (QMailAddress address, addresses)
-    {
-        QString emailAddress = address.address();
-        if (QString::compare(myEmailAddress, emailAddress, Qt::CaseInsensitive) != 0)
-            recipients << address.toString();
-    }
+        QStringList mto = info.to.split (">,");
+        foreach (QString str, mto) {
+                QStringList email = str.split ("<", QString::KeepEmptyParts);
+                recipients << email[1];
+        }
+	mto = info.cc.split (">,");
+        foreach (QString str, mto) {
+                QStringList email = str.split ("<", QString::KeepEmptyParts);
+                recipients << email[1];
+        }
+
     return recipients;
 }
 
 QVariant EmailMessageListModel::ccList (int idx)
 {
-    return data(index(idx), MessageCcRole);
+    return mydata(idx, MessageCcRole);
 }
 
 QVariant EmailMessageListModel::bccList (int idx)
 {
-    return data(index(idx), MessageBccRole);
+    return mydata(idx, MessageBccRole);
 }
 
 QVariant EmailMessageListModel::messageRead (int idx)
 {
-    return data(index(idx), MessageReadStatusRole);
+    return mydata(idx, MessageReadStatusRole);
 }
 
 int EmailMessageListModel::messagesCount ()
@@ -595,7 +1060,7 @@ void EmailMessageListModel::deSelectAllMessages()
 {
     if (m_selectedMsgIds.size() == 0)
         return;
-
+#if 0
     QMailMessageIdList msgIds = m_selectedMsgIds;
     m_selectedMsgIds.clear();
     foreach (QMailMessageId msgId,  msgIds)
@@ -608,24 +1073,25 @@ void EmailMessageListModel::deSelectAllMessages()
                 dataChanged (index(row), index(row));
         }
     }
+#endif    
 }
 
 void EmailMessageListModel::selectMessage( int idx )
 {
-    QMailMessageId msgId = idFromIndex(index(idx));
+    QString uid = folder_uids[idx];
 
-    if (!m_selectedMsgIds.contains (msgId))
+    if (!m_selectedMsgIds.contains (uid))
     {
-        m_selectedMsgIds.append(msgId);
+        m_selectedMsgIds.append(uid);
     dataChanged(index(idx), index(idx));
     }
 }
 
 void EmailMessageListModel::deSelectMessage (int idx )
 {
-    QMailMessageId msgId = idFromIndex(index(idx));
+    QString uid = folder_uids[idx];
 
-    m_selectedMsgIds.removeOne(msgId);
+    m_selectedMsgIds.removeOne(uid);
     dataChanged(index(idx), index(idx));
 }
 
@@ -633,14 +1099,49 @@ void EmailMessageListModel::deleteSelectedMessageIds()
 {
     if (m_selectedMsgIds.size() == 0)
         return;
+#if 0    
     QMailMessage msg (m_selectedMsgIds[0]);
     m_storageAction->deleteMessages(m_selectedMsgIds);
     m_selectedMsgIds.clear();
     m_retrievalAction->exportUpdates(msg.parentAccountId());
+#endif    
 }
+
+/*! \reimp */
+QModelIndex EmailMessageListModel::index(int row, int column, const QModelIndex &parent) const
+{
+    return hasIndex(row, column, parent) ? createIndex(row, column) : QModelIndex();
+}
+
+/*! \reimp */
+QModelIndex EmailMessageListModel::parent(const QModelIndex &idx) const
+{
+    return QModelIndex();
+
+    Q_UNUSED(idx)
+}
+
+/*! \reimp */
+QModelIndex EmailMessageListModel::generateIndex(int row, int column, void *ptr)
+{
+    return index(row, column, QModelIndex());
+
+    Q_UNUSED(ptr)
+}
+
+int EmailMessageListModel::columnCount(const QModelIndex &idx) const
+{
+
+    return 1;
+    
+    Q_UNUSED(idx)
+}
+
 
 void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity activity)
 {
+	Q_UNUSED (activity)
+#if 0
     if (QMailServiceAction *action = static_cast<QMailServiceAction*>(sender()))
     {
         if (activity == QMailServiceAction::Successful)
@@ -656,4 +1157,5 @@ void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity
             emit messageDownloadCompleted();
         }
     }
+#endif
 }

@@ -337,6 +337,8 @@ Window {
             Component.onCompleted: {
                 mailFolderListModel.setAccountKey (currentMailAccountId);
                 var idx = mailFolderListModel.indexFromFolderId(0);
+		//mailFolderListModel.setFolderKey (mailFolderListModel.inboxFolderId());
+		scene.currentFolderId = mailFolderListModel.inboxFolderId();
                 scene.folderListViewTitle = qsTr("%1 %2").arg(currentAccountDisplayName).arg(inboxLabel);
                 scene.folderListViewClickCount = 0;
             }
@@ -348,6 +350,7 @@ Window {
 
             onSearch: {
                 console.log("Application search query" + needle);
+		messageListModel.setSearch (needle);
              }
 
              property int dateSortKey: 1

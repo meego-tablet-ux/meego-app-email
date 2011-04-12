@@ -17,9 +17,15 @@
 #undef Status
 #endif
 
+#include "dbustypes.h"
 #include <QAbstractListModel>
 #include <QMailFolder>
 #include <QMailAccount>
+#include <libedataserver/e-account-list.h>
+#include <libedataserver/e-account.h>
+#include <gconf/gconf-client.h>
+#include "e-gdbus-emailsession-proxy.h"
+#include "e-gdbus-emailstore-proxy.h"
 
 class FolderListModel : public QAbstractListModel
 {
@@ -48,7 +54,12 @@ public:
     Q_INVOKABLE QVariant inboxFolderId ();
 
 private:
-    QMailFolderIdList m_mailFolderIds;
+    CamelFolderInfoArrayVariant m_folderlist;
+    EAccount * getAccountById(EAccountList *account_list, char *id);
+    EAccount *m_account;
+    QDBusObjectPath m_store_proxy_id;
+    OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
+    
 };
 
 #endif
