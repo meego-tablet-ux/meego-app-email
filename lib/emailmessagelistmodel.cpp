@@ -467,8 +467,14 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     }
     else if (role == MessageQuotedBodyRole)
     {	
-	  QString uid = folder_uids[row];
-	  return bodyText (uid, TRUE);
+	QString uid = folder_uids[row];
+	QString body = bodyText(uid, TRUE);
+	body.prepend('\n');
+	body.replace('\n', "\n>");
+	body.truncate(body.size() - 1);  // remove the extra ">" put there by QString.replace
+	return body;
+     }
+
     }
     else if (role == MessageUuidRole || role == MessageIdRole)
     {
