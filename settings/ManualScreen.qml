@@ -54,16 +54,16 @@ Item {
                         TextControl {
                             id: recvServerField
                             label: qsTr("Server address")
-                            text: emailAccount.recvServer
+                            Component.onCompleted: setText(emailAccount.recvServer)
                             inputMethodHints: Qt.ImhNoAutoUppercase
-                            textInput.onTextChanged: emailAccount.recvServer = text
+                            onTextChanged: emailAccount.recvServer = text
                         },
                         TextControl {
                             id: recvPortField
                             label: qsTr("Port")
-                            text: emailAccount.recvPort
+                            Component.onCompleted: setText(emailAccount.recvPort)
                             inputMethodHints: Qt.ImhDigitsOnly
-                            textInput.onTextChanged: emailAccount.recvPort = text
+                            onTextChanged: emailAccount.recvPort = text
                         },
                         DropDownControl {
                             label: qsTr("Security")
@@ -74,15 +74,15 @@ Item {
                         TextControl {
                             id: recvUsernameField
                             label: qsTr("Username")
-                            text: emailAccount.recvUsername
+                            Component.onCompleted: setText(emailAccount.recvUsername)
                             inputMethodHints: Qt.ImhNoAutoUppercase
-                            textInput.onTextChanged: emailAccount.recvUsername = text
+                            onTextChanged: emailAccount.recvUsername = text
                         },
                         PasswordControl {
                             id: recvPasswordField
                             label: qsTr("Password")
-                            text: emailAccount.recvPassword
-                            textInput.onTextChanged: emailAccount.recvPassword = text
+                            Component.onCompleted: setText(emailAccount.recvPassword)
+                            onTextChanged: emailAccount.recvPassword = text
                         },
                         Item { width: 1; height: 1; }   // spacer
                     ]
@@ -95,16 +95,16 @@ Item {
                         TextControl {
                             id: sendServerField
                             label: qsTr("Server address")
-                            text: emailAccount.sendServer
+                            Component.onCompleted: setText(emailAccount.sendServer)
                             inputMethodHints: Qt.ImhNoAutoUppercase
-                            textInput.onTextChanged: emailAccount.sendServer = text
+                            onTextChanged: emailAccount.sendServer = text
                         },
                         TextControl {
                             id: sendPortField
                             label: qsTr("Port")
-                            text: emailAccount.sendPort
+                            Component.onCompleted: setText(emailAccount.sendPort)
                             inputMethodHints: Qt.ImhDigitsOnly
-                            textInput.onTextChanged: emailAccount.sendPort = text
+                            onTextChanged: emailAccount.sendPort = text
                         },
                         DropDownControl {
                             id: sendAuthField
@@ -122,15 +122,15 @@ Item {
                         TextControl {
                             id: sendUsernameField
                             label: qsTr("Username")
-                            text: emailAccount.sendUsername
+                            Component.onCompleted: setText(emailAccount.sendUsername)
                             inputMethodHints: Qt.ImhNoAutoUppercase
-                            textInput.onTextChanged: emailAccount.sendUsername = text
+                            onTextChanged: emailAccount.sendUsername = text
                         },
                         PasswordControl {
                             id: sendPasswordField
                             label: qsTr("Password")
-                            text: emailAccount.sendPassword
-                            textInput.onTextChanged: emailAccount.sendPassword = text
+                            Component.onCompleted: setText(emailAccount.sendPassword)
+                            onTextChanged: emailAccount.sendPassword = text
                         },
                         Item { width: 1; height: 1; }   // spacer
                     ]

@@ -33,7 +33,7 @@ Item {
                 Item { width: 1; height: 20; },
                 TextControl {
                     label: qsTr("Account description:")
-                    text: emailAccount.description
+                    Component.onCompleted: setText(emailAccount.description)
                     enabled: false
                     // hide this field for "other" type accounts
                     visible: emailAccount.preset != 0
@@ -41,21 +41,21 @@ Item {
                 TextControl {
                     id: nameField
                     label: qsTr("Your name:")
-                    text: emailAccount.name
-                    textInput.onTextChanged: emailAccount.name = text
+                    Component.onCompleted: setText(emailAccount.name)
+                    onTextChanged: emailAccount.name = text
                 },
                 TextControl {
                     id: addressField
                     label: qsTr("Email address:")
-                    text: emailAccount.address
+                    Component.onCompleted: setText(emailAccount.address)
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhEmailCharactersOnly
-                    textInput.onTextChanged: emailAccount.address = text
+                    onTextChanged: emailAccount.address = text
                 },
                 PasswordControl {
                     id: passwordField
                     label: qsTr("Password:")
-                    text: emailAccount.password
-                    textInput.onTextChanged: emailAccount.password = text
+                    Component.onCompleted: setText(emailAccount.password)
+                    onTextChanged: emailAccount.password = text
                 },
                 Item { width: 1; height: 40; }
                 ]
