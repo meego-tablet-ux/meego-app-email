@@ -838,6 +838,20 @@ QList<T> reverse(const QList<T> &l)
 	return ret;
 }
 
+bool sortInfoSenderFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 0);
+}
+bool sortInfoSubFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 0);
+}
+bool sortInfoDateFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+{
+        return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 0);
+}
+
+
 void EmailMessageListModel::sortBySender(int key)
 {
 	m_sortById = EmailMessageListModel::SortSender;
