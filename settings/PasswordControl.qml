@@ -10,15 +10,31 @@ import Qt 4.7
 import MeeGo.Labs.Components 0.1
 
 Column {
+    id: root
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.leftMargin: 90
     anchors.rightMargin: 90
     property alias label: label.text
     property alias text: textentry.text
-    property alias textInput: textentry.textInput
     property alias inputMethodHints: textentry.inputMethodHints
     property alias errorText: inlineNotification.text
+
+    // BUG: setting echoMode appears to cause a spurious
+    // textChanged signal, suppress is a workaround to
+    // prevent clearing the password fields
+
+    // private
+    property bool suppress: true
+
+    signal textChanged()
+
+    function setText(text) {
+        suppress = true;
+        textentry.text = text;
+        suppress = false;
+    }
+
     Text {
         id: label
         height: 30
@@ -31,6 +47,11 @@ Column {
         anchors.left: parent.left
         anchors.right: parent.right
         textInput.echoMode: TextInput.Password
+        onTextChanged: {
+            if (!suppress) {
+                root.textChanged();
+            }
+        }
     }
     InlineNotification {
         id: inlineNotification

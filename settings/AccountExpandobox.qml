@@ -98,24 +98,24 @@ Expandobox {
                 Item { width: 1; height: 1; },   // spacer
                 TextControl {
                     label: qsTr("Account description")
-                    text: model.description
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 33)
+                    Component.onCompleted: setText(model.description)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 33)
                 },
                 TextControl {
                     label: qsTr("Your name")
-                    text: model.name
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 35)
+                    Component.onCompleted: setText(model.name)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 35)
                 },
                 TextControl {
                     label: qsTr("Email address")
-                    text: model.address
+                    Component.onCompleted: setText(model.address)
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhEmailCharactersOnly
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 36)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 36)
                 },
                 PasswordControl {
                     label: qsTr("Password")
-                    text: model.password
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 37)
+                    Component.onCompleted: setText(model.password)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 37)
                 },
                 Item { width: 1; height: 1; }   // spacer
                 ]
@@ -133,15 +133,15 @@ Expandobox {
                 },
                 TextControl {
                     label: qsTr("Server address")
-                    text: model.recvServer
+                    Component.onCompleted: setText(model.recvServer)
                     inputMethodHints: Qt.ImhNoAutoUppercase
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 39)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 39)
                 },
                 TextControl {
                     label: qsTr("Port")
-                    text: model.recvPort
+                    Component.onCompleted: setText(model.recvPort)
                     inputMethodHints: Qt.ImhDigitsOnly
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 40)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 40)
                 },
                 DropDownControl {
                     label: qsTr("Security")
@@ -151,14 +151,14 @@ Expandobox {
                 },
                 TextControl {
                     label: qsTr("Username")
-                    text: model.recvUsername
+                    Component.onCompleted: setText(model.recvUsername)
                     inputMethodHints: Qt.ImhNoAutoUppercase
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 42)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 42)
                 },
                 PasswordControl {
                     label: qsTr("Password")
-                    text: model.recvPassword
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 43)
+                    Component.onCompleted: setText(model.recvPassword)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 43)
                 },
                 Item { width: 1; height: 1; }   // spacer
                 ]
@@ -170,15 +170,15 @@ Expandobox {
                 Item { width: 1; height: 1; },   // spacer
                 TextControl {
                     label: qsTr("Server address")
-                    text: model.sendServer
+                    Component.onCompleted: setText(model.sendServer)
                     inputMethodHints: Qt.ImhNoAutoUppercase
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 44)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 44)
                 },
                 TextControl {
                     label: qsTr("Port")
-                    text: model.sendPort
+                    Component.onCompleted: setText(model.sendPort)
                     inputMethodHints: Qt.ImhDigitsOnly
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 45)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 45)
                 },
                 DropDownControl {
                     label: qsTr("Authentication")
@@ -194,14 +194,14 @@ Expandobox {
                 },
                 TextControl {
                     label: qsTr("Username")
-                    text: model.sendUsername
+                    Component.onCompleted: setText(model.sendUsername)
                     inputMethodHints: Qt.ImhNoAutoUppercase
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 48)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 48)
                 },
                 PasswordControl {
                     label: qsTr("Password")
-                    text: model.sendPassword
-                    textInput.onTextChanged: accountSettingsModel.setDataWrapper(index, text, 49)
+                    Component.onCompleted: setText(model.sendPassword)
+                    onTextChanged: accountSettingsModel.setDataWrapper(index, text, 49)
                 },
                 Item { width: 1; height: 1; }   // spacer
                 ]
