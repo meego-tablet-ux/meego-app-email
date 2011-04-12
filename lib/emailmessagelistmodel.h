@@ -127,6 +127,7 @@ private slots:
 private:
     void initMailServer ();
     void createChecksum ();
+    void sortMails ();
 
     CamelFolderInfoArrayVariant m_folders; 
     QStringList folder_uids;

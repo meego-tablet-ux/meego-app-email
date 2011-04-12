@@ -298,7 +298,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     setRoleNames(roles);
 
     m_sortById = EmailMessageListModel::SortDate;
-    m_sortKey = 0;
+    m_sortKey = 1;
     timer = new QTimer(this);
     search_str = QString();
     connect(timer, SIGNAL(timeout()), this, SLOT(updateSearch()));
@@ -551,12 +551,8 @@ void EmailMessageListModel::updateSearch ()
     qDebug() << "Search count: "<< folder_uids.length();
     foreach (QString uid, folder_uids)
 	qDebug() << "Search result: " << uid;
-    if (m_sortById == EmailMessageListModel::SortSender)
-        sortBySender (m_sortKey);
-    else if (m_sortById == EmailMessageListModel::SortSubject)
-        sortBySender (m_sortKey);
-    else
-        sortByDate (m_sortKey);
+
+    sortMails();
     timer->stop();
 }
 
@@ -648,6 +644,7 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 		m_infos.insert (uid, info);
 	}
 	endInsertRows();
+	sortMails ();
 
         connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
                                             this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
@@ -692,7 +689,7 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
 
 	}
         endInsertRows();
-
+	sortMails ();
 }
 
 void EmailMessageListModel::setAccountKey (QVariant id)
@@ -810,32 +807,38 @@ bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageI
 
 }
 
-bool sortInfoSenderFunctionAsc (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+bool sortInfoSenderFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
 {
 	return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 1);
 }
-bool sortInfoSubFunctionAsc (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+bool sortInfoSubFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
 {
         return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 1);
 }
-bool sortInfoDateFunctionAsc (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+bool sortInfoDateFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
 {
         return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 1);
 }
 
-bool sortInfoSenderFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+void EmailMessageListModel::sortMails ()
 {
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 0);
-}
-bool sortInfoSubFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 0);
-}
-bool sortInfoDateFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 0);
+    if (m_sortById == EmailMessageListModel::SortSender)
+        sortBySender (m_sortKey);
+    else if (m_sortById == EmailMessageListModel::SortSubject)
+        sortBySender (m_sortKey);
+    else
+        sortByDate (m_sortKey);
 }
 
+template<typename T>
+QList<T> reverse(const QList<T> &l)
+{
+	QList<T> ret;
+
+	for (int i=0 ; i<l.size(); i++)
+		ret.prepend(l.at(i));
+	return ret;
+}
 
 void EmailMessageListModel::sortBySender(int key)
 {
@@ -846,10 +849,9 @@ void EmailMessageListModel::sortBySender(int key)
         foreach (QString uid, folder_uids)
                 mlist << m_infos[uid];
 
+	qSort(mlist.begin(), mlist.end(), sortInfoSenderFunction);
 	if (key)
-		qSort(mlist.begin(), mlist.end(), sortInfoSenderFunctionAsc);
-	else
-		qSort(mlist.begin(), mlist.end(), sortInfoSenderFunctionDes);
+		mlist = reverse(mlist);
 
 	beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
 	folder_uids.clear();
@@ -881,10 +883,9 @@ void EmailMessageListModel::sortBySubject(int key)
 	foreach (QString uid, folder_uids)
 		mlist << m_infos[uid];
 
+	qSort(mlist.begin(), mlist.end(), sortInfoSubFunction);
 	if (key)
-		qSort(mlist.begin(), mlist.end(), sortInfoSubFunctionAsc);
-	else
-	        qSort(mlist.begin(), mlist.end(), sortInfoSubFunctionDes);
+		mlist = reverse(mlist);
 
         beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
         folder_uids.clear();
@@ -915,10 +916,9 @@ void EmailMessageListModel::sortByDate(int key)
         foreach (QString uid, folder_uids)
                 mlist << m_infos[uid];
 
+	qSort(mlist.begin(), mlist.end(), sortInfoDateFunction);
 	if (key)
-	        qSort(mlist.begin(), mlist.end(), sortInfoDateFunctionAsc);
-	else
-                qSort(mlist.begin(), mlist.end(), sortInfoDateFunctionDes);
+		mlist = reverse(mlist);
 
         beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
         folder_uids.clear();
