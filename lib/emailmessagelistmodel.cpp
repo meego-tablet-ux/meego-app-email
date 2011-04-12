@@ -473,8 +473,6 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 	body.replace('\n', "\n>");
 	body.truncate(body.size() - 1);  // remove the extra ">" put there by QString.replace
 	return body;
-     }
-
     }
     else if (role == MessageUuidRole || role == MessageIdRole)
     {
