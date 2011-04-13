@@ -51,7 +51,18 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
     CamelFolderInfoVariant  folder(m_folderlist[index.row()]);
     if (role == FolderName)
     {
-        return QVariant(folder.full_name);
+	QString displayName;
+
+        if (folder.full_name == ".#evolution/Junk")
+                displayName = QString ("Junk");
+        else if (folder.full_name == ".#evolution/Trash")
+                displayName = QString ("Trash");
+        else {
+                displayName = QString (folder.full_name);
+                displayName.replace (QString("/"), QString(" / "));
+        }
+
+        return QVariant(displayName);
     }
     else if (role == FolderId)
     {
@@ -130,8 +141,17 @@ QStringList FolderListModel::folderNames()
 
     foreach (CamelFolderInfoVariant fInfo, m_folderlist)
     {
-        QString displayName = QString (fInfo.full_name);
+        QString displayName;
 
+	if (fInfo.full_name == ".#evolution/Junk")
+		displayName = QString ("Junk");
+	else if (fInfo.full_name == ".#evolution/Trash")
+		displayName = QString ("Trash");
+	else {
+		displayName = QString (fInfo.full_name);
+		displayName.replace (QString("/"), QString(" / "));
+	}
+	
         if (fInfo.unread_count > 0)
         {
             displayName = displayName + " (" + QString::number(fInfo.unread_count) + ")";
