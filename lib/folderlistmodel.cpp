@@ -59,11 +59,11 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
     } 
     else if (role == FolderUnreadCount)
     {
-        return QVariant (folder.unread_count);
+        return QVariant ((folder.unread_count == -1) ? 0 : folder.unread_count );
     }
     else if (role == FolderServerCount)
     {
-        return (folder.total_mail_count);
+        return QVariant ((folder.total_mail_count == -1) ? 0 : folder.total_mail_count);
     }
 
     return QVariant();
