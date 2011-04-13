@@ -199,17 +199,19 @@ QVariant FolderListModel::inboxFolderId()
 
 QVariant FolderListModel::inboxFolderName()
 {
-    for (int i = 0; i < m_mailFolderIds.size(); i++)
+    for (int i = 0; i < m_folderlist.size(); i++)
     {
-        QMailFolder folder(m_mailFolderIds[i]);
-        QString folderName = folder.displayName();
-        if (QString::compare(folderName, "INBOX", Qt::CaseInsensitive) == 0)
-            return folderName;
+        CamelFolderInfoVariant folder(m_folderlist[i]);
+
+       if (QString::compare(folder.full_name, "INBOX", Qt::CaseInsensitive) == 0) {
+            g_print ("Returning INBOX URI: %s\n", (char *)folder.uri.toLocal8Bit().constData());
+            return QVariant(folder.folder_name);
+        }
     }
     return QVariant("");
 }
 
 int FolderListModel::totalNumberOfFolders()
 {
-    return m_mailFolderIds.count();
+    return m_folderlist.size();
 }
