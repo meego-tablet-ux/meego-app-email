@@ -612,6 +612,12 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 	reply.waitForFinished();
 	m_folder_proxy_id = reply.value ();
     }
+    
+    /* Clear message list before you load a folder. */
+    beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
+    folder_uids.clear();
+    endRemoveRows ();
+    m_infos.clear();
 
     m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                         m_folder_proxy_id.path(),
@@ -629,10 +635,10 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 	foreach (QString uid, folder_uids) {
 		QDBusError error;
 		CamelMessageInfoVariant info;
-		qDebug() << "Fetching uid " << uid;
+		//qDebug() << "Fetching uid " << uid;
 		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
                 reply.waitForFinished();
-		qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+		//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
 		if (reply.isError()) {
 			error = reply.error();	
 			qDebug() << "Error: " << error.name () << " " << error.message();
