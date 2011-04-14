@@ -164,11 +164,18 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 	CamelContentType *ct;
 	const char *textType = plain ? "plain" : "html";
 
-	reply = m_folder_proxy->getMessage(uid);
-        reply.waitForFinished();
-        qmsg = reply.value ();
-  	msg = qmsg.toLocal8Bit().constData();
+	qmsg = (*m_messages)[uid];
+	if (qmsg.isEmpty()) {
+		reply = m_folder_proxy->getMessage(uid);
+		reply.waitForFinished();
+		qmsg = reply.value ();
+		m_messages->insert (uid, qmsg);
+                qDebug() << "BT Fetching message " << uid;
+        } else {
+                qDebug() << "BT Got message from cache " << uid;
+	}
 
+	msg = qmsg.toLocal8Bit().constData();
 	message = camel_mime_message_new();
 	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
 	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
@@ -177,9 +184,8 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 
 	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
 
-	parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
-
 	if (CAMEL_IS_MULTIPART(containee)) {
+		parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
 		for (i=0;i<parts;i++) {
 			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
 		        CamelDataWrapper *subc;
@@ -191,17 +197,15 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 	                }
 
 		}
-	} else if (CAMEL_IS_MIME_MESSAGE(containee)) {
+	} else  {
 		ct = ((CamelDataWrapper *)containee)->mime_type;
 		if (camel_content_type_is(ct, "text", textType)) {
 			append_part_to_string (reparray, (CamelMimePart *)containee);
 		}
 
 
-	} else {
-		qDebug() << "********************************* empty body**********************";
 	}
-
+ 	
 	return QString (reparray);
 #if 0
     QMailMessagePartContainer *container = (QMailMessagePartContainer *)&mailMsg;
@@ -299,6 +303,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
 
     m_sortById = EmailMessageListModel::SortDate;
     m_sortKey = 1;
+    m_messages = new QHash <QString, QString>;
     timer = new QTimer(this);
     search_str = QString();
     connect(timer, SIGNAL(timeout()), this, SLOT(updateSearch()));
@@ -388,12 +393,58 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     }
     else if (role == MessageAttachmentsRole)
     {
-
-        if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) != 0)
+    	QDBusPendingReply<QString> reply;
+	QString qmsg;
+	QByteArray reparray;
+	CamelMimeMessage *message;
+	CamelStream *stream;
+	const char*msg;
+	int parts, i;
+	CamelDataWrapper *containee;
+	CamelContentType *ct;
+	
+	if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) == 0)
 		return QStringList();
 
-	QStringList attachments;
-	attachments << QString("TempAttachment");
+	qmsg =(* m_messages)[iuid];
+	if (qmsg.isEmpty()) {
+		reply = m_folder_proxy->getMessage(iuid);
+		reply.waitForFinished();
+		qmsg = reply.value ();
+		m_messages->insert(QString(iuid), qmsg);
+		qDebug() << "AR Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
+	} else {
+		qDebug() << "AR Got message from cache " << iuid;
+	}
+
+	msg = qmsg.toLocal8Bit().constData();
+	message = camel_mime_message_new();
+	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
+	camel_stream_reset (stream, NULL);
+	g_object_unref(stream);
+
+	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
+        QStringList attachments;
+
+	parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
+
+	if (CAMEL_IS_MULTIPART(containee)) {
+		for (i=0;i<parts;i++) {
+			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
+		        CamelDataWrapper *subc;
+
+			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
+			ct = ((CamelDataWrapper *)subc)->mime_type;
+	                if (camel_content_type_is(ct, "text", "plain") ||
+			    camel_content_type_is(ct, "text", "html") ) {
+				continue;
+	                }
+			attachments << QString (camel_mime_part_get_filename(part));
+			qDebug() << "Attachment : " << QString (camel_mime_part_get_filename(part));
+		}
+	}
+
 #if 0
         // return a stringlist of attachments
         QMailMessage message(idFromIndex(index));
@@ -558,11 +609,15 @@ void EmailMessageListModel::setSearch(const QString search)
 {
     char *query;
     const char *str = search.toLocal8Bit().constData();
-    query = g_strdup_printf("(match-all (or (header-contains \"From\" \"%s\")"
-                      "(header-contains \"To\" \"%s\")"
-                      "(header-contains \"Cc\" \"%s\")"
-                      "(header-contains \"Bcc\" \"%s\")"
-		      "(header-contains \"Subject\" \"%s\")))", str, str, str, str, str);
+    query = g_strdup_printf("(match-all (and " 
+				"(not (system-flag \"deleted\")) "
+			        "(not (system-flag \"junk\")) "
+				"(or" 
+					"(header-contains \"From\" \"%s\")"
+                      			"(header-contains \"To\" \"%s\")"
+                      			"(header-contains \"Cc\" \"%s\")"
+                      			"(header-contains \"Bcc\" \"%s\")"
+		      			"(header-contains \"Subject\" \"%s\"))))", str, str, str, str, str);
 
     qDebug() << "Search for: " << search;
     
@@ -618,12 +673,17 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     folder_uids.clear();
     endRemoveRows ();
     m_infos.clear();
+    m_messages->clear();
 
     m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                         m_folder_proxy_id.path(),
                                                                         QDBusConnection::sessionBus(), this);
 	{
-		QDBusPendingReply<QStringList> reply = m_folder_proxy->getUids ();
+		QString search = QString("(match-all (and " 
+						      "(not (system-flag \"deleted\")) "
+			        		      "(not (system-flag \"junk\")))) ");
+		/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
+		QDBusPendingReply<QStringList> reply = m_folder_proxy->searchByExpression(search);
 	        reply.waitForFinished();
 		folder_uids = reply.value ();
 	}

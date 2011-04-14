@@ -139,6 +139,7 @@ private:
     QString m_current_folder;
     QString m_current_hash;
     QHash<QString, CamelMessageInfoVariant> m_infos;
+    QHash<QString ,QString> *m_messages;
     EAccount *m_account;
     QDBusObjectPath m_store_proxy_id;
     OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
