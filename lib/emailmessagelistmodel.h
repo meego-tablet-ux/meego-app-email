@@ -118,6 +118,10 @@ public slots:
     Q_INVOKABLE void selectMessage( int index );
     Q_INVOKABLE void deSelectMessage (int index );
     Q_INVOKABLE void deleteSelectedMessageIds();
+    Q_INVOKABLE void deleteMessage(QVariant id);
+    Q_INVOKABLE void deleteMessages(QList<QString>);
+    Q_INVOKABLE void markMessageAsRead (QVariant id);
+    Q_INVOKABLE void markMessageAsUnread (QVariant id);
 
 private slots:
     void downloadActivityChanged(QMailServiceAction::Activity);
@@ -128,6 +132,7 @@ private:
     void initMailServer ();
     void createChecksum ();
     void sortMails ();
+    void setMessageFlag (QString uid, uint flag, uint set);
 
     CamelFolderInfoArrayVariant m_folders; 
     QStringList folder_uids;

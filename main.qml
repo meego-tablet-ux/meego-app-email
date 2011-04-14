@@ -428,7 +428,7 @@ Window {
         bccListModel.init();
         mailAttachmentModel.init();
         scene.currentMessageIndex = msgid;
-        emailAgent.markMessageAsRead (scene.mailId);
+	messageListModel.deleteMessage (scene.mailId);
         scene.addApplicationPage(reader);
     }
 
@@ -463,12 +463,12 @@ Window {
                 onClicked: {
                     if (scene.mailReadFlag)
                     {
-                        emailAgent.markMessageAsUnread (scene.mailId);
+                        messageListModel.markMessageAsUnread (scene.mailId);
                         scene.mailReadFlag = 0;
                     }
                     else
                     {
-                        emailAgent.markMessageAsRead (scene.mailId);
+                        messageListModel.markMessageAsRead (scene.mailId);
                         scene.mailReadFlag = 1;
                     }
                         readingView.closeMenu();

@@ -44,7 +44,7 @@ Item {
                 dialogLoader.sourceComponent = undefined;
                 if(button == 1)
                 {
-                    emailAgent.deleteMessage (scene.mailId);
+		    messageListModel.deleteMessage(scene.mailId);
                     scene.previousApplicationPage();
                 }
             }
@@ -53,7 +53,7 @@ Item {
 
     function deleteMessage()
     {
-        emailAgent.deleteMessage (scene.mailId);
+	messageListModel.deleteMessage(scene.mailId);
         scene.previousApplicationPage();
     }
 

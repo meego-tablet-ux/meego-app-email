@@ -101,7 +101,7 @@ Item {
                 dialogLoader.sourceComponent = undefined;
                 if(button == 1)
                 {
-                    emailAgent.deleteMessage (scene.mailId);
+                    messageListModel.deleteMessage (scene.mailId);
                 }
             }
         }
@@ -141,18 +141,18 @@ Item {
                 if ( emailAgent.confirmDeleteMail())
                     showModalDialog(verifyDelete);
                 else
-                    emailAgent.deleteMessage (scene.mailId);
+                    messageListModel.deleteMessage (scene.mailId);
             }
             else if (index == 4)   // Mark as read/unread
             {
                 if (scene.mailReadFlag)
                 {
-                    emailAgent.markMessageAsUnread (scene.mailId);
+                    messageListModel.markMessageAsUnread (scene.mailId);
                     scene.mailReadFlag = 0;
                 }
                 else
                 {
-                    emailAgent.markMessageAsRead (scene.mailId);
+                    messageListModel.markMessageAsRead (scene.mailId);
                     scene.mailReadFlag = 1;
                 }
             }
@@ -415,7 +415,7 @@ Item {
                             bccListModel.init();
                             scene.currentMessageIndex = index;
                             mailAttachmentModel.init();
-                            emailAgent.markMessageAsRead (messageId);
+                            messageListModel.markMessageAsRead (messageId);
                             scene.mailReadFlag = true;
                             folderListView.addApplicationPage(reader);
                         }

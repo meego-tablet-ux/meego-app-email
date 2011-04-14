@@ -753,6 +753,40 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
 
 	}
         endInsertRows();
+
+	foreach (QString uid, removed) {
+		/* Removed uid */
+		int index; 
+		qDebug() << "Removing UID: " << uid;
+		index = folder_uids.indexOf(uid);
+        	beginRemoveRows (QModelIndex(), index, index);
+		folder_uids.removeAt(index);
+		m_infos.remove (uid);
+		endRemoveRows ();
+	}
+
+	foreach (QString uid, changed) {
+		/* Add uid */
+		qDebug() << "Changed UID: " << uid;
+
+		/* Add message info */
+                QDBusError error;
+                CamelMessageInfoVariant info;
+                qDebug() << "Fetching uid " << uid;
+                QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+                reply.waitForFinished();
+                qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+                if (reply.isError()) {
+                        error = reply.error();
+                        qDebug() << "Error: " << error.name () << " " << error.message();
+                        continue;
+                }
+                info = reply.value ();
+                m_infos.insert (uid, info);
+		QModelIndex idx = createIndex (folder_uids.indexOf(uid), 0);
+		emit dataChanged(idx, idx);
+	}
+
 	sortMails ();
 }
 
@@ -1182,13 +1216,45 @@ void EmailMessageListModel::deleteSelectedMessageIds()
 {
     if (m_selectedMsgIds.size() == 0)
         return;
-#if 0    
-    QMailMessage msg (m_selectedMsgIds[0]);
-    m_storageAction->deleteMessages(m_selectedMsgIds);
-    m_selectedMsgIds.clear();
-    m_retrievalAction->exportUpdates(msg.parentAccountId());
-#endif    
+    deleteMessages(m_selectedMsgIds);
 }
+
+void EmailMessageListModel::setMessageFlag (QString uid, uint flag, uint set)
+{
+	QDBusPendingReply<bool> reply;
+
+	reply = m_folder_proxy->setMessageFlags (uid, flag, set);
+	reply.waitForFinished();
+}
+
+void EmailMessageListModel::deleteMessage(QVariant id)
+{
+   	qDebug() << "Delete message " << id.toString(); 
+   	setMessageFlag (id.toString(), CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN);
+}
+
+void EmailMessageListModel::deleteMessages(QList<QString> list)
+{
+	qDebug() << "Deleting multiple messages";
+	foreach (QString uid, list)
+		setMessageFlag (uid, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN);
+}
+
+void EmailMessageListModel::markMessageAsRead (QVariant id)
+{
+   qDebug() << "mark read message " << id.toString(); 
+   setMessageFlag (id.toString(), CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_SEEN);
+
+}
+
+void EmailMessageListModel::markMessageAsUnread (QVariant id)
+{
+   qDebug() << "mark unread message " << id.toString(); 
+   setMessageFlag (id.toString(), CAMEL_MESSAGE_SEEN | CAMEL_MESSAGE_DELETED, 0);
+
+}
+
+
 
 /*! \reimp */
 QModelIndex EmailMessageListModel::index(int row, int column, const QModelIndex &parent) const
