@@ -40,6 +40,7 @@ public:
     bool isSynchronizing() const;
 
     void exportAccountChanges(const QMailAccountId id);
+    void flagMessages(const QMailMessageIdList &ids, quint64 setMask, quint64 unsetMask);
 
     Q_INVOKABLE void accountsSync();
     Q_INVOKABLE void deleteMessage(QVariant id);

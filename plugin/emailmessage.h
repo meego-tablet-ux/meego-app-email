@@ -30,6 +30,7 @@ public:
     Q_INVOKABLE void setAttachments (const QStringList &uris);
     Q_INVOKABLE void setPriority (int priority = 0 /* normal */);
     Q_INVOKABLE void send();
+    Q_INVOKABLE void saveDraft();
 
 
 signals:

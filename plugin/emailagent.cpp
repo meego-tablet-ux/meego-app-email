@@ -457,7 +457,7 @@ bool EmailAgent::openAttachment(const QString & uri)
     if (s.contains("video", Qt::CaseInsensitive))
     {
         parameters << "--app" << "meego-app-video";
-        parameters << "--cmd" << "video";
+        parameters << "--cmd" << "playVideo";
     }
     else if (s.contains("image", Qt::CaseInsensitive))
     {
@@ -487,4 +487,12 @@ bool EmailAgent::openAttachment(const QString & uri)
     QProcess::startDetached(executable, parameters);
 
     return status;
+}
+
+void EmailAgent::flagMessages(const QMailMessageIdList &ids, quint64 setMask,
+        quint64 unsetMask)
+{
+    Q_ASSERT(!ids.empty());
+
+    m_storageAction->flagMessages(ids, setMask, unsetMask);
 }

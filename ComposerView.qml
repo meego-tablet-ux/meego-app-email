@@ -75,43 +75,33 @@ Item {
                 message = messageComponent.createObject (composer);
                 message.setFrom (composer.fromEmail);
 
-                console.log ("From: " + composer.fromEmail);
 
                 var to = new Array ();
                 for (i = 0; i < composer.toModel.count; i++) {
                     to[i] = composer.toModel.get (i).email;
-                    console.log (" to: " + to[i]);
                 }
                 message.setTo (to);
 
                 var cc = new Array ();
                 for (i = 0; i < composer.ccModel.count; i++) {
                     cc[i] = composer.ccModel.get (i).email;
-                    console.log (" cc: " + cc[i]);
                 }
                 message.setCc (cc);
 
                 var bcc = new Array ();
                 for (i = 0; i < composer.bccModel.count; i++) {
                     bcc[i] = composer.bccModel.get (i).email;
-                    console.log (" bcc: " + bcc[i]);
                 }
                 message.setBcc (bcc);
 
                 var att = new Array ();
                 for (i = 0; i < composer.attachmentsModel.count; i++) {
                     att[i] = composer.attachmentsModel.get (i).uri;
-                    console.log (" attachment: " + att[i]);
                 }
                 message.setAttachments (att);
 
-                console.log ("Subject: " + composer.subject);
                 message.setSubject (composer.subject);
-
-                console.log ("Priority: " + composer.priority);
                 message.setPriority (composer.priority);
-
-                console.log (composer.body);
                 message.setBody (composer.body);
 
                 message.send ();
@@ -125,7 +115,7 @@ Item {
             height: parent.height
         }
 
-        /*ToolbarButton {
+        ToolbarButton {
             id: saveButton
 
             anchors.left: division1.right
@@ -134,7 +124,45 @@ Item {
             iconName: "document-save"
 
             onClicked: {
-                console.log ("Save email");
+
+                var i;
+                var message;
+
+                composer.completeEmailAddresses ();
+
+                message = messageComponent.createObject (composer);
+                message.setFrom (composer.fromEmail);
+
+                var to = new Array ();
+                for (i = 0; i < composer.toModel.count; i++) {
+                    to[i] = composer.toModel.get (i).email;
+                }
+                message.setTo (to);
+
+                var cc = new Array ();
+                for (i = 0; i < composer.ccModel.count; i++) {
+                    cc[i] = composer.ccModel.get (i).email;
+                }
+                message.setCc (cc);
+
+                var bcc = new Array ();
+                for (i = 0; i < composer.bccModel.count; i++) {
+                    bcc[i] = composer.bccModel.get (i).email;
+                }
+                message.setBcc (bcc);
+
+                var att = new Array ();
+                for (i = 0; i < composer.attachmentsModel.count; i++) {
+                    att[i] = composer.attachmentsModel.get (i).uri;
+                }
+                message.setAttachments (att);
+
+                message.setSubject (composer.subject);
+                message.setPriority (composer.priority);
+                message.setBody (composer.body);
+
+                message.saveDraft ();
+                scene.previousApplicationPage ();
             }
         }
 
@@ -142,7 +170,7 @@ Item {
             id: division2
             anchors.left: saveButton.right
             height: parent.height
-        }*/
+        }
 
         ToolbarDivider {
             id: division3

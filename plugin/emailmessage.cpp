@@ -145,6 +145,64 @@ void EmailMessage::send()
 
 }
 
+void EmailMessage::saveDraft()
+{
+    QMailMessageContentType type("text/plain; charset=UTF-8");
+
+    if (m_attachments.size() == 0)
+        m_msg.setBody(QMailMessageBody::fromData(m_bodyText, type, QMailMessageBody::Base64));
+    else
+    {
+        QMailMessagePart body;
+        body.setBody(QMailMessageBody::fromData(m_bodyText.toUtf8(), type, QMailMessageBody::Base64));
+        m_msg.setMultipartType(QMailMessagePartContainer::MultipartMixed);
+        m_msg.appendPart(body);
+    }
+
+    // Include attachments into the message before sending
+    processAttachments();
+
+    // set message basic attributes
+    m_msg.setDate(QMailTimeStamp::currentDateTime());
+    m_msg.setStatus(QMailMessage::Outgoing, true);
+    m_msg.setStatus(QMailMessage::ContentAvailable, true);
+    m_msg.setStatus(QMailMessage::PartialContentAvailable, true);
+    m_msg.setStatus(QMailMessage::Read, true);
+    m_msg.setStatus((QMailMessage::Outbox | QMailMessage::Draft), true);
+
+    m_msg.setParentFolderId(QMailFolder::LocalStorageFolderId);
+
+    m_msg.setMessageType(QMailMessage::Email);
+    m_msg.setSize(m_msg.indicativeSize() * 1024);
+
+    QMailFolderKey nameKey(QMailFolderKey::displayName("Drafts", QMailDataComparator::Includes));
+    QMailFolderKey accountKey(QMailFolderKey::parentAccountId(m_msg.parentAccountId()));
+    QMailFolderIdList draftsFolders = QMailStore::instance()->queryFolders(nameKey & accountKey);
+
+    if (draftsFolders[0].isValid()) {
+        m_msg.setParentFolderId(draftsFolders[0]);
+
+        bool saved = false;
+
+        // Unset outgoing and outbox so it wont really send
+        // when we sync to the server Drafts folder
+        m_msg.setStatus(QMailMessage::Outgoing, false);
+        m_msg.setStatus(QMailMessage::Outbox, false);
+        if (!m_msg.id().isValid())
+            saved = QMailStore::instance()->addMessage(&m_msg);
+        else
+            saved = QMailStore::instance()->updateMessage(&m_msg);
+        //
+        // Sync to the server, so the message will be in the remote Drafts folder
+        if (saved)
+        {
+            EmailAgent::instance()->flagMessages(QMailMessageIdList() << m_msg.id(),
+                QMailMessage::Draft, 0);
+            EmailAgent::instance()->exportAccountChanges(m_msg.parentAccountId());
+        }
+    }
+}
+
 void EmailMessage::onSendCompleted()
 {
     emit sendCompleted();

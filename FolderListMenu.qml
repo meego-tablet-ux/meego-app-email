@@ -153,15 +153,13 @@ Item {
                 opacity: folderUnreadCount ? 1 : 0
             }
 
-            GestureArea {
+            MouseArea {
                 anchors.fill: parent
-                Tap {
-                    onFinished: {
-                        scene.currentFolderId = folderId;
-                        folderListView.title = qsTr("%1 %2").arg(currentAccountDisplayName).arg(folderName);
-                        folderListView.closeMenu();
-                        messageListModel.setFolderKey(folderId);
-                    }
+                onClicked: {
+                    scene.currentFolderId = folderId;
+                    folderListView.title = qsTr("%1 %2").arg(currentAccountDisplayName).arg(folderName);
+                    folderListView.closeMenu();
+                    messageListModel.setFolderKey(folderId);
                 }
             }
         }
