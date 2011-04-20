@@ -57,6 +57,7 @@ public:
     Q_INVOKABLE bool confirmDeleteMail ();
     Q_INVOKABLE void downloadAttachment(QVariant vMailMessage, const QString& attachmentDisplayName);
     Q_INVOKABLE bool openAttachment(const QString& attachmentDisplayName);
+    Q_INVOKABLE QString getMessageBodyFromFile(const QString& bodyFilePath);
 
 
 signals:

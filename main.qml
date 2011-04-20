@@ -51,6 +51,7 @@ Window {
     property bool callFromRemote: false
     property bool composerIsCurrentPage: false
     property string errMsg: "";
+    property variant argv: [] 
 
     title: qsTr("Email")
     showsearch: true
@@ -244,16 +245,58 @@ Window {
         target: mainWindow
         onCall: {
             var cmd = parameters[0];
-            var cdata = parameters[1]; // cdata contains "attachmentt1,attachment2,..."
+            var cdata = parameters[1];
 
             callFromRemote = true;
             if (cmd == "openComposer") {
+                // This is the command for opening up the composer window with attachments.
+                // cdata only contains a list of attachment files names 
                 var datalist = cdata.split(',');
                 scene.mailAttachments = datalist;
                 mailAttachmentModel.init();
                 if (scene.composerIsCurrentPage)
                     scene.previousApplicationPage();
                 scene.addApplicationPage(composer);
+            }
+            else if (cmd == "compose")
+            {
+                // This is the new command to open the composer with to, subject and message body.
+                // the cdata contains: recipients;;subject_text;;bodyFilePath
+                argv = cdata.split(";;");
+                var to = "";
+                var subject = "";
+                var bodyPath = "";
+                
+                if (argv.length > 0)
+                    to = argv[0];
+
+                if (argv.length > 1)
+                    subject = argv[1];
+
+                if (argv.length > 2)
+                    bodyPath = argv[2];
+
+                if (scene.composerIsCurrentPage)
+                    scene.previousApplicationPage();
+                var newPage;
+                scene.addApplicationPage(composer);
+                newPage = scene.currentApplication;
+                if (to != "")
+                {
+                    toModel.clear();
+                    toModel.append({"name": "", "email": to});
+                    newPage.composer.toModel = toModel;
+                }
+
+                if (subject != "")
+                {
+                    newPage.composer.subject = subject;
+                }
+
+                if (bodyPath != "")
+                {
+                    newPage.composer.quotedBody = emailAgent.getMessageBodyFromFile(bodyPath);
+                }
             }
             else
             {

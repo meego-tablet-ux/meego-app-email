@@ -496,3 +496,13 @@ void EmailAgent::flagMessages(const QMailMessageIdList &ids, quint64 setMask,
 
     m_storageAction->flagMessages(ids, setMask, unsetMask);
 }
+
+QString EmailAgent::getMessageBodyFromFile (const QString& bodyFilePath)
+{
+    QFile f(bodyFilePath);
+    if(!f.open(QFile::ReadOnly))
+        return ("");
+
+    QString data = f.readAll();
+    return data;
+}
