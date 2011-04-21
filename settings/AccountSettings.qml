@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import "settings.js" as Settings
 
 Item {
@@ -136,20 +136,12 @@ Item {
                         anchors.right: parent.right
                         color: "#eaf6fb"
                         height: 100
-                        BorderImage {
+                        TextField {
+                            id: signature
                             anchors.fill: parent
                             anchors.margins: 10
-                            border { top: 10; bottom: 10; left: 10; right: 10 }
-                            source: "image://theme/email/frm_textfield_l"
-                            TextEdit {
-                                id: signature
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                font.pixelSize: theme_fontPixelSizeLarge
-                                text: accountSettingsModel.signature()
-                                onTextChanged: accountSettingsModel.setSignature(text)
-                                CCPContextArea { editor: parent }
-                            }
+                            text: accountSettingsModel.signature()
+                            onTextChanged: accountSettingsModel.setSignature(text)
                         }
                     }
                 }
@@ -197,34 +189,23 @@ Item {
             }
         }
     }
-    Component {
+    ModalDialog {
         id: verifyCancel
-        ModalDialog {
-            property variant settingsPage
-            leftButtonText: qsTr ("Yes")
-            rightButtonText: qsTr ("No")
-            dialogTitle: qsTr ("Discard changes")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
-            }
-
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if (button == 1) {
-                    settingsPage.returnToEmail();
-                }
-            }
+        acceptButtonText: qsTr ("Yes")
+        cancelButtonText: qsTr ("No")
+        title: qsTr ("Discard changes")
+        content: Text {
+            text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
         }
+        onAccepted: { settingsPage.returnToEmail(); }
     }
-    Component {
+    ModalDialog {
         id: changesSaved
-        ModalDialog {
-            leftButtonText: qsTr ("OK")
-            dialogTitle: qsTr ("Changes saved")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("Your changes have been saved.")
-            }
-            onDialogClicked: { dialogLoader.sourceComponent = undefined; }
+        acceptButtonText: qsTr ("OK")
+        showCancelButton: false
+        title: qsTr ("Changes saved")
+        content: Text {
+            text: qsTr ("Your changes have been saved.")
         }
     }
     //FIXME use standard action bar here
@@ -241,14 +222,14 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Save changes")
+            text: qsTr("Save changes")
             onClicked: {
                 accountSettingsModel.saveChanges();
                 // cdata will be set if called from email app
                 if (scene.applicationData) {
                     settingsPage.returnToEmail();
                 } else {
-                    showModalDialog(changesSaved);
+                    changesSaved.show();
                 }
             }
         }
@@ -259,10 +240,9 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Cancel")
+            text: qsTr("Cancel")
             onClicked: {
-                showModalDialog(verifyCancel);
-                dialogLoader.item.settingsPage = settingsPage;
+                verifyCancel.show();
             }
         }
     }

@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import "settings.js" as Settings
 
 Expandobox {
@@ -211,37 +211,25 @@ Expandobox {
                 anchors.horizontalCenter: parent.horizontalCenter
                 height: 45
                 width: 300
-                title: qsTr("Delete Account")
+                text: qsTr("Delete Account")
                 bgSourceUp: "image://theme/btn_red_up"
                 bgSourceDn: "image://theme/btn_red_dn"
-                onClicked: {
-                    showModalDialog(verifyDelete);
-                    dialogLoader.item.settingsPage = settingsPage;
-                    dialogLoader.item.index = index;
-                }
+                onClicked: { verifyDelete.show(); }
             }
             Item { width: 1; height: 20; }
         }
         }
     }
-    Component {
+    ModalDialog {
         id: verifyDelete
-        ModalDialog {
-            property variant settingsPage
-            property int index
-            leftButtonText: qsTr ("Yes")
-            rightButtonText: qsTr ("Cancel")
-            dialogTitle: qsTr ("Delete account")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("Are you sure you want to delete this account?")
-            }
-
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if (button == 1) {
-                    settingsPage.accountSettingsModel.deleteRow(index);
-                }
-            }
+        acceptButtonText: qsTr ("Yes")
+        cancelButtonText: qsTr ("Cancel")
+        title: qsTr ("Delete account")
+        content: Text {
+            text: qsTr ("Are you sure you want to delete this account?")
+        }
+        onAccepted: {
+            settingsPage.accountSettingsModel.deleteRow(index);
         }
     }
 }

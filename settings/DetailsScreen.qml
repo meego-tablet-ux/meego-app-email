@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.Settings 0.1
 import "settings.js" as Settings
 
@@ -38,133 +38,92 @@ Item {
                 anchors.right: parent.right
                 anchors.margins: 20
                 spacing: 10
-                Label {
+                Text {
                     font.weight: Font.Bold
                     text: qsTr("Account details")
                 }
-                Label {
+                Text {
                     text: qsTr("Account: %1").arg(emailAccount.description)
                 }
-                Label {
+                Text {
                     text: qsTr("Name: %1").arg(emailAccount.name)
                 }
-                Label {
+                Text {
                     text: qsTr("Email address: %1").arg(emailAccount.address)
                 }
                 Item {
                     width: 1
                     height: 20
                 }
-                Label {
+                Text {
                     text: qsTr("Receiving:")
                 }
-                Label {
+                Text {
                     text: qsTr("Server type: %1").arg(Settings.serviceName(emailAccount.recvType))
                 }
-                Label {
+                Text {
                     text: qsTr("Server address: %1").arg(emailAccount.recvServer)
                 }
-                Label {
+                Text {
                     text: qsTr("Port: %1").arg(emailAccount.recvPort)
                 }
-                Label {
+                Text {
                     text: qsTr("Security: %1").arg(Settings.encryptionName(emailAccount.recvSecurity))
                 }
-                Label {
+                Text {
                     text: qsTr("Username: %1").arg(emailAccount.recvUsername)
                 }
                 Item {
                     width: 1
                     height: 20
                 }
-                Label {
+                Text {
                     text: qsTr("Sending:")
                 }
-                Label {
+                Text {
                     text: qsTr("Server address: %1").arg(emailAccount.sendServer)
                 }
-                Label {
+                Text {
                     text: qsTr("Port: %1").arg(emailAccount.sendPort)
                 }
-                Label {
+                Text {
                     text: qsTr("Authentication: %1").arg(Settings.authenticationName(emailAccount.sendAuth))
                 }
-                Label {
+                Text {
                     text: qsTr("Security: %1").arg(Settings.encryptionName(emailAccount.sendSecurity))
                 }
-                Label {
+                Text {
                     text: qsTr("Username: %1").arg(emailAccount.sendUsername)
                 }
             }
         }
     }
-    Component {
+    ModalDialog {
         id: verifyCancel
-        ModalDialog {
-            property variant settingsPage
-            leftButtonText: qsTr ("Yes")
-            rightButtonText: qsTr ("No")
-            dialogTitle: qsTr ("Discard changes")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
-            }
-
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if (button == 1) {
-                    settingsPage.state = settingsPage.getHomescreen()
-                }
-            }
+        acceptButtonText: qsTr ("Yes")
+        cancelButtonText: qsTr ("No")
+        title: qsTr ("Discard changes")
+        content: Text {
+            text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
         }
+        onAccepted: { settingsPage.state = settingsPage.getHomescreen() }
     }
-    Component {
+    ModalDialog {
         id: errorDialog
-        ModalDialog {
-            property variant settingsPage
-            property string errorMessage
-            property int errorCode
-            rightButtonText: qsTr("OK")
-            dialogTitle: qsTr("Error")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr("Error %1: %2").arg(errorCode).arg(errorMessage)
-            }
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                settingsPage.state = "ManualScreen";
-                loader.item.message = qsTr("Sorry, we can't automatically set up your account. Please fill in account details:");
-            }
+        acceptButtonText: qsTr("OK")
+        showCancelButton: false
+        title: qsTr("Error")
+        content: Text {
+            text: qsTr("Error %1: %2").arg(errorCode).arg(errorMessage)
+        }
+        onAccepted: {
+            settingsPage.state = "ManualScreen";
+            loader.item.message = qsTr("Sorry, we can't automatically set up your account. Please fill in account details:");
         }
     }
 
     // spinner overlay
-    TopItem { id: topItem }
-    Component {
-        id: spinnerComponent
-        Item {
-            anchors.fill: parent
-            Rectangle {
-                anchors.fill: parent
-                color: "black"
-                opacity: 0.7
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height / 4
-                font.pixelSize: theme_fontPixelSizeLarge
-                color: "white"
-                text: qsTr("Testing account configuration...")
-            }
-            Spinner {
-                id: spinner
-                spinning: true
-                maxSpinTime: 3600000
-            }
-            MouseArea {
-                anchors.fill: parent
-            }
-        }
-    }
-
+    Spinner { id: spinner }
 
     //FIXME use standard action bar here
     Rectangle {
@@ -181,25 +140,21 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Next")
+            text: qsTr("Next")
             onClicked: {
                 emailAccount.save();
                 emailAccount.test();
-                overlay = spinnerComponent.createObject(root);
-                overlay.parent = topItem.topItem;
+                spinner.show();
             }
             Connections {
                 target: emailAccount
                 onTestSucceeded: {
-                    spinnerComponent.destroy();
+                    spinner.hide();
                     settingsPage.state = "ConfirmScreen";
                 }
                 onTestFailed: {
-                    spinnerComponent.destroy();
-                    showModalDialog(errorDialog);
-                    dialogLoader.item.settingsPage = settingsPage;
-                    dialogLoader.item.errorMessage = emailAccount.errorMessage;
-                    dialogLoader.item.errorCode = emailAccount.errorCode;
+                    spinner.hide();
+                    errorDialog.show();
                     emailAccount.remove();
                 }
             }
@@ -211,10 +166,10 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Manual Edit")
+            text: qsTr("Manual Edit")
             onClicked: {
-                    settingsPage.state = "ManualScreen";
-                    loader.item.message = qsTr("Please fill in account details:");
+                settingsPage.state = "ManualScreen";
+                loader.item.message = qsTr("Please fill in account details:");
             }
         }
         Button {
@@ -224,10 +179,9 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Cancel")
+            text: qsTr("Cancel")
             onClicked: {
-                showModalDialog(verifyCancel);
-                dialogLoader.item.settingsPage = settingsPage;
+                verifyCancel.show();
             }
         }
     }
