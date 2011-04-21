@@ -30,6 +30,9 @@ FolderListModel::FolderListModel(QObject *parent) :
     roles.insert(FolderUnreadCount, "folderUnreadCount");
     roles.insert(FolderServerCount, "folderServerCount");
     setRoleNames(roles);
+    m_outbox_proxy = NULL;
+    m_sent_proxy = NULL;
+    m_drafts_proxy = NULL;
 }
 
 FolderListModel::~FolderListModel()
@@ -132,6 +135,30 @@ void FolderListModel::setAccountKey(QVariant id)
 	g_print ("Got folder list....\n");
 
 	}
+	
+	if (!m_outbox_proxy) {
+		reply = instance->getLocalFolder (QString("Outbox"));
+		reply.waitForFinished();
+        	m_outbox_proxy_id = reply.value();
+
+		m_outbox_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+										     m_outbox_proxy_id.path(),
+										     QDBusConnection::sessionBus(), this);
+	}
+	
+	reply = instance->getFolderFromUri (QString(m_account->sent_folder_uri));
+        reply.waitForFinished();
+        m_sent_proxy_id = reply.value();
+	m_sent_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									     m_sent_proxy_id.path(),
+									     QDBusConnection::sessionBus(), this);
+
+	reply = instance->getFolderFromUri (QString(m_account->drafts_folder_uri));
+        reply.waitForFinished();
+        m_drafts_proxy_id = reply.value();
+	m_drafts_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									     m_drafts_proxy_id.path(),
+									     QDBusConnection::sessionBus(), this);
     }
 }
 

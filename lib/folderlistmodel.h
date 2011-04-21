@@ -26,6 +26,7 @@
 #include <gconf/gconf-client.h>
 #include "e-gdbus-emailsession-proxy.h"
 #include "e-gdbus-emailstore-proxy.h"
+#include "e-gdbus-emailfolder-proxy.h"
 
 class FolderListModel : public QAbstractListModel
 {
@@ -62,6 +63,13 @@ private:
     QDBusObjectPath m_store_proxy_id;
     OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
     
+    QDBusObjectPath m_outbox_proxy_id;
+    OrgGnomeEvolutionDataserverMailFolderInterface *m_outbox_proxy;
+    QDBusObjectPath m_sent_proxy_id;
+    OrgGnomeEvolutionDataserverMailFolderInterface *m_sent_proxy;
+    QDBusObjectPath m_drafts_proxy_id;
+    OrgGnomeEvolutionDataserverMailFolderInterface *m_drafts_proxy;
+
 };
 
 #endif
