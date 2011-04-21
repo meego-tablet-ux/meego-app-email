@@ -111,6 +111,8 @@ bool EmailFeedModel::canFetchMore(const QModelIndex &parent) const
 void EmailFeedModel::fetchMore(const QModelIndex &parent)
 {
     Q_UNUSED(parent)
+    if(isSearchHalted())
+        return;
     int first = m_messages.count();
     int count = m_source->rowCount() - first;
 
