@@ -108,6 +108,10 @@ void FolderListModel::setAccountKey(QVariant id)
     QString quid;
     const char *url;
 
+    if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
+	return;
+    }
+
     client = gconf_client_get_default ();
     account_list = e_account_list_new (client);
     g_object_unref (client);
