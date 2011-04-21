@@ -132,7 +132,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             id: numberOfSelectedMessages
             color: "white"
-            text: "(" + folderListContainer.numOfSelectedMessages + ")"
+            //: Arg1 is the number of selected messages
+            text: qsTr("(%1)").arg(folderListContainer.numOfSelectedMessages)
         }
         Image {
             id: separator1
