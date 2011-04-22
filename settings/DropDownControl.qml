@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 
 Column {
     id: root
@@ -16,10 +16,12 @@ Column {
     anchors.leftMargin: 90
     anchors.rightMargin: 90
     property alias label: label.text
-    property alias dataList: dropdown.dataList
-    property alias selectedValue: dropdown.selectedValue
+    property alias model: dropdown.model
+    property alias title: dropdown.title
+    property alias selectedTitle: dropdown.selectedTitle
+    property alias selectedIndex: dropdown.selectedIndex
 
-    signal selectionChanged (int index, variant data)
+    signal triggered (int index)
 
     Text {
         id: label
@@ -30,13 +32,11 @@ Column {
     }
     DropDown {
         id: dropdown
-        onSelectionChanged: root.selectionChanged(index, data)
-        delegateComponent: Component {
-            Text {
-                property variant data
-                x: 15
-                text: data
-            }
-        }
+        width: 400
+        minWidth: 400
+        maxWidth: 500
+        titleColor: "black"
+        replaceDropDownTitle: true
+        onTriggered: root.triggered(index)
     }
 }

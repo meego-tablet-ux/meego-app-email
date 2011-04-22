@@ -127,9 +127,9 @@ Expandobox {
                 Item { width: 1; height: 1; },   // spacer
                 DropDownControl {
                     label: qsTr("Server type")
-                    dataList: Settings.serviceModel
-                    selectedValue: Settings.serviceName(model.recvType)
-                    onSelectionChanged: accountSettingsModel.setDataWrapper(listIndex, Settings.serviceCode(data), 38)
+                    model: Settings.serviceModel
+                    selectedIndex: model.recvType
+                    onTriggered: accountSettingsModel.setDataWrapper(listIndex, index, 38)
                 },
                 TextControl {
                     label: qsTr("Server address")
@@ -145,9 +145,9 @@ Expandobox {
                 },
                 DropDownControl {
                     label: qsTr("Security")
-                    dataList: Settings.encryptionModel
-                    selectedValue: Settings.encryptionName(model.recvSecurity)
-                    onSelectionChanged: accountSettingsModel.setDataWrapper(listIndex, Settings.encryptionCode(data), 41)
+                    model: Settings.encryptionModel
+                    selectedIndex: model.recvSecurity
+                    onTriggered: accountSettingsModel.setDataWrapper(listIndex, index, 41)
                 },
                 TextControl {
                     label: qsTr("Username")
@@ -182,15 +182,15 @@ Expandobox {
                 },
                 DropDownControl {
                     label: qsTr("Authentication")
-                    dataList: Settings.authenticationModel
-                    selectedValue: Settings.authenticationName(model.sendAuth)
-                    onSelectionChanged: accountSettingsModel.setDataWrapper(listIndex, Settings.authenticationCode(data), 46)
+                    model: Settings.authenticationModel
+                    selectedIndex: model.sendAuth
+                    onTriggered: accountSettingsModel.setDataWrapper(listIndex, index, 46)
                 },
                 DropDownControl {
                     label: qsTr("Security")
-                    dataList: Settings.encryptionModel
-                    selectedValue: Settings.encryptionName(model.sendSecurity)
-                    onSelectionChanged: accountSettingsModel.setDataWrapper(listIndex, Settings.encryptionCode(data), 47)
+                    model: Settings.encryptionModel
+                    selectedIndex: model.sendSecurity
+                    onTriggered: accountSettingsModel.setDataWrapper(listIndex, index, 47)
                 },
                 TextControl {
                     label: qsTr("Username")

@@ -24,9 +24,9 @@ var serviceModel = [qsTr("POP"),
                     qsTr("IMAP")];
 
 function serviceName(code) {
-    if (code === "pop3")
+    if (code === "0")
         return serviceModel[0];
-    else if (code === "imap4") 
+    else if (code === "1")
         return serviceModel[1];
     else
         return "";
@@ -34,9 +34,9 @@ function serviceName(code) {
 
 function serviceCode(name) {
     if (name === serviceModel[0])
-        return "pop3";
+        return "0";
     else if (name === serviceModel[1])
-        return "imap4";
+        return "1";
     else
         return "";
 }

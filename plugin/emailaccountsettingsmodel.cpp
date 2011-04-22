@@ -149,7 +149,12 @@ QVariant EmailAccountSettingsModel::data(const QModelIndex &index, int role) con
                 }
                 break;
             case RecvTypeRole:
-                return recvsvc;
+                if (recvsvc == "pop3")
+                    return 0;
+                else if (recvsvc == "imap4")
+                    return 1;
+                else
+                    return QVariant();
                 break;
             case RecvServerRole:
                 svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
@@ -211,6 +216,7 @@ bool EmailAccountSettingsModel::setData(const QModelIndex &index, const QVariant
         QMailAccountConfiguration::ServiceConfiguration svccfg;
         QStringList services;
         QString recvsvc;
+        QString newrecvsvc;
         //determine receiving protocol
         services = mAccountConfigs[index.row()].services();
         if (services.contains("imap4")) {
@@ -252,11 +258,16 @@ bool EmailAccountSettingsModel::setData(const QModelIndex &index, const QVariant
             case RecvTypeRole:
                 // prevent bug where recv type gets reset
                 // when loading the first time
-                if (value.toString() == recvsvc) {
+                if (value.toInt() == 0) {
+                    newrecvsvc = "pop3";
+                } else if (value.toInt() == 1) {
+                    newrecvsvc = "imap4";
+                }
+                if (newrecvsvc == recvsvc) {
                     return true;
                 } else {
                     mAccountConfigs[index.row()].removeServiceConfiguration(recvsvc);
-                    mAccountConfigs[index.row()].addServiceConfiguration(value.toString());
+                    mAccountConfigs[index.row()].addServiceConfiguration(newrecvsvc);
                     getRecvCfg(mAccountConfigs[index.row()])->setValue("encryption", "1"); // SSL
                     getRecvCfg(mAccountConfigs[index.row()])->setValue("servicetype", "source");
                     getRecvCfg(mAccountConfigs[index.row()])->setValue("version", "100");

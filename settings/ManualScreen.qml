@@ -47,9 +47,9 @@ Item {
                         Item { width: 1; height: 1; },   // spacer
                         DropDownControl {
                             label: qsTr("Server type")
-                            dataList: Settings.serviceModel
-                            selectedValue: Settings.serviceName(emailAccount.recvType)
-                            onSelectionChanged: emailAccount.recvType = Settings.serviceCode(data)
+                            model: Settings.serviceModel
+                            selectedIndex: emailAccount.recvType
+                            onTriggered: emailAccount.recvType = index
                         },
                         TextControl {
                             id: recvServerField
@@ -67,9 +67,9 @@ Item {
                         },
                         DropDownControl {
                             label: qsTr("Security")
-                            dataList: Settings.encryptionModel
-                            selectedValue: Settings.encryptionName(emailAccount.recvSecurity)
-                            onSelectionChanged: emailAccount.recvSecurity = Settings.encryptionCode(data)
+                            model: Settings.encryptionModel
+                            selectedIndex: emailAccount.recvSecurity
+                            onTriggered: emailAccount.recvSecurity = index
                         },
                         TextControl {
                             id: recvUsernameField
@@ -109,15 +109,15 @@ Item {
                         DropDownControl {
                             id: sendAuthField
                             label: qsTr("Authentication")
-                            dataList: Settings.authenticationModel
-                            selectedValue: Settings.authenticationName(emailAccount.sendAuth)
-                            onSelectionChanged: emailAccount.sendAuth = Settings.authenticationCode(data)
+                            model: Settings.authenticationModel
+                            selectedIndex: emailAccount.sendAuth
+                            onTriggered: emailAccount.sendAuth = index
                         },
                         DropDownControl {
                             label: qsTr("Security")
-                            dataList: Settings.encryptionModel
-                            selectedValue: Settings.encryptionName(emailAccount.sendSecurity)
-                            onSelectionChanged: emailAccount.sendSecurity = Settings.encryptionCode(data)
+                            model: Settings.encryptionModel
+                            selectedIndex: emailAccount.sendSecurity
+                            onTriggered: emailAccount.sendSecurity = index
                         },
                         TextControl {
                             id: sendUsernameField

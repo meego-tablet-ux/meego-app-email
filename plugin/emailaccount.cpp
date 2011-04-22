@@ -364,23 +364,33 @@ void EmailAccount::setPassword(QString val)
 
 QString EmailAccount::recvType() const
 {
-    return mRecvType;
+    if (mRecvType == "pop3")
+        return "0";
+    else if (mRecvType == "imap4")
+        return "1";
+    else
+        return QString();
 }
 
 void EmailAccount::setRecvType(QString val)
 {
     // prevent bug where recv type gets reset
     // when loading the first time
-    if (val != mRecvType) {
+    QString newRecvType;
+    if (val == "0")
+        newRecvType = "pop3";
+    else if (val == "1")
+        newRecvType = "imap4";
+    if (newRecvType != mRecvType) {
         mAccountConfig->removeServiceConfiguration(mRecvType);
-        mAccountConfig->addServiceConfiguration(val);
-        mRecvType = val;
+        mAccountConfig->addServiceConfiguration(newRecvType);
+        mRecvType = newRecvType;
         delete mRecvCfg;
         mRecvCfg = new QMailServiceConfiguration(mAccountConfig, mRecvType);
         mRecvCfg->setType(QMailServiceConfiguration::Source);
         mRecvCfg->setVersion(100);
         /*
-        if (val == "imap4") {
+        if (newRecvType == "imap4") {
             mRecvCfg->setValue("authentication", "0");
             mRecvCfg->setValue("autoDownload", "0");
             mRecvCfg->setValue("baseFolder", "");
