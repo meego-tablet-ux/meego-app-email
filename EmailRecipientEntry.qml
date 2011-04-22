@@ -29,7 +29,7 @@ BorderImage {
         font.pixelSize: theme_fontPixelSizeLarge
         color: "slategrey"
 
-        visible: repeater.model.count == 0
+        visible: input.text == "" && repeater.model.count == 0
     }
 
     Flickable {
