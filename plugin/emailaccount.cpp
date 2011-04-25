@@ -214,7 +214,7 @@ void EmailAccount::applyPreset()
 {
     switch(preset()) {
         case mobilemePreset:
-            setRecvType("imap4");
+            setRecvType("1");                    // imap
             setRecvServer("mail.me.com");
             setRecvPort("993");
             setRecvSecurity("1");                // SSL
@@ -228,7 +228,7 @@ void EmailAccount::applyPreset()
             setSendPassword(password());
             break;
         case gmailPreset:
-            setRecvType("imap4");
+            setRecvType("1");                    // imap
             setRecvServer("imap.gmail.com");
             setRecvPort("993");
             setRecvSecurity("1");                // SSL
@@ -242,7 +242,7 @@ void EmailAccount::applyPreset()
             setSendPassword(password());
             break;
         case yahooPreset:
-            setRecvType("imap4");
+            setRecvType("1");                    // imap
             setRecvServer("imap.mail.yahoo.com");
             setRecvPort("993");
             setRecvSecurity("1");                // SSL
@@ -256,7 +256,7 @@ void EmailAccount::applyPreset()
             setSendPassword(password());
             break;
         case aolPreset:
-            setRecvType("imap4");
+            setRecvType("1");                    // imap
             setRecvServer("imap.aol.com");
             setRecvPort("143");
             setRecvSecurity("0");                // none
@@ -270,7 +270,7 @@ void EmailAccount::applyPreset()
             setSendPassword(password());
             break;
         case mslivePreset:
-            setRecvType("pop3");
+            setRecvType("0");                    // pop
             setRecvServer("pop3.live.com");
             setRecvPort("995");
             setRecvSecurity("1");                // SSL
@@ -284,7 +284,7 @@ void EmailAccount::applyPreset()
             setSendPassword(password());
             break;
         case noPreset:
-            setRecvType("imap4");
+            setRecvType("1");                    // imap
             setRecvPort("993");
             setRecvSecurity("1");                // SSL
             setRecvUsername(username());         // username only

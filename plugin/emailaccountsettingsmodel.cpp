@@ -258,10 +258,12 @@ bool EmailAccountSettingsModel::setData(const QModelIndex &index, const QVariant
             case RecvTypeRole:
                 // prevent bug where recv type gets reset
                 // when loading the first time
-                if (value.toInt() == 0) {
+                if (value.toString() == "0") {
                     newrecvsvc = "pop3";
-                } else if (value.toInt() == 1) {
+                } else if (value.toString() == "1") {
                     newrecvsvc = "imap4";
+                } else {
+                    return false;
                 }
                 if (newrecvsvc == recvsvc) {
                     return true;
