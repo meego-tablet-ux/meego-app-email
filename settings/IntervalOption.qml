@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import "settings.js" as Settings
 
 Rectangle {
@@ -34,8 +34,9 @@ Rectangle {
         anchors.margins: 20
         group: updateInterval
     }
-    MouseArea {
-        anchors.fill: parent
-        onClicked: radioButton.click(mouse)
-    }
+    //FIXME: not supported by MeeGo.Components radiobutton
+    //MouseArea {
+    //    anchors.fill: parent
+    //    onClicked: radioButton.click(mouse)
+    //}
 }

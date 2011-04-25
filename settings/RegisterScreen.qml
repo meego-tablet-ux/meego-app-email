@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.Settings 0.1
 
 Item {
@@ -62,23 +62,16 @@ Item {
             }
         }
     }
-    Component {
+    ModalDialog {
         id: verifyCancel
-        ModalDialog {
-            property variant settingsPage
-            leftButtonText: qsTr ("Yes")
-            rightButtonText: qsTr ("No")
-            dialogTitle: qsTr ("Discard changes")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
-            }
-
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if (button == 1) {
-                    settingsPage.state = settingsPage.getHomescreen();
-                }
-            }
+        acceptButtonText: qsTr ("Yes")
+        cancelButtonText: qsTr ("No")
+        title: qsTr ("Discard changes")
+        content: Text {
+            text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
+        }
+        onAccepted: {
+            settingsPage.state = settingsPage.getHomescreen();
         }
     }
 
@@ -96,7 +89,7 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Next")
+            text: qsTr("Next")
             function validate() {
                 var errors = 0;
                 if (nameField.text.length === 0) {
@@ -138,10 +131,9 @@ Item {
             height: 45
             anchors.margins: 10
             //color: "white"
-            title: qsTr("Cancel")
+            text: qsTr("Cancel")
             onClicked: {
-                showModalDialog(verifyCancel);
-                dialogLoader.item.settingsPage = settingsPage;
+                verifyCancel.show();
             }
         }
     }

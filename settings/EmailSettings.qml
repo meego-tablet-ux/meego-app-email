@@ -7,11 +7,12 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Labs.Components 0.1 as Labs
+import MeeGo.Components 0.1
 import MeeGo.Settings 0.1
 import MeeGo.App.Email 0.1
 
-ApplicationPage {
+Labs.ApplicationPage {
 	id: settingsPage
     property alias accountSettingsModel: accountSettingsModel
 	title: qsTr("Email Settings")
@@ -19,7 +20,7 @@ ApplicationPage {
     Translator { catalog: "meego-app-email" }
     EmailAccount { id: emailAccount }
     EmailAccountSettingsModel { id: accountSettingsModel }
-    ApplicationsModel { id: appModel }
+    Labs.ApplicationsModel { id: appModel }
     function returnToEmail() {
         var cmd = "/usr/bin/meego-qml-launcher --app meego-app-email --opengl --fullscreen"; //i18n ok
         appModel.launch(cmd);
