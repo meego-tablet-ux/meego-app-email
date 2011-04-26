@@ -192,7 +192,7 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 
 			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
 			ct = ((CamelDataWrapper *)subc)->mime_type;
-	                if (camel_content_type_is(ct, "text", textType)) {
+	                if (camel_content_type_is(ct, "text", textType) && camel_mime_part_get_filename(part) == NULL) {
 				append_part_to_string (reparray, (CamelMimePart *)subc);
 	                }
 
@@ -436,8 +436,8 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
 			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
 			ct = ((CamelDataWrapper *)subc)->mime_type;
-	                if (camel_content_type_is(ct, "text", "plain") ||
-			    camel_content_type_is(ct, "text", "html") ) {
+	                if (camel_mime_part_get_filename(part) == NULL && (camel_content_type_is(ct, "text", "plain") ||
+			    camel_content_type_is(ct, "text", "html") )) {
 				continue;
 	                }
 			attachments << QString (camel_mime_part_get_filename(part));
