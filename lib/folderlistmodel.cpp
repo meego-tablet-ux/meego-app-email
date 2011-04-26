@@ -7,6 +7,17 @@
  */
 
 
+
+#define CAMEL_COMPILATION 1
+#include <camel/camel-mime-message.h>
+#include <camel/camel-stream-mem.h>
+#include <camel/camel-mime-utils.h>
+#include <camel/camel-iconv.h>
+#include <camel/camel-mime-filter-basic.h>
+#include <camel/camel-mime-filter-canon.h>
+#include <camel/camel-mime-filter-charset.h>
+#include <camel/camel-stream-filter.h>
+
 #include "folderlistmodel.h"
 #include <QMailAccount>
 #include <QMailFolder>
@@ -20,6 +31,7 @@
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-list.h>
 #include <gconf/gconf-client.h>
+#include <glib.h>
 
 FolderListModel::FolderListModel(QObject *parent) :
     QAbstractListModel(parent)
@@ -163,6 +175,8 @@ void FolderListModel::setAccountKey(QVariant id)
 	m_drafts_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
 									     m_drafts_proxy_id.path(),
 									     QDBusConnection::sessionBus(), this);
+
+	qDebug() << "Setup Outbox/Draft/Sent";
     }
 }
 
@@ -266,3 +280,304 @@ int FolderListModel::totalNumberOfFolders()
 {
     return m_folderlist.size();
 }
+
+
+EAccount * getAccountByAddress(EAccountList *account_list, char *address)
+{
+    EIterator *iter;
+    EAccount *account = NULL;
+
+    iter = e_list_get_iterator (E_LIST (account_list));
+    while (e_iterator_is_valid (iter)) {
+        account = (EAccount *) e_iterator_get (iter);
+        if (strcmp (address, account->id->address) == 0)
+             return account;
+        e_iterator_next (iter);
+    }
+
+    g_object_unref (iter);
+
+    return NULL;
+}
+
+#define LINE_LEN 72
+
+static gboolean
+text_requires_quoted_printable (const gchar *text, gsize len)
+{
+	const gchar *p;
+	gsize pos;
+
+	if (!text)
+		return FALSE;
+
+	if (len == -1)
+		len = strlen (text);
+
+	if (len >= 5 && strncmp (text, "From ", 5) == 0)
+		return TRUE;
+
+	for (p = text, pos = 0; pos + 6 <= len; pos++, p++) {
+		if (*p == '\n' && strncmp (p + 1, "From ", 5) == 0)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static CamelTransferEncoding
+best_encoding (const char *buf, int buflen, const gchar *charset)
+{
+	gchar *in, *out, outbuf[256], *ch;
+	gsize inlen, outlen;
+	gint status, count = 0;
+	iconv_t cd;
+
+	if (!charset)
+		return (CamelTransferEncoding)-1;
+
+	cd = camel_iconv_open (charset, "utf-8");
+	if (cd == (iconv_t) -1)
+		return (CamelTransferEncoding) -1;
+
+	in = (gchar *) buf;
+	inlen = buflen;
+	do {
+		out = outbuf;
+		outlen = sizeof (outbuf);
+		status = camel_iconv (cd, (const gchar **) &in, &inlen, &out, &outlen);
+		for (ch = out - 1; ch >= outbuf; ch--) {
+			if ((guchar) *ch > 127)
+				count++;
+		}
+	} while (status == (gsize) -1);// && errno == E2BIG);
+	camel_iconv_close (cd);
+
+	if (status == (gsize) -1 || status > 0)
+		return (CamelTransferEncoding)-1;
+
+	if ((count == 0) && (buflen < LINE_LEN) &&
+		!text_requires_quoted_printable (
+		(const gchar *) buf, buflen))
+		return CAMEL_TRANSFER_ENCODING_7BIT;
+	else if (count <= buflen * 0.17)
+		return CAMEL_TRANSFER_ENCODING_QUOTEDPRINTABLE;
+	else
+		return CAMEL_TRANSFER_ENCODING_BASE64;
+}
+
+static gchar *
+best_charset (const char *buf, int buflen,
+              /* const gchar *default_charset, */
+              CamelTransferEncoding *encoding)
+{
+	gchar *charset;
+
+	/* First try US-ASCII */
+	*encoding = best_encoding (buf, buflen, "US-ASCII");
+	if (*encoding == CAMEL_TRANSFER_ENCODING_7BIT)
+		return NULL;
+#if 0
+	/* Next try the user-specified charset for this message */
+	*encoding = best_encoding (buf, default_charset);
+	if (*encoding != -1)
+		return g_strdup (default_charset);
+
+	/* Now try the user's default charset from the mail config */
+	charset = e_composer_get_default_charset ();
+	*encoding = best_encoding (buf, charset);
+	if (*encoding != -1)
+		return charset;
+#endif
+	/* Try to find something that will work */
+	if (!(charset = (gchar *) camel_charset_best ((const gchar *)buf, buflen))) {
+		*encoding = CAMEL_TRANSFER_ENCODING_7BIT;
+		return NULL;
+	}
+
+	*encoding = best_encoding (buf, buflen, charset);
+
+	return g_strdup (charset);
+}
+
+CamelMimeMessage * createMessage (const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
+{
+	CamelMimeMessage *msg;
+	GConfClient *client;
+	EAccountList *account_list;
+	EAccount *selected;
+	CamelInternetAddress *addr;
+	CamelStream *stream;
+	CamelDataWrapper *plain;
+	CamelContentType *type;
+	gchar *charset;
+	const gchar *iconv_charset = NULL;
+	CamelTransferEncoding plain_encoding;
+
+	client = gconf_client_get_default ();
+	account_list = e_account_list_new (client);
+	g_object_unref (client);
+
+	msg = camel_mime_message_new ();
+	addr = camel_internet_address_new ();
+    	selected = getAccountByAddress (account_list, (char *)from.toLocal8Bit().constData());
+	g_print("PRINT: %p %s %s\n", selected, selected->id->name, selected->id->address);
+	camel_internet_address_add (addr, selected->id->name, selected->id->address);
+	camel_mime_message_set_from (msg, addr);
+	g_object_unref (addr);
+
+	camel_mime_message_set_subject (msg, subject.toLocal8Bit().constData());
+
+	addr = camel_internet_address_new ();
+	foreach (QString str, to) {
+		const char *email = str.toLocal8Bit().constData();
+
+		if (camel_address_decode (CAMEL_ADDRESS (addr), email) <= 0)
+			camel_internet_address_add (addr, "", email);
+	}
+	if (camel_address_length (CAMEL_ADDRESS (addr)) > 0) 
+		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_TO, addr);
+	g_object_unref (addr);
+
+
+	addr = camel_internet_address_new ();
+	foreach (QString str, cc) {
+		const char *email = str.toLocal8Bit().constData();
+
+		if (camel_address_decode (CAMEL_ADDRESS (addr), email) <= 0)
+			camel_internet_address_add (addr, "", email);
+	}
+	if (camel_address_length (CAMEL_ADDRESS (addr)) > 0) 
+		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_CC, addr);
+	g_object_unref (addr);
+
+
+	addr = camel_internet_address_new ();
+	foreach (QString str, bcc) {
+		const char *email = str.toLocal8Bit().constData();
+
+		if (camel_address_decode (CAMEL_ADDRESS (addr), email) <= 0)
+			camel_internet_address_add (addr, "", email);
+	}
+	if (camel_address_length (CAMEL_ADDRESS (addr)) > 0) 
+		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_BCC, addr);
+	g_object_unref (addr);
+
+	if (priority)
+	camel_medium_add_header (CAMEL_MEDIUM (msg), "X-Priority", "1");
+
+	stream = camel_stream_mem_new_with_buffer (body.toLocal8Bit().constData(), body.length());
+
+	type = camel_content_type_new ("text", "plain");
+	if ((charset = best_charset (body.toLocal8Bit().constData(), body.length(), /*p->charset, */ &plain_encoding))) {
+		camel_content_type_set_param (type, "charset", charset);
+		iconv_charset = camel_iconv_charset_name (charset);
+		g_free (charset);
+	}
+
+	/* convert the stream to the appropriate charset */
+	if (iconv_charset && g_ascii_strcasecmp (iconv_charset, "UTF-8") != 0) {
+		CamelStream *filter_stream;
+		CamelMimeFilter *filter;
+
+		filter_stream = camel_stream_filter_new (stream);
+		g_object_unref (stream);
+
+		stream = filter_stream;
+		filter = camel_mime_filter_charset_new ("UTF-8", iconv_charset);
+		camel_stream_filter_add (
+			CAMEL_STREAM_FILTER (filter_stream), filter);
+		g_object_unref (filter);
+	}
+
+	if (plain_encoding == CAMEL_TRANSFER_ENCODING_QUOTEDPRINTABLE) {
+		/* encode to quoted-printable by ourself, together with
+		 * taking care of "\nFrom " text */
+		CamelStream *filter_stream;
+		CamelMimeFilter *mf, *qp;
+
+		if (!CAMEL_IS_STREAM_FILTER (stream)) {
+			filter_stream = camel_stream_filter_new (stream);
+			g_object_unref (stream);
+
+			stream = filter_stream;
+		}
+
+		qp = camel_mime_filter_basic_new (
+			CAMEL_MIME_FILTER_BASIC_QP_ENC);
+		camel_stream_filter_add (CAMEL_STREAM_FILTER (stream), qp);
+		g_object_unref (qp);
+
+		mf = camel_mime_filter_canon_new (CAMEL_MIME_FILTER_CANON_FROM);
+		camel_stream_filter_add (CAMEL_STREAM_FILTER (stream), mf);
+		g_object_unref (mf);
+	}
+
+	plain = camel_data_wrapper_new ();
+	camel_data_wrapper_construct_from_stream (plain, stream, NULL);
+	g_object_unref (stream);
+
+	if (plain_encoding == CAMEL_TRANSFER_ENCODING_QUOTEDPRINTABLE) {
+		/* to not re-encode the data when pushing it to a part */
+		plain->encoding = plain_encoding;
+	}
+
+	camel_data_wrapper_set_mime_type_field (plain, type);
+	camel_content_type_unref (type);
+
+	if (attachment_uris.length() == 0) {
+		camel_medium_set_content (CAMEL_MEDIUM (msg), plain);
+		camel_mime_part_set_encoding (CAMEL_MIME_PART (msg), plain_encoding);
+	} else {
+		/*CamelMultipart *body = NULL;
+		CamelMimePart *part;
+
+		body = camel_multipart_new ();
+		camel_multipart_set_boundary (body, NULL);
+
+		part = camel_mime_part_new ();
+		camel_medium_set_content (CAMEL_MEDIUM (part), plain);
+		camel_multipart_add_part (multipart, part);
+		g_object_unref (part);
+		
+		foreach (QString uri, attachment_uris) {
+			CamelDataWrapper *wrapper;
+			CamelMimePart *apart;
+			CamelStream *astream;
+			GFileInfo *file_info;
+			
+			wrapper = camel_data_wrapper_new ();
+					
+		}
+*/
+
+	}
+
+	g_object_unref (plain);
+	return msg;
+}
+
+int FolderListModel::saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
+{
+	CamelMimeMessage *msg;
+	CamelStream *stream;
+        GByteArray *array;
+
+	msg = createMessage (from, to, cc, bcc, subject, body, attachment_uris, priority);
+	stream = camel_stream_mem_new ();
+        camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
+        array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
+	
+	g_print ("MESSAGE:\n\n%s\n", array->data);
+        g_object_unref (stream);
+        g_object_unref (msg);
+
+}
+
+int FolderListModel::sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
+{
+} 
+
+
+
+

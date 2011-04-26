@@ -161,7 +161,8 @@ Item {
                 message.setPriority (composer.priority);
                 message.setBody (composer.body);
 
-                message.saveDraft ();
+                //message.saveDraft ();
+		mailFolderListModel.saveDraft (composer.fromEmail, to, cc, bcc, composer.subject, composer.body, att, composer.priority);
                 scene.previousApplicationPage ();
             }
         }

@@ -55,6 +55,11 @@ public:
     Q_INVOKABLE QVariant inboxFolderId ();
     Q_INVOKABLE QVariant inboxFolderName();
     Q_INVOKABLE int totalNumberOfFolders();
+    Q_INVOKABLE int saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority);
+    Q_INVOKABLE int sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority); 
+
+
+
 
 private:
     CamelFolderInfoArrayVariant m_folderlist;
