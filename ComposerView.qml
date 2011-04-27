@@ -104,7 +104,9 @@ Item {
                 message.setPriority (composer.priority);
                 message.setBody (composer.body);
 
-                message.send ();
+                //message.send ();
+		mailFolderListModel.sendMessage(composer.fromEmail, to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+
                 scene.previousApplicationPage ();
             }
         }

@@ -557,25 +557,118 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	return msg;
 }
 
+void createInfo (CamelMessageInfoVariant &info, const QString &from, const QStringList &to, const QStringList &cc, QString subject, CamelMimeMessage *msg)
+{
+	struct _camel_header_raw *header;
+	char *date;
+
+
+	header = ((CamelMimePart *)msg)->headers;
+
+	info.uid = "";
+	info.subject = subject;
+	if (from.indexOf(QString("<"), 0) == -1) {
+		info.from = QString("<");
+		info.from.append (from);
+		info.from.append (QString(">"));
+	} else
+		info.from = from;
+
+	info.to = QString("");
+	foreach (QString to_email, to) {
+		if (to_email.indexOf(QString("<"), 0) == -1) {
+			info.to.append(QString("<"));
+			info.to.append (to_email);
+			info.to.append (QString(">"));
+		} else
+			info.to.append (to_email);
+		
+		info.to.append (QString(","));
+	}
+	if (info.to.length() > 1) //Truncate the last comma
+		info.to.truncate (info.to.length() - 1);
+
+
+	info.cc = QString("");
+	foreach (QString cc_email, cc) {
+		if (cc_email.indexOf(QString("<"), 0) == -1) {
+			info.cc.append(QString("<"));
+			info.cc.append (cc_email);
+			info.cc.append (QString(">"));
+		} else
+			info.cc.append (cc_email);
+		
+		info.cc.append (QString(","));
+	}
+	if (info.cc.length() > 1) //Truncate the last comma
+		info.cc.truncate (info.cc.length() - 1);
+
+
+	info.mlist = QString (camel_header_raw_check_mailing_list(&header));
+	info.flags = 0;
+
+	if ((date = (char *)camel_header_raw_find (&header, "date", NULL)))
+		info.date_sent= (qulonglong)camel_header_decode_date (date, NULL);
+	else
+		info.date_sent = 0;
+
+	date = (char *)camel_header_raw_find(&header, "received", NULL);
+	if (date)
+		date = strrchr(date, ';');
+	if (date)
+		info.date_received = (qulonglong)camel_header_decode_date(date + 1, NULL);
+	else
+		info.date_received = 0;
+
+	/* We don't have to form refs & other headers while appending for send. Its not used anyways */
+
+	return;
+}
+
 int FolderListModel::saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	CamelStream *stream;
         GByteArray *array;
+	CamelMessageInfoVariant info;
 
 	msg = createMessage (from, to, cc, bcc, subject, body, attachment_uris, priority);
 	stream = camel_stream_mem_new ();
         camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
         array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
-	
-	g_print ("MESSAGE:\n\n%s\n", array->data);
+	g_byte_array_append (array, (const guint8 *)"\0", 1);
+	g_print ("Draft Message:\n\n%s\n", array->data);
+
+	createInfo (info, from, to, cc, subject, msg);
+	m_drafts_proxy->AppendMessage (info, QString((char *)array->data));
+
         g_object_unref (stream);
         g_object_unref (msg);
 
+	
 }
 
 int FolderListModel::sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
 {
+	CamelMimeMessage *msg;
+	CamelStream *stream;
+        GByteArray *array;
+	CamelMessageInfoVariant info;
+
+	msg = createMessage (from, to, cc, bcc, subject, body, attachment_uris, priority);
+	stream = camel_stream_mem_new ();
+        camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
+        array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
+	g_byte_array_append (array, (const guint8 *)"\0", 1);
+	g_print ("Draft Message:\n\n%s\n", array->data);
+	
+	createInfo (info, from, to, cc, subject, msg);
+
+	m_outbox_proxy->AppendMessage (info, QString((char *)array->data));
+
+        g_object_unref (stream);
+        g_object_unref (msg);
+
 } 
 
 
