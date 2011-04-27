@@ -189,24 +189,20 @@ Item {
             }
         }
     }
-    ModalDialog {
+    ModalMessageBox {
         id: verifyCancel
         acceptButtonText: qsTr ("Yes")
         cancelButtonText: qsTr ("No")
         title: qsTr ("Discard changes")
-        content: Text {
-            text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
-        }
+        text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
         onAccepted: { settingsPage.returnToEmail(); }
     }
-    ModalDialog {
+    ModalMessageBox {
         id: changesSaved
         acceptButtonText: qsTr ("OK")
         showCancelButton: false
         title: qsTr ("Changes saved")
-        content: Text {
-            text: qsTr ("Your changes have been saved.")
-        }
+        text: qsTr ("Your changes have been saved.")
     }
     //FIXME use standard action bar here
     Rectangle {

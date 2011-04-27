@@ -138,14 +138,12 @@ Item {
             }
         }
     }
-    ModalDialog {
+    ModalMessageBox {
         id: verifyCancel
         acceptButtonText: qsTr ("Yes")
         cancelButtonText: qsTr ("No")
         title: qsTr ("Discard changes")
-        content: Text {
-            text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
-        }
+        text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
         onAccepted: {
             settingsPage.state = settingsPage.getHomescreen()
         }

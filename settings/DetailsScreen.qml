@@ -98,24 +98,20 @@ Item {
             }
         }
     }
-    ModalDialog {
+    ModalMessageBox {
         id: verifyCancel
         acceptButtonText: qsTr ("Yes")
         cancelButtonText: qsTr ("No")
         title: qsTr ("Discard changes")
-        content: Text {
-            text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
-        }
+        text: qsTr ("You have made changes to your settings, are you sure you want to cancel?")
         onAccepted: { settingsPage.state = settingsPage.getHomescreen() }
     }
-    ModalDialog {
+    ModalMessageBox {
         id: errorDialog
         acceptButtonText: qsTr("OK")
         showCancelButton: false
         title: qsTr("Error")
-        content: Text {
-            text: qsTr("Error %1: %2").arg(emailAccount.errorCode).arg(emailAccount.errorMessage)
-        }
+        text: qsTr("Error %1: %2").arg(emailAccount.errorCode).arg(emailAccount.errorMessage)
         onAccepted: {
             settingsPage.state = "ManualScreen";
             loader.item.message = qsTr("Sorry, we can't automatically set up your account. Please fill in account details:");

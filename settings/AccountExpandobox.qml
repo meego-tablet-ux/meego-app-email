@@ -220,14 +220,12 @@ Expandobox {
         }
         }
     }
-    ModalDialog {
+    ModalMessageBox {
         id: verifyDelete
         acceptButtonText: qsTr ("Yes")
         cancelButtonText: qsTr ("Cancel")
         title: qsTr ("Delete account")
-        content: Text {
-            text: qsTr ("Are you sure you want to delete this account?")
-        }
+        text: qsTr ("Are you sure you want to delete this account?")
         onAccepted: {
             settingsPage.accountSettingsModel.deleteRow(index);
         }
