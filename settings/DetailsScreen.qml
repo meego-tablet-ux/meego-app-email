@@ -114,7 +114,7 @@ Item {
         showCancelButton: false
         title: qsTr("Error")
         content: Text {
-            text: qsTr("Error %1: %2").arg(errorCode).arg(errorMessage)
+            text: qsTr("Error %1: %2").arg(emailAccount.errorCode).arg(emailAccount.errorMessage)
         }
         onAccepted: {
             settingsPage.state = "ManualScreen";
