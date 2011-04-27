@@ -156,7 +156,6 @@ Labs.Window {
         showAcceptButton: true
         acceptButtonText: qsTr("OK")
         autoCenter: true
-        aligneTitleCenter: true
         title: qsTr("Error")
 
         content: Item {
