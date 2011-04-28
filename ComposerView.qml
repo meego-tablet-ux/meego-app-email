@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
 Item {
@@ -190,7 +190,7 @@ Item {
             iconName: "edit-delete"
 
             onClicked: {
-                showModalDialog (verifyCancel);
+                verifyCancel.show();
             }
         }
     }
@@ -203,22 +203,18 @@ Item {
         }
     }
 
-    Component {
+    ModalDialog {
         id: verifyCancel
-        ModalDialog {
-            leftButtonText: qsTr ("Yes")
-            rightButtonText: qsTr ("Cancel")
-            dialogTitle: qsTr ("Discard Email")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("Are you sure you want to discard this unsent email?")
-            }
-
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if (button == 1) {
-                    scene.previousApplicationPage ();
-                }
-            }
+        acceptButtonText: qsTr ("Yes")
+        cancelButtonText: qsTr ("Cancel")
+        title: qsTr ("Discard Email")
+        content: Text {
+            anchors.leftMargin: 10
+            text: qsTr ("Are you sure you want to discard this unsent email?")
         }
+
+        onAccepted: { scene.previousApplicationPage () }
     }
+
+
 }

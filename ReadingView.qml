@@ -7,14 +7,15 @@
  */
 
 import Qt 4.7
-import QtWebKit 1.0
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
+import QtWebKit 1.0
 
 Item {
     id: container
-    anchors.fill: parent
+    width: scene.width
     parent: readingView.content
+    anchors.fill: parent
     
     property string uri;
     property bool downloadInProgress: false
@@ -32,25 +33,34 @@ Item {
             scene.mailHtmlBody = messageListModel.htmlBody(scene.currentMessageIndex);
         }
     }
-    Component {
-        id: unsupportedFileFormat
-        ModalDialog {
-            leftButtonText: qsTr("")
-            rightButtonText: qsTr("Ok")
-            dialogTitle: qsTr ("")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr("File format is not supported.");
-            }
 
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
+    ModalDialog {
+        id: unsupportedFileFormat
+        showCancelButton: false
+        showAcceptButton: true
+        acceptButtonText: qsTr("Ok")
+        title: qsTr ("Warning")
+        content: Item {
+            anchors.fill: parent
+            anchors.margins: 10
+            Text {
+                text: qsTr("File format is not supported.");
+                color: theme_fontColorNormal
+                font.pixelSize: theme_fontPixelSizeLarge
+                wrapMode: Text.Wrap
             }
         }
-    }
 
-    ContextMenu {
+        onAccepted: {}
+    } 
+
+    ModalContextMenu {
         id: attachmentContextMenu
+        property alias model: attachmentActionMenu.model
+        content: ActionMenu {
+            id: attachmentActionMenu
         onTriggered: {
+            attachmentContextMenu.hide();
             if (index == 0)  // open attachment
             {
                 openFlag = true;
@@ -74,10 +84,11 @@ Item {
                    var status = emailAgent.openAttachment(uri);
                    if (status == false)
                    {
-                       showModalDialog(unsupportedFileFormat);
+                       unsupportedFileFormat.show();
                    }
                 }
             }
+        }
         }
     }  // end of attachmentContextMenu
 
@@ -195,9 +206,8 @@ Item {
             onAttachmentSelected: {
                 container.uri = uri;
                 attachmentContextMenu.model = [openLabel, saveLabel];
-                attachmentContextMenu.menuX = mX;
-                attachmentContextMenu.menuY = mY;
-                attachmentContextMenu.visible = true;
+                attachmentContextMenu.setPosition(mX, mY);
+                attachmentContextMenu.show();
             }
         }
     }

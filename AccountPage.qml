@@ -7,7 +7,8 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Labs.Components 0.1 as Labs
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
 Item {
@@ -22,7 +23,7 @@ Item {
     property alias interactive: listView.interactive
     property alias model: listView.model
 
-    ApplicationsModel {
+    Labs.ApplicationsModel {
         id: appModel
     }
 

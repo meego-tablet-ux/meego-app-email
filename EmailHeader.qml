@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
 Column {
@@ -21,6 +21,7 @@ Column {
     property alias bccModel: bccRecipients.model
     property alias attachmentsModel: attachmentBar.model
     property EmailAccountListModel accountsModel
+    property variant emailAccountList: []
     property int priority: 0
 
     property bool showOthers: false
@@ -38,6 +39,7 @@ Column {
     // EmailAccountListModel doesn't seem to be a real ListModel
     // We need to convert it to one to set it in the DropDown
     onAccountsModelChanged: {
+        emailAccountList = accountsModel.getAccountList();
         for (var i = 0; i < accountsModel.getRowCount (); i++) {
             var emailAddress, displayName;
 
@@ -48,7 +50,6 @@ Column {
             if (i == scene.currentMailAccountIndex)
                 fromEmail = emailAddress;
         }
-        accountSelector.dataModel = realAccountsModel;
     }
 
     ListModel {
@@ -66,13 +67,17 @@ Column {
             text: qsTr ("From:")
         }
 
-        EmailEntry {
+        DropDown {
             id: accountSelector
             width: parent.width - (ccToggle.width + fromLabel.width + 30)
+            model: emailAccountList
+            height: 53
             selectedIndex: scene.currentMailAccountIndex;
-
-            onEmailChanged: {
-                fromEmail = emailAddress;
+            title: fromEmail
+            titleColor: "black"
+            replaceDropDownTitle: true
+            onTriggered: {
+                fromEmail = emailAccountList[index];
             }
         }
 

@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Labs.Components 0.1 as Labs
 import MeeGo.App.Email 0.1
 
 
@@ -27,7 +27,7 @@ BorderImage {
     Component {
         id: contactsPicker
 
-        ContactsPicker {
+        Labs.ContactsPicker {
             onContactSelected: {
                 for (var count = 0; count < contact.emails.length; ++count) {
                     recipients.model.append({"name":"", "email":contact.emails[count].emailAddress});

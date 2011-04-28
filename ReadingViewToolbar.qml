@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
 Item {
@@ -30,24 +30,28 @@ Item {
         id: attachmentsModel
     }
 
-    Component {
-        id: verifyDelete
-        ModalDialog {
-            leftButtonText: qsTr("Yes")
-            rightButtonText: qsTr("Cancel")
-            dialogTitle: qsTr ("Delete Email")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("Are you sure you want to delete this email?")
-            }
+    ModalDialog {
+        id:verifyDelete
+        showCancelButton: true
+        showAcceptButton: true
+        acceptButtonText: qsTr("OK")
+        cancelButtonText: qsTr("Cancel")
+        title: qsTr ("Delete Email")
+        content: Item {
+            id:confirmMsg
+            anchors.fill: parent
+            anchors.margins: 10
 
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if(button == 1)
-                {
-		    messageListModel.deleteMessage(scene.mailId);
-                    scene.previousApplicationPage();
-                }
+            Text {
+                text: qsTr ("Are you sure you want to delete this email?")
+                color:theme_fontColorNormal
+                font.pixelSize: theme_fontPixelSizeLarge
+                wrapMode: Text.Wrap
             }
+        }
+        onAccepted: {
+            messageListModel.deleteMessage (scene.mailId);
+            scene.previousApplicationPage();
         }
     }
 
@@ -204,7 +208,7 @@ Item {
 
                 onClicked: {
                     if (emailAgent.confirmDeleteMail()) {
-                        showModalDialog(verifyDelete);
+                        verifyDelete.show();
                     } else {
                         deleteMessage();
                     }

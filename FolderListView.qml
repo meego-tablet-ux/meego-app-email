@@ -104,56 +104,56 @@ Item {
         property alias model: contextActionMenu.model
         content: ActionMenu {
             id: contextActionMenu
-        onTriggered: {
+            onTriggered: {
 
-            contextMenu.hide();
-            if (index == 0)  // Reply
-            {
-                var newPage;
-                scene.addApplicationPage (composer);
-                newPage = scene.currentApplication;
-                setMessageDetails (newPage.composer, scene.currentMessageIndex, false);
-            }
-            else if (index == 1)   // Reply to all
-            {
-                var newPage;
-                scene.addApplicationPage (composer);
-                newPage = scene.currentApplication;
-                setMessageDetails (newPage.composer, scene.currentMessageIndex, true);
-            }
-            else if (index == 2)   // Forward
-            {
-                var newPage;
-                scene.addApplicationPage (composer);
-                newPage = scene.currentApplication;
+                contextMenu.hide();
+                if (index == 0)  // Reply
+                {
+                    var newPage;
+                    scene.addApplicationPage (composer);
+                    newPage = scene.currentApplication;
+                    setMessageDetails (newPage.composer, scene.currentMessageIndex, false);
+                }
+                else if (index == 1)   // Reply to all
+                {
+                    var newPage;
+                    scene.addApplicationPage (composer);
+                    newPage = scene.currentApplication;
+                    setMessageDetails (newPage.composer, scene.currentMessageIndex, true);
+                }
+                else if (index == 2)   // Forward
+                {
+                    var newPage;
+                    scene.addApplicationPage (composer);
+                    newPage = scene.currentApplication;
 
-                newPage.composer.quotedBody = qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (scene.currentMessageIndex);
-                newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (scene.currentMessageIndex));
-                scene.mailAttachments = messageListModel.attachments(scene.currentMessageIndex);
-                mailAttachmentModel.init();
-                newPage.composer.attachmentsModel = mailAttachmentModel;
-            }
-            else if (index == 3)   // Delete
-            {
-                if ( emailAgent.confirmDeleteMail())
-                    verifyDelete.show();
-                else
-                    messageListModel.deleteMessage (scene.mailId);
-            }
-            else if (index == 4)   // Mark as read/unread
-            {
-                if (scene.mailReadFlag)
-                {
-                    messageListModel.markMessageAsUnread (scene.mailId);
-                    scene.mailReadFlag = 0;
+                    newPage.composer.quotedBody = qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (scene.currentMessageIndex);
+                    newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (scene.currentMessageIndex));
+                    scene.mailAttachments = messageListModel.attachments(scene.currentMessageIndex);
+                    mailAttachmentModel.init();
+                    newPage.composer.attachmentsModel = mailAttachmentModel;
                 }
-                else
+                else if (index == 3)   // Delete
                 {
-                    messageListModel.markMessageAsRead (scene.mailId);
-                    scene.mailReadFlag = 1;
+                    if ( emailAgent.confirmDeleteMail())
+                        verifyDelete.show();
+                    else
+                        messageListModel.deleteMessage (scene.mailId);
+                }
+                else if (index == 4)   // Mark as read/unread
+                {
+                    if (scene.mailReadFlag)
+                    {
+                        messageListModel.markMessageAsUnread (scene.mailId);
+                        scene.mailReadFlag = 0;
+                    }
+                    else
+                    {
+                        messageListModel.markMessageAsRead (scene.mailId);
+                        scene.mailReadFlag = 1;
+                    }
                 }
             }
-        }
         }
     }
 

@@ -7,7 +7,6 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1 as Labs
 import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
@@ -89,7 +88,7 @@ Item {
                 source: "image://meegotheme/icons/actionbar/view-sync"
             }
 
-            Labs.Spinner {
+            EmailSpinner {
                 id: spinner
                 anchors.centerIn: parent
                 opacity: scene.refreshInProgress ? 1 : 0
