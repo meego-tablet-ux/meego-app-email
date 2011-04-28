@@ -164,6 +164,7 @@ Item {
         anchors.left: parent.left
         width: parent.width
         anchors.topMargin: 1
+        clip: true
         height: 43
         Image {
             anchors.fill: parent
@@ -182,9 +183,11 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
+                width: subjectRect.width - subjectLabel.width - 10
                 font.pixelSize: theme_fontPixelSizeLarge
                 text: scene.mailSubject
                 anchors.verticalCenter: parent.verticalCenter
+                elide: Text.ElideRight
             }
         }
     }
