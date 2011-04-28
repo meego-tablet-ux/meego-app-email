@@ -119,7 +119,7 @@ Item {
     }
 
     // spinner overlay
-    Spinner { id: spinner }
+    ModalSpinner { id: spinner }
 
     //FIXME use standard action bar here
     Rectangle {
