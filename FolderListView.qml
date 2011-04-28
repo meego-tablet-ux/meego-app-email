@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
 Item {
@@ -87,29 +87,26 @@ Item {
         composer.subject = "Re: " + messageListModel.subject (messageID);  //i18n ok
     }
 
-    Component {
+    ModalDialog {
         id: verifyDelete
-        ModalDialog {
-            leftButtonText: qsTr("Yes")
-            rightButtonText: qsTr("Cancel")
-            dialogTitle: qsTr ("Delete Email")
-            contentLoader.sourceComponent: DialogText {
-                text: qsTr ("Are you sure you want to delete this email?")
-            }
-
-            onDialogClicked: {
-                dialogLoader.sourceComponent = undefined;
-                if(button == 1)
-                {
-                    messageListModel.deleteMessage (scene.mailId);
-                }
-            }
+        acceptButtonText: qsTr ("Yes")
+        cancelButtonText: qsTr ("Cancel")
+        title: qsTr ("Delete Email")
+        content: Text {
+            text: qsTr ("Are you sure you want to delete this email?")
         }
+
+        onAccepted: { emailAgent.deleteMessage (scene.mailId) }
     }
 
-    ContextMenu {
+    ModalContextMenu {
         id: contextMenu
+        property alias model: contextActionMenu.model
+        content: ActionMenu {
+            id: contextActionMenu
         onTriggered: {
+
+            contextMenu.hide();
             if (index == 0)  // Reply
             {
                 var newPage;
@@ -139,7 +136,7 @@ Item {
             else if (index == 3)   // Delete
             {
                 if ( emailAgent.confirmDeleteMail())
-                    showModalDialog(verifyDelete);
+                    verifyDelete.show();
                 else
                     messageListModel.deleteMessage (scene.mailId);
             }
@@ -156,6 +153,7 @@ Item {
                     scene.mailReadFlag = 1;
                 }
             }
+        }
         }
     }
 
@@ -209,7 +207,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 height: 45
                 width: 300
-                title: {
+                text: {
                      if(gettingMoreMessages)
                          return  qsTr("Getting more messages")
                      else
@@ -433,10 +431,8 @@ Item {
                     var map = mapToItem(scene, mouseX, mouseY);
                     contextMenu.model = [qsTr("Reply"), qsTr("Reply to all"), qsTr("Forward"), qsTr("Delete"), 
                                          readStatus ? qsTr("Mark as unread") : qsTr("Mark as read")]
-                    contextMenu.payload = dinstance;
-                    contextMenu.menuX = map.x;
-                    contextMenu.menuY = map.y;
-                    contextMenu.visible = true;
+                    contextMenu.setPosition(map.x, map.y);
+                    contextMenu.show();
                 }
             }
         }
