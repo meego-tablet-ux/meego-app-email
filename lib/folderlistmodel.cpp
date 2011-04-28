@@ -426,6 +426,12 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	camel_mime_message_set_from (msg, addr);
 	g_object_unref (addr);
 
+	camel_medium_set_header (CAMEL_MEDIUM (msg), "X-Evolution-Account", selected->uid);
+	camel_medium_set_header (CAMEL_MEDIUM (msg), "X-Evolution-Transport", selected->transport->url);
+	camel_medium_set_header (CAMEL_MEDIUM (msg), "X-Evolution-Fcc",  selected->sent_folder_uri);
+
+
+
 	camel_mime_message_set_subject (msg, subject.toLocal8Bit().constData());
 
 	addr = camel_internet_address_new ();
