@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 
 Item {
@@ -31,57 +31,41 @@ Item {
     function addPicker (pickerComponent) {
         var picker = pickerComponent.createObject (addAttachmentPageContainer);
         picker.show ();
-        picker.cancel.connect (pickerCancelled);
-        picker.selected.connect (pickerSelected);
+        picker.rejected.connect (pickerCancelled);
     }
 
     Rectangle {
         width: parent.width
         anchors.top: parent.top
         anchors.bottom: toolbar.top
-        color: "white"
+        color: "lightgrey"
 
         Column {
-            anchors.fill: parent
-/*
-            Button {
-                title: qsTr ("Documents")
-                width: parent.width
-                height: 40
+            spacing: 5
+            width: parent.width
 
-                onClicked: {
-                    addPicker (documentPicker);
-                }
-            }
-*/
-            Button {
-                title: qsTr ("Photos")
-                width: parent.width
-                height: 40
+//            AttachmentPicker {
+//                pickerComponent: documentPicker
+//                pickerLabel: qsTr("Documents")
+//                pickerImage: "image://theme/panels/pnl_icn_documents"
+//            }
 
-                onClicked: {
-                    addPicker (photoPicker);
-                }
+            AttachmentPicker {
+                pickerComponent: photoPicker
+                pickerLabel: qsTr("Photos")
+                pickerImage: "image://theme/panels/pnl_icn_photos"
             }
 
-            Button {
-                title: qsTr ("Movies")
-                width: parent.width
-                height: 40
-
-                onClicked: {
-                    addPicker (moviePicker);
-                }
+            AttachmentPicker {
+                pickerComponent: moviePicker
+                pickerLabel: qsTr("Movies")
+                pickerImage: "image://theme/panels/pnl_icn_video"
             }
 
-            Button {
-                title: qsTr ("Music")
-                width: parent.width
-                height: 40
-
-                onClicked: {
-                    addPicker (musicPicker);
-                }
+            AttachmentPicker {
+                pickerComponent: musicPicker
+                pickerLabel: qsTr("Music")
+                pickerImage: "image://theme/panels/pnl_icn_music"
             }
         }
     }
@@ -96,13 +80,13 @@ Item {
         }
     }
 
-    Component {
-        id: documentPicker
-        Rectangle {
-            anchors.fill: parent
-            color: "pink"
-        }
-    }
+//    Component {
+//        id: documentPicker
+//        Rectangle {
+//            anchors.fill: parent
+//            color: "pink"
+//        }
+//    }
 
     Component {
         id: musicPicker
@@ -111,11 +95,11 @@ Item {
 
             showPlaylists: false
             showAlbums: false
+            selectSongs: true
 
-            signal selected (string uri)
             onSongSelected: {
-                console.log ("Song: " + song);
-                selected (song);
+                console.log ("Song: " + title);
+                pickerSelected(uri);
             }
         }
     }
@@ -125,11 +109,9 @@ Item {
         PhotoPicker {
             anchors.fill: parent
 
-            signal selected (string uri)
-
             onPhotoSelected: {
                 console.log ("Photo: " + uri);
-                selected (uri);
+                pickerSelected(uri);
             }
         }
     }
@@ -139,11 +121,9 @@ Item {
         VideoPicker {
             anchors.fill: parent
 
-            signal selected (string uri)
-
             onVideoSelected: {
                 console.log ("Video: " + uri);
-                selected (uri);
+                pickerSelected(uri);
             }
         }
     }

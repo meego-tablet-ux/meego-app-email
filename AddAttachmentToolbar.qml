@@ -12,7 +12,8 @@ import MeeGo.Components 0.1
 BorderImage {
     id: addAttachmentToolbar
 
-    height: 120
+    width: parent.width
+    verticalTileMode: BorderImage.Stretch
     source: "image://theme/navigationBar_l"
 
     signal okay
@@ -24,8 +25,7 @@ BorderImage {
         anchors.top: parent.top
         height: parent.height
         width: 90
-        // FIXME: Get proper icon
-        iconName: "icns_export/icn_compose"
+        iconName: "mail-compose"
         onClicked: {
             addAttachmentToolbar.okay ();
         }
@@ -53,7 +53,7 @@ BorderImage {
         width: 90
         height: parent.height
 
-        iconName: "icns_expost/icn_delete"
+        iconName: "mail-editlist-cancel"
 
         onClicked: {
             scene.previousApplicationPage ();
