@@ -18,6 +18,8 @@
 
 #include <QAbstractListModel>
 #include <QMailAccount>
+#include "e-gdbus-emailsession-proxy.h"
+
 #include <libedataserver/e-account-list.h>
 #include <gconf/gconf-client.h>
 
@@ -52,13 +54,16 @@ public slots:
 signals:
     void accountAdded(QVariant accountId);
     void accountRemoved(QVariant accountId);
+    void askPassword (QString title, QString prompt, QString key);
     void modelReset();
+private:
+    OrgGnomeEvolutionDataserverMailSessionInterface *session_instance;
 
 private slots:
     EAccount * getAccountByIndex (int idx) const;
     EAccount * getAccountById(char *id);
     int getIndexById(char *id);
-
+    void onGetPassword (const QString &, const QString &, const QString &);
 //    void onAccountsAdded(const QMailAccountIdList &);
 //    void onAccountsRemoved(const QMailAccountIdList &);
 //    void onAccountsUpdated(const QMailAccountIdList &);

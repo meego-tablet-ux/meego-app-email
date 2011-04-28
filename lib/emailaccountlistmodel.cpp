@@ -16,6 +16,11 @@
 #include "emailaccountlistmodel.h"
 #include "dbustypes.h"
 
+void EmailAccountListModel::onGetPassword (const QString &title, const QString &prompt, const QString &key)
+{
+	emit askPassword (title, prompt, key);
+}
+
 EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     QAbstractListModel(parent)
 {
@@ -37,6 +42,11 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     account_list = e_account_list_new (client);
     g_object_unref (client);
 
+    /* Init here for password prompt */
+    session_instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+    bool works = QObject::connect (session_instance, SIGNAL(GetPassword(const QString &, const QString &, const QString &)), this, SLOT(onGetPassword (const QString &, const QString &, const QString &)));
+        
+    qDebug() << "\n\n ************************************\n               Registering for get password " << works << "\n";
 /*
     connect (QMailStore::instance(), SIGNAL(accountsAdded(const QMailAccountIdList &)), this,
              SLOT(onAccountsAdded (const QMailAccountIdList &)));
@@ -218,6 +228,7 @@ QVariant EmailAccountListModel::getAccountList()
         QString displayName = data(index(row), EmailAccountListModel::DisplayName).toString();
         accountList << displayName;
     }
+
     return accountList;
 }
 
