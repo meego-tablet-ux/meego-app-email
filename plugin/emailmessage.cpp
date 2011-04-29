@@ -179,7 +179,7 @@ void EmailMessage::saveDraft()
     QMailFolderKey accountKey(QMailFolderKey::parentAccountId(m_msg.parentAccountId()));
     QMailFolderIdList draftsFolders = QMailStore::instance()->queryFolders(nameKey & accountKey);
 
-    if (draftsFolders[0].isValid()) {
+    if (draftsFolders.length() > 0 && draftsFolders[0].isValid()) {
         m_msg.setParentFolderId(draftsFolders[0]);
 
         bool saved = false;
