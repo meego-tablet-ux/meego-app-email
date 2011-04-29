@@ -375,6 +375,8 @@ void EmailAgent::downloadAttachment(QVariant vMsgId, const QString & attachmentD
     QMailMessage message (m_messageId);
 
     emit attachmentDownloadStarted();
+            qDebug()<<"PartsCount: "<<message.partCount();
+            qDebug()<<"attachmentDisplayName: "<<attachmentDisplayName;
     for (uint i = 1; i < message.partCount(); i++)
     {
         QMailMessagePart sourcePart = message.partAt(i);
@@ -440,18 +442,13 @@ bool EmailAgent::openAttachment(const QString & uri)
     
     // let's determine the file type
     QString filePath = QDir::homePath() + "/Downloads/" + uri;
-    QString cmd = "/usr/bin/file -b " + filePath;
 
-    FILE *fp = popen(cmd.toAscii(), "r");
-    if (!fp)
+    QProcess fileProcess;
+    fileProcess.start("file", QStringList() << "-b" << filePath);
+    if (!fileProcess.waitForFinished())
         return false;
 
-    char buf[BUFSIZ];
-    if (!fgets (buf, BUFSIZ, fp))
-        return false;
-
-    QString appName("");
-    QString s(buf);
+    QString s(fileProcess.readAll());
     QStringList parameters;
     parameters << "--opengl" << "--fullscreen";
     if (s.contains("video", Qt::CaseInsensitive))
