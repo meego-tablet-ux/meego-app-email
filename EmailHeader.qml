@@ -6,9 +6,8 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
-import MeeGo.Labs.Components 0.1 as Labs
 import MeeGo.App.Email 0.1
 
 Column {
@@ -191,45 +190,11 @@ Column {
         TextEntry {
             id: subjectEntry
 
-            width: parent.width - attachmentButton.width - 10
+            width: parent.width - 20
             height: parent.height
 
             defaultText: qsTr ("Enter subject here")
         }
-
-        BorderImage {
-            id: attachmentButton
-            anchors.verticalCenter: parent.verticalCenter
-            source: "image://theme/email/icns_export/icn_addattachment"
-            border.top: 5
-            border.bottom: 5
-            border.left: 5
-            border.right: 5
-
-            Component {
-                id: addAttachment
-
-                Labs.ApplicationPage {
-                    id: addAttachmentPage
-                    //: Attach a file (e.g. music, video, photo) to the document being composed.
-                    title: qsTr("Attach a file")
-
-                    AddAttachmentView {
-                        attachments: attachmentBar.model
-
-                    }
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-
-                onClicked: {
-                    scene.addApplicationPage(addAttachment)
-                }
-            }
-        }
-
     }
 
     AttachmentView {

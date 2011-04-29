@@ -6,8 +6,9 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
+import MeeGo.Labs.Components 0.1 as Labs
 import MeeGo.App.Email 0.1
 
 Item {
@@ -174,8 +175,38 @@ Item {
             height: parent.height
         }
 
+        ToolbarButton {
+            id: addAttachmentButton
+            anchors.left: division2.right
+            iconName: "mail-addattachment"
+
+            Component {
+                id: addAttachment
+
+                Labs.ApplicationPage {
+                    id: addAttachmentPage
+                    //: Attach a file (e.g. music, video, photo) to the document being composed.
+                    title: qsTr("Attach a file")
+
+                    AddAttachmentView {
+                        attachments: composer.attachmentsModel
+                    }
+                }
+            }
+
+            onClicked: {
+                scene.addApplicationPage(addAttachment)
+            }
+        }
+
         ToolbarDivider {
             id: division3
+            anchors.left: addAttachmentButton.right
+            height: parent.height
+        }
+
+        ToolbarDivider {
+            id: division4
             anchors.right: cancelButton.left
             height: parent.height
         }
