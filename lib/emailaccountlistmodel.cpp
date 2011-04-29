@@ -18,6 +18,7 @@
 
 void EmailAccountListModel::onGetPassword (const QString &title, const QString &prompt, const QString &key)
 {
+	qDebug() << "Ask Password\n\n";
 	emit askPassword (title, prompt, key);
 }
 
@@ -236,3 +237,16 @@ QVariant EmailAccountListModel::getAccountIdByIndex(int idx)
 {
     return data(index(idx), EmailAccountListModel::MailAccountId);
 }
+
+void EmailAccountListModel::addPassword(QString key, QString password)
+{
+	const char *skey, *spass;
+	
+	//Handle Cancel password well. Like don't reprompt again in the same session/operation
+	skey = key.toLocal8Bit().constData();
+	spass = password.toLocal8Bit().constData();
+	qDebug() << "\n\nSave Password: "<< key << " : " << password;
+
+	session_instance->addPassword (key, password, true);
+}
+

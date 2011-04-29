@@ -50,6 +50,7 @@ public slots:
     Q_INVOKABLE int getRowCount();
     Q_INVOKABLE QVariant getAccountList();
     Q_INVOKABLE QVariant getAccountIdByIndex(int idx);
+    Q_INVOKABLE void addPassword(QString key, QString password);
 
 signals:
     void accountAdded(QVariant accountId);
