@@ -54,7 +54,7 @@ Item {
         onAccepted: {}
     } 
 
-    ModalContextMenu {
+    ContextMenu {
         id: attachmentContextMenu
         property alias model: attachmentActionMenu.model
         content: ActionMenu {
@@ -286,21 +286,6 @@ Item {
                 text: scene.mailBody
                 opacity:  (scene.mailHtmlBody == "") ? 1 : 0
             }
-
-/*            WebView {
-                id: htmlViewer
-                html: scene.mailHtmlBody
-                transformOrigin: Item.TopLeft
-                anchors.left: parent.left
-                anchors.topMargin: 2
-                preferredWidth: flick.width
-                preferredHeight: flick.height
-                settings.autoLoadImages: true
-                contentsScale: 1
-                focus: true
-                clip: true
-                opacity:  (scene.mailHtmlBody == "") ? 0 : 1
-            } */
         }
     }
 

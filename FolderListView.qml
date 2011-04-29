@@ -99,7 +99,7 @@ Item {
         onAccepted: { emailAgent.deleteMessage (scene.mailId) }
     }
 
-    ModalContextMenu {
+    ContextMenu {
         id: contextMenu
         property alias model: contextActionMenu.model
         content: ActionMenu {
