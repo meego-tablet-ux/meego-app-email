@@ -245,7 +245,7 @@ void EmailAccountListModel::addPassword(QString key, QString password)
 	//Handle Cancel password well. Like don't reprompt again in the same session/operation
 	skey = key.toLocal8Bit().constData();
 	spass = password.toLocal8Bit().constData();
-	qDebug() << "\n\nSave Password: "<< key << " : " << password;
+	qDebug() << "\n\nSave Password: "<< key;
 
 	session_instance->addPassword (key, password, true);
 }
