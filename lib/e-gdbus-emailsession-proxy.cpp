@@ -30,9 +30,10 @@ OrgGnomeEvolutionDataserverMailSessionInterface * OrgGnomeEvolutionDataserverMai
   
   if (!priv_obj) {
       priv_obj = new OrgGnomeEvolutionDataserverMailSessionInterface (QString ("org.gnome.evolution.dataserver.Mail"),
-								QString ("/org/gnome/evolution/dataserver/Mail/Session"),
-								QDBusConnection::sessionBus(), parent);
+                                                               QString ("/org/gnome/evolution/dataserver/Mail/Session"),
+                                                               QDBusConnection::sessionBus(), parent);
   }
   
   return priv_obj;
 }
+

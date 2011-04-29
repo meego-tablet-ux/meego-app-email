@@ -37,6 +37,13 @@ public:
     ~OrgGnomeEvolutionDataserverMailSessionInterface();
 
 public Q_SLOTS: // METHODS
+    inline QDBusPendingReply<> addPassword(const QString &key, const QString &password, bool remember)
+    {
+        QList<QVariant> argumentList;
+        argumentList << qVariantFromValue(key) << qVariantFromValue(password) << qVariantFromValue(remember);
+        return asyncCallWithArgumentList(QLatin1String("addPassword"), argumentList);
+    }
+
     inline QDBusPendingReply<QDBusObjectPath> getFolderFromUri(const QString &uri)
     {
         QList<QVariant> argumentList;
@@ -65,6 +72,7 @@ public Q_SLOTS: // METHODS
     }
 
     static OrgGnomeEvolutionDataserverMailSessionInterface* instance(QObject *parent);
+
 
 Q_SIGNALS: // SIGNALS
     void GetPassword(const QString &title, const QString &prompt, const QString &key);
