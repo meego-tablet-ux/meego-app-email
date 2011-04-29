@@ -173,6 +173,56 @@ Labs.Window {
         onAccepted: {}
     }
 
+    ModalDialog {
+        id:passwordDialog
+	property alias dlgText: prompt.text
+	property alias dlgKey: key.text
+        showCancelButton: true
+        showAcceptButton: true
+        cancelButtonText: qsTr("Cancel")
+        acceptButtonText: qsTr("OK")
+        autoCenter: true
+        title: qsTr("Error")
+	width: 750
+
+        content: Item {
+            id:passwordContent
+            anchors.fill: parent
+            anchors.margins: 10
+	    Column {	
+		Text {
+			id:prompt
+			width: 730
+                	anchors.topMargin: 10
+                	text: scene.errMsg;
+	                color:theme_fontColorNormal
+	                font.pixelSize: theme_fontPixelSizeLarge
+	                wrapMode: Text.Wrap
+	         }
+
+	         TextEntry {
+	                id: entry
+			width: 600
+                	anchors.topMargin: 10
+                	anchors.bottomMargin: 5
+	                defaultText: qsTr("password")
+			textInput.echoMode: TextInput.Password
+	          }
+		Text {
+			id:key
+			text: qsTr("key")
+			visible: false
+	         }
+
+	    }
+        }
+        onAccepted: {
+	    mailAccountListModel.addPassword (dlgKey, entry.text);
+        }
+
+    }
+
+
     FuzzyDateTime {
         id: fuzzy
     }
@@ -232,6 +282,17 @@ Labs.Window {
     }
 
     applicationPage: mailAccount
+
+    Connections {
+        target: mailAccountListModel
+        onAskPassword: {
+		console.log ("ASKING PASSWORD: " + title + " " + prompt + " " + key);
+		passwordDialog.title = title;
+		passwordDialog.dlgText = prompt;
+		passwordDialog.dlgKey = key;
+		passwordDialog.show ();
+        }
+    }
 
     Connections {
         target: mainWindow
