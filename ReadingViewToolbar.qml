@@ -62,9 +62,9 @@ Item {
     }
 
     function setMessageDetails (composer, messageID, replyToAll) {
-        var dateline = qsTr ("On %1 %2 wrote:\n").arg(messageListModel.timeStamp (messageID)).arg(messageListModel.mailSender (messageID));
+        var dateline = qsTr ("On %1 %2 wrote:").arg(messageListModel.timeStamp (messageID)).arg(messageListModel.mailSender (messageID));
 
-        composer.quotedBody = dateline + messageListModel.quotedBody (messageID);
+        composer.quotedBody = dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
         attachmentsModel.clear();
         composer.attachmentsModel = attachmentsModel;
         toModel.clear();
