@@ -16,7 +16,7 @@ Column {
 
     WelcomeButton {
         title: qsTr("AOL")
-        icon: "/usr/share/themes/" + theme_name + "/icons/services/aim.png"
+        icon: "image://meegotheme/icons/services/aim"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 4; // AOL
@@ -26,7 +26,7 @@ Column {
     }
     WelcomeButton {
         title: qsTr("Gmail")
-        icon: "/usr/share/themes/" + theme_name + "/icons/services/gmail.png"
+        icon: "image://meegotheme/icons/services/gmail"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 2; // Gmail
@@ -36,7 +36,7 @@ Column {
     }
     WelcomeButton {
         title: qsTr("Microsoft Live Hotmail")
-        icon: "/usr/share/themes/" + theme_name + "/icons/services/msmail.png"
+        icon: "image://meegotheme/icons/services/msmail"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 5; // Microsoft Live
@@ -58,7 +58,8 @@ Column {
     */
     WelcomeButton {
         title: qsTr("Yahoo!")
-        icon: "/usr/share/themes/" + theme_name + "/icons/services/yahoo.png"
+//        icon: "image://meegotheme/icons/services/yahoo"
+        icon: "image://theme/email/icn_yahoo"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 3; // Yahoo
@@ -68,6 +69,7 @@ Column {
     }
     WelcomeButton {
         title: qsTr("Other")
+        icon: "image://meegotheme/icons/services/generic"
         onClicked: {
             emailAccount.clear();
             emailAccount.recvSecurity = "0"; // None

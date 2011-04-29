@@ -68,31 +68,33 @@ Item {
                 source: "image://theme/email/bg_email details_p"
             }
 
-            property string accountImage;
+            property string accountImage
+
             accountImage: {
                 if (mailServer == "gmail")
                 {
-                    accountImage = "/usr/share/themes/"+ theme_name + "/icons/services/gmail.png";
+                    "image://meegotheme/icons/services/gmail"
                 }
                 else if (mailServer == "msn" || mailServer == "hotmail")
                 {
-                    accountImage = "/usr/share/themes/"+ theme_name + "/icons/services/msmail.png";
+                    "image://meegotheme/icons/services/msmail"
                 }
                 else if (mailServer == "facebook")
                 {
-                    accountImage = "/usr/share/themes/"+ theme_name + "/icons/services/facebook.png";
+                    "image://meegotheme/icons/services/facebook"
                 }
                 else if (mailServer == "yahoo")
                 {
-                    accountImage = "/usr/share/themes/"+ theme_name + "/icons/services/yahoo.png";
+                    //"image://meegotheme/icons/services/yahoo"
+                    "image://theme/email/icn_yahoo"
                 }
                 else if (mailServer == "aol")
                 {
-                    accountImage = "/usr/share/themes/"+ theme_name + "/icons/services/aim.png";
+                    "image://meegotheme/icons/services/aim"
                 }
                 else
                 {
-                    accountImage = "/usr/share/themes/"+ theme_name + "/icons/services/generic.png";
+                    "image://meegotheme/icons/services/generic"
                 }
             }
 
