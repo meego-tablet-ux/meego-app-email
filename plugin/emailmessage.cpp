@@ -2,7 +2,7 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -30,7 +30,7 @@ EmailMessage::~EmailMessage ()
 void EmailMessage::setFrom (const QString &sender)
 {
     QMailAccountIdList accountIds = QMailStore::instance()->queryAccounts(
-                                       QMailAccountKey::status(QMailAccount::Enabled, 
+                                       QMailAccountKey::status(QMailAccount::Enabled,
                                        QMailDataComparator::Includes), QMailAccountSortKey::name());
     // look up the account id for the given sender
     foreach (QMailAccountId id, accountIds)
@@ -77,24 +77,23 @@ void EmailMessage::setAttachments (const QStringList &uris)
     m_attachments = uris;
 }
 
-void EmailMessage::setPriority (int priority)
+void EmailMessage::setPriority (EmailMessage::Priority priority)
 {
     switch (priority) {
-    case 2:  //PriorityHigh
+    case HighPriority:
         m_msg.appendHeaderField("X-Priority", "1");
         m_msg.appendHeaderField("X-MSMail-Priority", "High");
         break;
-    case 1: // PriorityLow
+    case LowPriority:
         m_msg.appendHeaderField("X-Priority", "5");
         m_msg.appendHeaderField("X-MSMail-Priority", "Low");
         break;
-    case 0:
+    case NormalPriority:
     default:
         m_msg.appendHeaderField("X-Priority", "3");
         m_msg.appendHeaderField("X-MSMail-Priority", "Normal");
         break;
     }
-
 }
 
 void EmailMessage::send()
@@ -128,7 +127,7 @@ void EmailMessage::send()
     m_msg.setSize(m_msg.indicativeSize() * 1024);
 
     bool stored = false;
-    
+
     if (!m_msg.id().isValid())
         stored = QMailStore::instance()->addMessage(&m_msg);
     else

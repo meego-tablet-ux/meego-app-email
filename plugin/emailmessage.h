@@ -2,7 +2,7 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -21,6 +21,9 @@ public:
     explicit EmailMessage (QDeclarativeItem *parent = 0);
     ~EmailMessage ();
 
+    enum Priority { LowPriority, NormalPriority, HighPriority };
+    Q_ENUMS(Priority)
+
     Q_INVOKABLE void setFrom (const QString &sender);
     Q_INVOKABLE void setTo (const QStringList &toList);
     Q_INVOKABLE void setCc (const QStringList &ccList);
@@ -28,10 +31,9 @@ public:
     Q_INVOKABLE void setSubject (const QString &subject);
     Q_INVOKABLE void setBody (const QString &body);
     Q_INVOKABLE void setAttachments (const QStringList &uris);
-    Q_INVOKABLE void setPriority (int priority = 0 /* normal */);
+    Q_INVOKABLE void setPriority (Priority priority);
     Q_INVOKABLE void send();
     Q_INVOKABLE void saveDraft();
-
 
 signals:
     void sendCompleted();

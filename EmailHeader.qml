@@ -22,7 +22,7 @@ Column {
     property alias attachmentsModel: attachmentBar.model
     property EmailAccountListModel accountsModel
     property variant emailAccountList: []
-    property int priority: 0
+    property int priority: EmailMessage.NormalPriority
 
     property bool showOthers: false
 
@@ -190,11 +190,66 @@ Column {
         TextEntry {
             id: subjectEntry
 
-            width: parent.width - 20
+            width: parent.width - priorityButton.width - 20
             height: parent.height
 
             defaultText: qsTr ("Enter subject here")
         }
+
+        Image {
+            id: priorityButton
+            source: "image://theme/email/btn_priority_up"
+            height: parent.height
+            fillMode: Image.PreserveAspectFit
+
+            MouseArea {
+                anchors.fill: parent
+
+                onClicked: {
+                    var map = mapToItem(scene, mouseX, mouseY);
+                    priorityContextMenu.setPosition(map.x, map.y)
+
+                    if (priority == EmailMessage.NormalPriority)
+                        priorityContextMenu.content[0].selectedIndex = 1   // model[1]
+                    else if (priority == EmailMessage.LowPriority)
+                        priorityContextMenu.content[0].selectedIndex = 2   // model[2]
+                    else
+                        priorityContextMenu.content[0].selectedIndex = 0   // model[0]
+
+                    console.log("Priority context menu selected index: " + priorityContextMenu.content[0].selectedIndex)
+
+                    priorityContextMenu.show()
+                }
+            }
+
+            ContextMenu {
+                id: priorityContextMenu
+
+                content: ActionMenu {
+                    id: actionMenu
+
+                    property string lowText:    qsTr("Low Priority")
+                    property string normalText: qsTr("Normal Priority")
+                    property string highText:   qsTr("High Priority")
+
+                    model: [ highText, normalText, lowText ]
+                    payload: [ EmailMessage.HighPriority,
+                               EmailMessage.NormalPriority,
+                               EmailMessage.LowPriority ]
+
+                    highlightSelectedItem: true
+
+                    onTriggered: {
+                        priority = payload[index]
+
+                        console.log("Message priority set to: " + priority)
+
+                        priorityContextMenu.hide()
+                    }
+                }
+            }
+        }
+
     }
 
     AttachmentView {
