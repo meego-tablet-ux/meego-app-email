@@ -16,13 +16,13 @@
 class EmailMessage : public QDeclarativeItem
 {
     Q_OBJECT
+    Q_ENUMS(Priority)
 
 public:
     explicit EmailMessage (QDeclarativeItem *parent = 0);
     ~EmailMessage ();
 
     enum Priority { LowPriority, NormalPriority, HighPriority };
-    Q_ENUMS(Priority)
 
     Q_INVOKABLE void setFrom (const QString &sender);
     Q_INVOKABLE void setTo (const QStringList &toList);
