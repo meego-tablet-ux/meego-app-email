@@ -130,6 +130,8 @@ void FolderListModel::setAccountKey(QVariant id)
 
     quid = id.value<QString>();    
     m_account = getAccountById (account_list, (char *)quid.toLocal8Bit().constData());
+    g_object_ref (m_account);
+    g_object_unref (account_list);
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
 
     g_print ("fetching store: %s\n", url);
@@ -430,6 +432,7 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	camel_medium_set_header (CAMEL_MEDIUM (msg), "X-Evolution-Transport", selected->transport->url);
 	camel_medium_set_header (CAMEL_MEDIUM (msg), "X-Evolution-Fcc",  selected->sent_folder_uri);
 
+	g_object_unref (account_list);
 
 
 	camel_mime_message_set_subject (msg, subject.toLocal8Bit().constData());

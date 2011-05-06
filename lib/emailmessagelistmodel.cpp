@@ -818,7 +818,10 @@ void EmailMessageListModel::setAccountKey (QVariant id)
         e_iterator_next (iter);
     }
 
+    g_object_ref (m_account);
     g_object_unref (iter);
+    g_object_unref (account_list);
+
     const char *url;
 
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
