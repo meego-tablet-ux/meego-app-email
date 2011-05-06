@@ -7,7 +7,7 @@
  */
 
 import Qt 4.7
-import MeeGo.Labs.Components 0.1 as Labs
+import MeeGo.Components 0.1
 
 BorderImage {
     id: background
@@ -120,7 +120,7 @@ BorderImage {
                         anchors.verticalCenter: parent.verticalCenter
                         inputMethodHints: Qt.ImhEmailCharactersOnly | Qt.ImhNoAutoUppercase
 
-                        Labs.CCPContextArea {
+                        CCPContextArea {
                             editor: parent
                         }
 
