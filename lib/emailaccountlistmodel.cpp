@@ -68,17 +68,28 @@ EmailAccountListModel::~EmailAccountListModel()
 EAccount * EmailAccountListModel::getAccountByIndex(int idx) const
 {
     EIterator *iter;
-    int i=0;
+    int i=-1;
     EAccount *account = NULL;
 
     iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter) && i<idx) {
-        e_iterator_next (iter);
-        i++;
+    for (; e_iterator_is_valid (iter); e_iterator_next (iter)) {
+	EAccountService *service;
+
+	account = (EAccount *) e_iterator_get (iter);
+	service = account->source;
+	
+	/* Iterate over valid accounts only */
+	if (service->url && *service->url) {
+	        i++;
+	}
+	
+	if (i == idx)
+		break;
     }
 
-    if (e_iterator_is_valid (iter))
-        account = (EAccount *) e_iterator_get (iter);
+    if (!e_iterator_is_valid (iter))
+	account = NULL;
+	
     g_object_unref (iter);
 
     return account;
@@ -110,7 +121,14 @@ int EmailAccountListModel::getIndexById(char *id)
 
     iter = e_list_get_iterator (E_LIST (account_list));
     while (e_iterator_is_valid (iter)) {
-        index++;
+	EAccountService *service;
+
+	account = (EAccount *) e_iterator_get (iter);
+	service = account->source;
+	
+	/* Iterate over valid accounts only */
+	if (service->url && *service->url)
+        	index++;
         account = (EAccount *) e_iterator_get (iter);
         if (strcmp (id, account->uid) == 0)
              return index;
@@ -125,7 +143,27 @@ int EmailAccountListModel::getIndexById(char *id)
 
 int EmailAccountListModel::rowCount(const QModelIndex &parent) const
 {
-    return e_list_length (E_LIST(account_list)); //QMailAccountListModel::rowCount(parent);
+    EIterator *iter;
+    int i=0;
+    EAccount *account = NULL;
+
+    iter = e_list_get_iterator (E_LIST (account_list));
+    while (e_iterator_is_valid (iter)) {
+	EAccountService *service;
+	EAccount *acc;
+
+	acc = (EAccount *) e_iterator_get (iter);
+	service = acc->source;
+	
+	/* Iterate over valid accounts only */
+	if (service->url && *service->url)
+	        i++;
+
+        e_iterator_next (iter);
+	
+    }
+
+    return i;
 }
 
 QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
@@ -227,7 +265,7 @@ QVariant EmailAccountListModel::getAccountList()
     for (int row = 0; row < rowCount(); row++)
     {
         QString displayName = data(index(row), EmailAccountListModel::DisplayName).toString();
-        accountList << displayName;
+	accountList << displayName;
     }
 
     return accountList;
