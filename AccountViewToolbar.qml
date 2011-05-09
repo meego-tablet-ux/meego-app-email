@@ -84,12 +84,12 @@ Item {
                 onClicked: {
                     if (scene.refreshInProgress == true)
                     {
-                        emailAgent.cancelSync();
+			mailAccountListModel.cancelOperations();
                         scene.refreshInProgress = false;
                     }
                     else
                     {
-                        emailAgent.accountsSync();
+			mailAccountListModel.sendReceive();
                         scene.refreshInProgress = true;
                     }
                 }

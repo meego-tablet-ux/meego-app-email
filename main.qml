@@ -292,6 +292,16 @@ Labs.Window {
 		passwordDialog.dlgKey = key;
 		passwordDialog.show ();
         }
+        onSendReceiveBegin : {
+            scene.refreshInProgress = true;
+        }
+
+        onSendReceiveCompleted: {
+	    console.log ("Send receive completed");
+            scene.refreshInProgress = false;
+        }
+
+
     }
 
     Connections {

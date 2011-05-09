@@ -101,12 +101,12 @@ Item {
                 onClicked: {
                     if (scene.refreshInProgress == true)
                     {
-                        emailAgent.cancelSync();
+			mailAccountListModel.cancelOperations();
                         scene.refreshInProgress = false;
                     }
                     else
                     {
-                        emailAgent.synchronize(scene.currentMailAccountId);
+			mailAccountListModel.sendReceive();
                         scene.refreshInProgress = true;
                     }
                 }

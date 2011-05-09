@@ -22,6 +22,12 @@ void EmailAccountListModel::onGetPassword (const QString &title, const QString &
 	emit askPassword (title, prompt, key);
 }
 
+void EmailAccountListModel::onSendReceiveComplete()
+{
+	qDebug() << "Send Receive complete \n\n";
+	emit sendReceiveCompleted();
+}
+
 EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     QAbstractListModel(parent)
 {
@@ -45,9 +51,8 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 
     /* Init here for password prompt */
     session_instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-    bool works = QObject::connect (session_instance, SIGNAL(GetPassword(const QString &, const QString &, const QString &)), this, SLOT(onGetPassword (const QString &, const QString &, const QString &)));
-        
-    qDebug() << "\n\n ************************************\n               Registering for get password " << works << "\n";
+    QObject::connect (session_instance, SIGNAL(GetPassword(const QString &, const QString &, const QString &)), this, SLOT(onGetPassword (const QString &, const QString &, const QString &)));
+    QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
 /*
     connect (QMailStore::instance(), SIGNAL(accountsAdded(const QMailAccountIdList &)), this,
              SLOT(onAccountsAdded (const QMailAccountIdList &)));
@@ -287,4 +292,17 @@ void EmailAccountListModel::addPassword(QString key, QString password)
 
 	session_instance->addPassword (key, password, true);
 }
+
+void EmailAccountListModel::sendReceive()
+{
+	session_instance->sendReceive();
+	emit sendReceiveBegin();
+}
+
+void EmailAccountListModel::cancelOperations()
+{
+	emit sendReceiveCompleted();
+	session_instance->cancelOperations();
+}
+
 

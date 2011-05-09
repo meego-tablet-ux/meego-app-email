@@ -51,11 +51,15 @@ public slots:
     Q_INVOKABLE QVariant getAccountList();
     Q_INVOKABLE QVariant getAccountIdByIndex(int idx);
     Q_INVOKABLE void addPassword(QString key, QString password);
+    Q_INVOKABLE void sendReceive();
+    Q_INVOKABLE void cancelOperations();
 
 signals:
     void accountAdded(QVariant accountId);
     void accountRemoved(QVariant accountId);
     void askPassword (QString title, QString prompt, QString key);
+    void sendReceiveCompleted ();
+    void sendReceiveBegin ();
     void modelReset();
 private:
     OrgGnomeEvolutionDataserverMailSessionInterface *session_instance;
@@ -65,6 +69,7 @@ private slots:
     EAccount * getAccountById(char *id);
     int getIndexById(char *id);
     void onGetPassword (const QString &, const QString &, const QString &);
+    void onSendReceiveComplete ();
 //    void onAccountsAdded(const QMailAccountIdList &);
 //    void onAccountsRemoved(const QMailAccountIdList &);
 //    void onAccountsUpdated(const QMailAccountIdList &);
