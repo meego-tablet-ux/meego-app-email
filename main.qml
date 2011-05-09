@@ -24,7 +24,7 @@ Labs.Window {
     property int animationDuration: 250
 
     property variant currentMailAccountId: 0;   // holds the actual QMailAccountId object
-    property int currentMailAccountIndex: 0;    // holds the current account index to account list model
+    property int currentMailAccountIndex: -1;    // holds the current account index to account list model
     property variant currentFolderId: 0;
     property string currentAccountDisplayName;
 
@@ -92,14 +92,14 @@ Labs.Window {
 
         onAccountAdded: {
             var accountList = new Array();
-            accountList = mailAccountListModel.getAccountList();
+            accountList = mailAccountListModel.getAllDisplayNames();
             accountList.push(qsTr("Account switcher"));
             scene.filterModel = accountList;
         }
 
         onAccountRemoved: {
             var accountList = new Array();
-            accountList = mailAccountListModel.getAccountList();
+            accountList = mailAccountListModel.getAllDisplayNames();
             accountList.push(qsTr("Account switcher"));
             scene.filterModel = accountList;
         }
@@ -482,7 +482,7 @@ Labs.Window {
             property int idx: 0
             Component.onCompleted: {
                 var accountList = new Array();
-                accountList = mailAccountListModel.getAccountList();
+                accountList = mailAccountListModel.getAllDisplayNames();
                 accountList.push(qsTr("Account switcher"));
                 scene.filterModel = accountList;
             }

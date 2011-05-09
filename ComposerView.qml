@@ -73,8 +73,7 @@ Item {
                 composer.completeEmailAddresses ();
 
                 message = messageComponent.createObject (composer);
-                message.setFrom (composer.fromEmail);
-
+                message.setFrom (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail));
 
                 var to = new Array ();
                 for (i = 0; i < composer.toModel.count; i++) {

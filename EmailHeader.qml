@@ -14,7 +14,7 @@ Column {
     id: header
 
     property alias subject: subjectEntry.text
-    property string fromEmail: ""
+    property int fromEmail: 0
 
     property alias toModel: toRecipients.model
     property alias ccModel: ccRecipients.model
@@ -36,24 +36,24 @@ Column {
         bccRecipients.complete ();
     }
 
-    // EmailAccountListModel doesn't seem to be a real ListModel
-    // We need to convert it to one to set it in the DropDown
-    onAccountsModelChanged: {
-        emailAccountList = accountsModel.getAccountList();
-        for (var i = 0; i < accountsModel.getRowCount (); i++) {
-            var emailAddress, displayName;
-
-            emailAddress = accountsModel.getEmailAddressByIndex (i);
-            displayName = accountsModel.getDisplayNameByIndex (i);
-            realAccountsModel.append ({"emailAddress": emailAddress, "displayName": displayName});
-
-            if (i == scene.currentMailAccountIndex)
-                fromEmail = emailAddress;
+    Connections {
+        target: mailAccountListModel
+        onAccountAdded: {
+            emailAccountList = accountsModel.getAllEmailAddresses();
+            if (scene.currentMailAccountIndex == -1)
+            {
+                scene.currentMailAccountIndex = 0;
+                fromEmail = 0
+                accountSelector.selectedIndex = 0;
+            }
         }
     }
 
-    ListModel {
-        id: realAccountsModel
+    // EmailAccountListModel doesn't seem to be a real ListModel
+    // We need to convert it to one to set it in the DropDown
+    onAccountsModelChanged: {
+        emailAccountList = accountsModel.getAllEmailAddresses();
+        fromEmail = scene.currentMailAccountIndex;
     }
 
     Row {
@@ -70,14 +70,18 @@ Column {
         DropDown {
             id: accountSelector
             width: parent.width - (ccToggle.width + fromLabel.width + 30)
+            minWidth: 400
             model: emailAccountList
             height: 53
-            selectedIndex: scene.currentMailAccountIndex;
-            title: fromEmail
+            title: emailAccountList[0];
             titleColor: "black"
             replaceDropDownTitle: true
+
+            Component.onCompleted: {
+                selectedIndex = 0;
+            }
             onTriggered: {
-                fromEmail = emailAccountList[index];
+                fromEmail = index;
             }
         }
 

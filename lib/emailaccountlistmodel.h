@@ -48,7 +48,8 @@ public slots:
     Q_INVOKABLE QVariant getDisplayNameByIndex(int idx);
     Q_INVOKABLE QVariant getEmailAddressByIndex(int idx);
     Q_INVOKABLE int getRowCount();
-    Q_INVOKABLE QVariant getAccountList();
+    Q_INVOKABLE QVariant getAllEmailAddresses();
+    Q_INVOKABLE QVariant getAllDisplayNames();
     Q_INVOKABLE QVariant getAccountIdByIndex(int idx);
     Q_INVOKABLE void addPassword(QString key, QString password);
     Q_INVOKABLE void sendReceive();
