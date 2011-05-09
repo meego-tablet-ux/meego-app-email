@@ -105,7 +105,7 @@ Item {
                 message.setBody (composer.body);
 
                 //message.send ();
-		mailFolderListModel.sendMessage(composer.fromEmail, to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+		mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
 
                 scene.previousApplicationPage ();
             }
@@ -164,7 +164,7 @@ Item {
                 message.setBody (composer.body);
 
                 //message.saveDraft ();
-		mailFolderListModel.saveDraft (composer.fromEmail, to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+		mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
                 scene.previousApplicationPage ();
             }
         }

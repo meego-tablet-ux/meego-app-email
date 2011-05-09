@@ -472,8 +472,16 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_BCC, addr);
 	g_object_unref (addr);
 
-	if (priority)
-	camel_medium_add_header (CAMEL_MEDIUM (msg), "X-Priority", "1");
+	//Not sure if Priority is to be set like this, but for now following the existing client code.
+	if (priority == 2) /* High priority*/ {
+		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-Priority", "1");
+		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-MSMail-Priority", "High");
+	} else if (priority == 0) /* Low Priority */ {
+		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-Priority", "5");
+		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-MSMail-Priority", "Low");
+	} else
+		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-MSMail-Priority", "Normal");
+		
 
 	stream = camel_stream_mem_new_with_buffer (body.toLocal8Bit().constData(), body.length());
 
