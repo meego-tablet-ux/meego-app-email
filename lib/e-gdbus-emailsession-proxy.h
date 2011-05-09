@@ -44,6 +44,12 @@ public Q_SLOTS: // METHODS
         return asyncCallWithArgumentList(QLatin1String("addPassword"), argumentList);
     }
 
+    inline QDBusPendingReply<> cancelOperations()
+    {
+        QList<QVariant> argumentList;
+        return asyncCallWithArgumentList(QLatin1String("cancelOperations"), argumentList);
+    }
+
     inline QDBusPendingReply<QDBusObjectPath> getFolderFromUri(const QString &uri)
     {
         QList<QVariant> argumentList;
@@ -73,9 +79,15 @@ public Q_SLOTS: // METHODS
 
     static OrgGnomeEvolutionDataserverMailSessionInterface* instance(QObject *parent);
 
+    inline QDBusPendingReply<> sendReceive()
+    {
+        QList<QVariant> argumentList;
+        return asyncCallWithArgumentList(QLatin1String("sendReceive"), argumentList);
+    }
 
 Q_SIGNALS: // SIGNALS
     void GetPassword(const QString &title, const QString &prompt, const QString &key);
+    void sendReceiveComplete();
 };
 
 namespace org {
