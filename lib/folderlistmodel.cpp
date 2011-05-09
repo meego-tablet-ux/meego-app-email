@@ -662,6 +662,7 @@ int FolderListModel::saveDraft(const QString &from, const QStringList &to, const
         g_object_unref (stream);
         g_object_unref (msg);
 
+	return 0;
 	
 }
 
@@ -686,6 +687,7 @@ int FolderListModel::sendMessage(const QString &from, const QStringList &to, con
         g_object_unref (stream);
         g_object_unref (msg);
 
+	return 0;
 } 
 
 
