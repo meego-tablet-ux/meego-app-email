@@ -553,9 +553,14 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
         QString address;
         QStringList email = str.split ("<", QString::KeepEmptyParts);
 
-	address = email[1];
-	address.chop (1);
-        return address;
+        if (email.size() > 1)
+        {
+	    address = email[1];
+	    address.chop (1);
+            return address;
+        }
+        else
+            return str;
     }
     else if (role == MessageCcRole)
     {
