@@ -10,7 +10,10 @@
 
 #define CAMEL_COMPILATION 1
 #include <camel/camel-mime-message.h>
+#include <camel/camel-multipart.h>
 #include <camel/camel-stream-mem.h>
+#include <camel/camel-stream-fs.h>
+#include <camel/camel-stream-null.h>
 #include <camel/camel-mime-utils.h>
 #include <camel/camel-iconv.h>
 #include <camel/camel-mime-filter-basic.h>
@@ -402,6 +405,8 @@ best_charset (const char *buf, int buflen,
 	return g_strdup (charset);
 }
 
+#define ATTACHMENT_QUERY "standard::*,preview::*,thumbnail::*"
+
 CamelMimeMessage * createMessage (const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
@@ -542,11 +547,14 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	camel_data_wrapper_set_mime_type_field (plain, type);
 	camel_content_type_unref (type);
 
+	foreach (QString uri, attachment_uris)
+		qDebug() << uri;
+
 	if (attachment_uris.length() == 0) {
 		camel_medium_set_content (CAMEL_MEDIUM (msg), plain);
 		camel_mime_part_set_encoding (CAMEL_MIME_PART (msg), plain_encoding);
 	} else {
-		/*CamelMultipart *body = NULL;
+		CamelMultipart *body = NULL;
 		CamelMimePart *part;
 
 		body = camel_multipart_new ();
@@ -554,19 +562,122 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 		part = camel_mime_part_new ();
 		camel_medium_set_content (CAMEL_MEDIUM (part), plain);
-		camel_multipart_add_part (multipart, part);
+		camel_mime_part_set_encoding (CAMEL_MIME_PART (part), plain_encoding);
+		camel_multipart_add_part (body, part);
 		g_object_unref (part);
 		
 		foreach (QString uri, attachment_uris) {
 			CamelDataWrapper *wrapper;
 			CamelMimePart *apart;
 			CamelStream *astream;
-			GFileInfo *file_info;
+			GFile *file;
+			GFileInfo *finfo;
+			const gchar *ctype, *display_name, *description;
+			gchar *mime_type, *fpath;
+			CamelContentType *content_type;
+			GError *error;
 			
+			file = g_file_new_for_uri (uri.toLocal8Bit().constData());
+			finfo = g_file_query_info (file, ATTACHMENT_QUERY, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+			ctype = g_file_info_get_content_type (finfo);
+			mime_type = g_content_type_get_mime_type (ctype);
+			
+			fpath = g_file_get_path (file);
+			astream = camel_stream_fs_new_with_name (fpath, O_RDONLY, 0, &error);
+			if (!astream)
+				g_print ("Error: %s: %s\n", fpath, error->message);
+			else
+				g_print("Successfully opened the attachment\n");
+			g_free (fpath);
+
 			wrapper = camel_data_wrapper_new ();
+			camel_data_wrapper_set_mime_type (wrapper, mime_type);
+			g_print("CONSTRUCT: %d\n", camel_data_wrapper_construct_from_stream (wrapper, astream, NULL));
+			g_object_unref (astream);
+
+			apart = camel_mime_part_new ();
+			camel_medium_set_content (CAMEL_MEDIUM (apart), wrapper);
+
+			display_name = g_file_info_get_display_name (finfo);
+			if (display_name != NULL)
+				camel_mime_part_set_filename (apart, display_name);
+
+			description = g_file_info_get_attribute_string (finfo, G_FILE_ATTRIBUTE_STANDARD_DESCRIPTION);
+			if (description != NULL)
+				camel_mime_part_set_description (apart, description);
+			camel_mime_part_set_disposition (apart, "attachment");
+
+			content_type = camel_mime_part_get_content_type (apart);
+
+			/* For text content, determine the best encoding and character set. */
+			if (camel_content_type_is (content_type, "text", "*")) {
+				CamelTransferEncoding encoding;
+				CamelStream *filtered_stream;
+				CamelMimeFilter *filter;
+				CamelStream *stream;
+				const gchar *charset;
+				gchar *type;
+
+				charset = camel_content_type_param (content_type, "charset");
+
+				/* Determine the best encoding by writing the MIME
+				 * part to a NULL stream with a "bestenc" filter. */
+				stream = camel_stream_null_new ();
+				filtered_stream = camel_stream_filter_new (stream);
+				filter = camel_mime_filter_bestenc_new (
+					CAMEL_BESTENC_GET_ENCODING);
+				camel_stream_filter_add (
+					CAMEL_STREAM_FILTER (filtered_stream),
+					CAMEL_MIME_FILTER (filter));
+				camel_data_wrapper_decode_to_stream (
+					wrapper, filtered_stream, NULL);
+				g_object_unref (filtered_stream);
+				g_object_unref (stream);
+
+				/* Retrieve the best encoding from the filter. */
+				encoding = camel_mime_filter_bestenc_get_best_encoding (
+					CAMEL_MIME_FILTER_BESTENC (filter),
+					CAMEL_BESTENC_8BIT);
+				camel_mime_part_set_encoding (apart, encoding);
+				g_object_unref (filter);
+
+				if (encoding == CAMEL_TRANSFER_ENCODING_7BIT) {
+					/* The text fits within us-ascii, so this is safe.
+					 * FIXME Check that this isn't iso-2022-jp? */
+					charset = "us-ascii";
+				} else if (charset == NULL) {
+					charset = g_strdup (camel_iconv_locale_charset ());
+					/* FIXME Check that this fits within the
+					 *       default_charset and if not, find one
+					 *       that does and/or allow the user to
+					 *       specify. */
+				}
+
+				camel_content_type_set_param (
+					content_type, "charset", charset);
+				type = camel_content_type_format (content_type);
+				camel_mime_part_set_content_type (apart, type);
+				g_free (type);
+
+			} else if (!CAMEL_IS_MIME_MESSAGE (wrapper))
+				camel_mime_part_set_encoding (
+					apart, CAMEL_TRANSFER_ENCODING_BASE64);
+
+
+			camel_multipart_add_part (body, apart);
+
+
+			g_object_unref (wrapper);
+			g_free (mime_type);
+			g_object_unref (file);
+			g_object_unref (finfo);
+			g_object_unref (apart);
 					
 		}
-*/
+
+		camel_medium_set_content (CAMEL_MEDIUM (msg), (CamelDataWrapper *)body);
+		
+
 
 	}
 
@@ -636,7 +747,8 @@ void createInfo (CamelMessageInfoVariant &info, const QString &from, const QStri
 		info.date_received = (qulonglong)camel_header_decode_date(date + 1, NULL);
 	else
 		info.date_received = 0;
-
+	
+	info.references_size = 0;
 	/* We don't have to form refs & other headers while appending for send. Its not used anyways */
 
 	return;
