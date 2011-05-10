@@ -122,6 +122,8 @@ public slots:
     Q_INVOKABLE void deleteMessages(QList<QString>);
     Q_INVOKABLE void markMessageAsRead (QVariant id);
     Q_INVOKABLE void markMessageAsUnread (QVariant id);
+    Q_INVOKABLE void saveAttachment (int row, QString uri);
+    Q_INVOKABLE bool openAttachment (int row, QString uri);
 
 private slots:
     void downloadActivityChanged(QMailServiceAction::Activity);

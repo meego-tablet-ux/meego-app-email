@@ -64,31 +64,20 @@ Item {
             if (index == 0)  // open attachment
             {
                 openFlag = true;
-                emailAgent.downloadAttachment(messageListModel.messageId(scene.currentMessageIndex), uri);
+		var status = messageListModel.openAttachment(scene.currentMessageIndex, uri);
+                if (status == false)
+                {
+		    unsupportedFileFormat.show();
+		}
+
             }
             else if (index == 1) // Save attachment
             {
                 openFlag = false;
-                emailAgent.downloadAttachment(messageListModel.messageId(scene.currentMessageIndex), uri);
+		messageListModel.saveAttachment(scene.currentMessageIndex, uri);
             }
         }
-        Connections {
-            target: emailAgent
-            onAttachmentDownloadStarted: {
-                downloadInProgress = true;
-            }
-            onAttachmentDownloadCompleted: {
-                downloadInProgress = false;
-                if (openFlag == true)
-                {
-                   var status = emailAgent.openAttachment(uri);
-                   if (status == false)
-                   {
-                       unsupportedFileFormat.show();
-                   }
-                }
-            }
-        }
+
         }
     }  // end of attachmentContextMenu
 

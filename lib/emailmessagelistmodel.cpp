@@ -8,7 +8,10 @@
 #define CAMEL_COMPILATION 1
 #include <camel/camel-mime-message.h>
 #include <camel/camel-stream-mem.h>
+#include <camel/camel-stream-fs.h>
 #include <camel/camel-multipart.h>
+#include <camel/camel-medium.h>
+#include <camel/camel-data-wrapper.h>
 #include "emailmessagelistmodel.h"
 #include <QMailMessage>
 #include <QMailMessageKey>
@@ -395,14 +398,13 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     {
     	QDBusPendingReply<QString> reply;
 	QString qmsg;
-	QByteArray reparray;
 	CamelMimeMessage *message;
 	CamelStream *stream;
-	const char*msg;
+	char*msg;
 	int parts, i;
 	CamelDataWrapper *containee;
 	CamelContentType *ct;
-	
+
 	if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) == 0)
 		return QStringList();
 
@@ -417,12 +419,15 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 		qDebug() << "AR Got message from cache " << iuid;
 	}
 
-	msg = qmsg.toLocal8Bit().constData();
+	msg = g_strdup(qmsg.toLocal8Bit().data());
+
 	message = camel_mime_message_new();
 	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	
 	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
 	camel_stream_reset (stream, NULL);
 	g_object_unref(stream);
+	g_free (msg);
 
 	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
         QStringList attachments;
@@ -1311,3 +1316,146 @@ void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity
     }
 #endif
 }
+
+void EmailMessageListModel::saveAttachment (int row, QString uri)
+{
+    	QDBusPendingReply<QString> reply;
+	QString qmsg;
+	CamelMimeMessage *message;
+	CamelStream *stream;
+	char*msg;
+	int parts, i;
+	CamelDataWrapper *containee;
+	CamelContentType *ct;
+    	QString iuid;
+	char *auri;
+
+	iuid = folder_uids[row];
+
+	qmsg =(* m_messages)[iuid];
+	if (qmsg.isEmpty()) {
+		reply = m_folder_proxy->getMessage(iuid);
+		reply.waitForFinished();
+		qmsg = reply.value ();
+		m_messages->insert(QString(iuid), qmsg);
+		qDebug() << "SaveAttach: Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
+	} else {
+		qDebug() << "SaveAttach: Got message from cache " << iuid;
+	}
+	
+	qDebug() << uri;
+	auri = g_strdup(uri.toLocal8Bit().constData());
+	msg = g_strdup (qmsg.toLocal8Bit().constData());
+
+	message = camel_mime_message_new();
+	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	
+
+	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
+	camel_stream_reset (stream, NULL);
+	g_object_unref(stream);
+	g_free (msg);
+
+	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
+        QStringList attachments;
+
+	parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
+
+	if (CAMEL_IS_MULTIPART(containee)) {
+		for (i=0;i<parts;i++) {
+			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
+		        CamelDataWrapper *subc;
+
+			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
+			ct = ((CamelDataWrapper *)subc)->mime_type;
+	                if (camel_mime_part_get_filename(part) == NULL && (camel_content_type_is(ct, "text", "plain") ||
+			    camel_content_type_is(ct, "text", "html") )) {
+				continue;
+	                }
+ 			printf("Comparing: %s %s\n", camel_mime_part_get_filename(part), auri);
+			if (strcmp (camel_mime_part_get_filename(part), auri) == 0) {
+				/* This is the part we must download. */
+				QString downloadPath = QDir::homePath() + "/Downloads/" + uri;
+				QFile f(downloadPath);
+				char *path;
+				CamelStream *fstream;
+				CamelDataWrapper *dw;
+
+				dw = camel_medium_get_content ((CamelMedium *)part);
+
+                		if (f.exists())
+                    			f.remove();
+				path = g_strdup(downloadPath.toLocal8Bit().constData());
+	
+				fstream = camel_stream_fs_new_with_name (path, O_WRONLY|O_CREAT, 0600, NULL);
+				
+				g_print("Saving to %s: %p\n", path, fstream);
+				g_free (path);
+				g_free (auri);
+				camel_data_wrapper_decode_to_stream (dw, fstream, NULL);
+				camel_stream_flush (fstream, NULL);
+				camel_stream_close (fstream, NULL);
+				g_object_unref (fstream);
+				qDebug() << "Successfully saved attachment: "+uri;
+				return;
+			}
+		}
+	}
+
+	
+	
+}
+
+bool EmailMessageListModel::openAttachment (int row, QString uri)
+{
+    bool status = true;
+    
+    /* Lets save it first. */
+    saveAttachment (row, uri);
+
+    // let's determine the file type
+    QString filePath = QDir::homePath() + "/Downloads/" + uri;
+
+    QProcess fileProcess;
+    fileProcess.start("file", QStringList() << "-b" << filePath);
+    if (!fileProcess.waitForFinished())
+        return false;
+
+    QString s(fileProcess.readAll());
+    QStringList parameters;
+    parameters << "--opengl" << "--fullscreen";
+    if (s.contains("video", Qt::CaseInsensitive))
+    {
+        parameters << "--app" << "meego-app-video";
+        parameters << "--cmd" << "playVideo";
+    }
+    else if (s.contains("image", Qt::CaseInsensitive))
+    {
+        parameters << "--app" << "meego-app-photos";
+        parameters << "--cmd" << "showPhoto";
+    }
+    else if (s.contains("audio", Qt::CaseInsensitive))
+    {
+        parameters << "--app" << "meego-app-music";
+        parameters << "--cmd" << "playSong";
+    }
+    else if (s.contains("Ogg data", Qt::CaseInsensitive))
+    {
+        // Fix Me:  need more research on Ogg format. For now, default to video.
+        parameters << "--app" << "meego-app-video";
+        parameters << "--cmd" << "video";
+    }
+    else
+    {
+        // Unsupported file type.
+        return false;
+    }
+
+    QString executable("meego-qml-launcher");
+    filePath.prepend("file://");
+    parameters << "--cdata" << filePath;
+    QProcess::startDetached(executable, parameters);
+
+    return status;
+}
+
