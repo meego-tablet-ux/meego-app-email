@@ -154,6 +154,36 @@ void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 	str.append ((const char *)ba->data, ba->len);
 }
 
+void parseMultipartBody (QByteArray &reparray, CamelMimePart *mpart, bool plain)
+{
+	int parts, i;
+	CamelContentType *ct;
+	const char *textType = plain ? "plain" : "html";
+	CamelDataWrapper *containee;
+
+	containee = camel_medium_get_content (CAMEL_MEDIUM(mpart));
+	ct = ((CamelDataWrapper *)containee)->mime_type;
+	if (CAMEL_IS_MULTIPART(containee)) {
+		parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
+		for (i=0;i<parts;i++) {
+			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
+
+			//ct = ((CamelDataWrapper *)subc)->mime_type;
+			parseMultipartBody (reparray, part, plain);
+//	                if (camel_content_type_is(ct, "text", textType) && camel_mime_part_get_filename(part) == NULL) {
+//				append_part_to_string (reparray, (CamelMimePart *)subc);
+//	                }
+
+		}
+	} else  {
+		if (camel_content_type_is(ct, "text", textType) && camel_mime_part_get_filename(mpart) == NULL) {
+			append_part_to_string (reparray, (CamelMimePart *)containee);
+		}
+
+
+	}
+}
+
 QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 {
     	QDBusPendingReply<QString> reply;
@@ -161,11 +191,6 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 	QByteArray reparray;
 	CamelMimeMessage *message;
 	CamelStream *stream;
-	const char*msg;
-	int parts, i;
-	CamelDataWrapper *containee;
-	CamelContentType *ct;
-	const char *textType = plain ? "plain" : "html";
 
 	qmsg = (*m_messages)[uid];
 	if (qmsg.isEmpty()) {
@@ -178,36 +203,13 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
                 qDebug() << "BT Got message from cache " << uid;
 	}
 
-	msg = qmsg.toLocal8Bit().constData();
 	message = camel_mime_message_new();
-	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().constData(), qmsg.length());
 	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
 	camel_stream_reset (stream, NULL);
 	g_object_unref(stream);
 
-	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
-
-	if (CAMEL_IS_MULTIPART(containee)) {
-		parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
-		for (i=0;i<parts;i++) {
-			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
-		        CamelDataWrapper *subc;
-
-			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
-			ct = ((CamelDataWrapper *)subc)->mime_type;
-	                if (camel_content_type_is(ct, "text", textType) && camel_mime_part_get_filename(part) == NULL) {
-				append_part_to_string (reparray, (CamelMimePart *)subc);
-	                }
-
-		}
-	} else  {
-		ct = ((CamelDataWrapper *)containee)->mime_type;
-		if (camel_content_type_is(ct, "text", textType)) {
-			append_part_to_string (reparray, (CamelMimePart *)containee);
-		}
-
-
-	}
+	parseMultipartBody (reparray, (CamelMimePart *)message, plain);
  	
 	return QString (reparray);
 #if 0
@@ -270,6 +272,28 @@ void EmailMessageListModel::createChecksum()
 	
     	return;
     
+}
+
+
+void parseMultipartAttachmentName (QStringList &attachments, CamelMimePart *mpart, CamelMimePart *top)
+{
+	int parts, i;
+	CamelDataWrapper *containee;
+
+	containee = camel_medium_get_content (CAMEL_MEDIUM(mpart));
+	if (CAMEL_IS_MULTIPART(containee)) {
+		parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
+		for (i=0;i<parts;i++) {
+			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
+
+			parseMultipartAttachmentName (attachments, part, top);
+		}
+	} else if (camel_mime_part_get_filename(mpart) != NULL) {
+		attachments << QString (camel_mime_part_get_filename(mpart));
+		qDebug() << "Attachment : " << QString (camel_mime_part_get_filename(mpart));
+	} else if (mpart != top) {
+		/* Check content type see if the attachment is a email */
+	}
 }
 
 //![0]
@@ -400,10 +424,6 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 	QString qmsg;
 	CamelMimeMessage *message;
 	CamelStream *stream;
-	char*msg;
-	int parts, i;
-	CamelDataWrapper *containee;
-	CamelContentType *ct;
 
 	if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) == 0)
 		return QStringList();
@@ -419,37 +439,16 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 		qDebug() << "AR Got message from cache " << iuid;
 	}
 
-	msg = g_strdup(qmsg.toLocal8Bit().data());
-
 	message = camel_mime_message_new();
-	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().data(), qmsg.length());
 	
 	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
 	camel_stream_reset (stream, NULL);
 	g_object_unref(stream);
-	g_free (msg);
 
-	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
         QStringList attachments;
-
-	parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
-
-	if (CAMEL_IS_MULTIPART(containee)) {
-		for (i=0;i<parts;i++) {
-			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
-		        CamelDataWrapper *subc;
-
-			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
-			ct = ((CamelDataWrapper *)subc)->mime_type;
-	                if (camel_mime_part_get_filename(part) == NULL && (camel_content_type_is(ct, "text", "plain") ||
-			    camel_content_type_is(ct, "text", "html") )) {
-				continue;
-	                }
-			attachments << QString (camel_mime_part_get_filename(part));
-			qDebug() << "Attachment : " << QString (camel_mime_part_get_filename(part));
-		}
-	}
-
+	parseMultipartAttachmentName (attachments, (CamelMimePart *)message, (CamelMimePart *)message);
+	g_object_unref (message);
 #if 0
         // return a stringlist of attachments
         QMailMessage message(idFromIndex(index));
@@ -1322,18 +1321,58 @@ void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity
 #endif
 }
 
+void saveMimePart (QString uri, CamelMimePart *part)
+{
+	QString downloadPath = QDir::homePath() + "/Downloads/" + uri;
+	QFile f(downloadPath);
+	CamelStream *fstream;
+	CamelDataWrapper *dw;
+
+	dw = camel_medium_get_content ((CamelMedium *)part);
+
+	if (f.exists())
+		f.remove();
+	
+	fstream = camel_stream_fs_new_with_name (downloadPath.toLocal8Bit().constData(), O_WRONLY|O_CREAT, 0600, NULL);
+				
+	camel_data_wrapper_decode_to_stream (dw, fstream, NULL);
+	camel_stream_flush (fstream, NULL);
+	camel_stream_close (fstream, NULL);
+	g_object_unref (fstream);
+	qDebug() << "Successfully saved attachment: "+uri;
+}
+
+bool saveMultipartAttachment (CamelMimePart *mpart, QString uri)
+{
+	int parts, i;
+	CamelDataWrapper *containee;
+	bool saved = false;
+	
+	/* Could be a problem if a mail hierarchy has same file name attachments */
+	containee = camel_medium_get_content (CAMEL_MEDIUM(mpart));
+	if (CAMEL_IS_MULTIPART(containee)) {
+		parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
+		for (i=0;i<parts && !saved;i++) {
+			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
+
+			saved = saveMultipartAttachment (part, uri);
+		}
+	} else if (camel_mime_part_get_filename(mpart) != NULL && 
+			strcmp (camel_mime_part_get_filename(mpart), uri.toLocal8Bit().constData()) == 0) {
+		saveMimePart (uri, mpart);
+		return true;
+	} 
+
+	return saved;
+}
+
 void EmailMessageListModel::saveAttachment (int row, QString uri)
 {
     	QDBusPendingReply<QString> reply;
 	QString qmsg;
 	CamelMimeMessage *message;
 	CamelStream *stream;
-	char*msg;
-	int parts, i;
-	CamelDataWrapper *containee;
-	CamelContentType *ct;
     	QString iuid;
-	char *auri;
 
 	iuid = folder_uids[row];
 
@@ -1348,67 +1387,16 @@ void EmailMessageListModel::saveAttachment (int row, QString uri)
 		qDebug() << "SaveAttach: Got message from cache " << iuid;
 	}
 	
-	qDebug() << uri;
-	auri = g_strdup(uri.toLocal8Bit().constData());
-	msg = g_strdup (qmsg.toLocal8Bit().constData());
 
 	message = camel_mime_message_new();
-	stream = camel_stream_mem_new_with_buffer (msg, qmsg.length());
+	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().constData(), qmsg.length());
 	
-
 	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
 	camel_stream_reset (stream, NULL);
 	g_object_unref(stream);
-	g_free (msg);
 
-	containee = camel_medium_get_content (CAMEL_MEDIUM(message));
-        QStringList attachments;
-
-	parts = camel_multipart_get_number(CAMEL_MULTIPART(containee));
-
-	if (CAMEL_IS_MULTIPART(containee)) {
-		for (i=0;i<parts;i++) {
-			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
-		        CamelDataWrapper *subc;
-
-			subc = camel_medium_get_content (CAMEL_MEDIUM(part));
-			ct = ((CamelDataWrapper *)subc)->mime_type;
-	                if (camel_mime_part_get_filename(part) == NULL && (camel_content_type_is(ct, "text", "plain") ||
-			    camel_content_type_is(ct, "text", "html") )) {
-				continue;
-	                }
- 			printf("Comparing: %s %s\n", camel_mime_part_get_filename(part), auri);
-			if (strcmp (camel_mime_part_get_filename(part), auri) == 0) {
-				/* This is the part we must download. */
-				QString downloadPath = QDir::homePath() + "/Downloads/" + uri;
-				QFile f(downloadPath);
-				char *path;
-				CamelStream *fstream;
-				CamelDataWrapper *dw;
-
-				dw = camel_medium_get_content ((CamelMedium *)part);
-
-                		if (f.exists())
-                    			f.remove();
-				path = g_strdup(downloadPath.toLocal8Bit().constData());
-	
-				fstream = camel_stream_fs_new_with_name (path, O_WRONLY|O_CREAT, 0600, NULL);
-				
-				g_print("Saving to %s: %p\n", path, fstream);
-				g_free (path);
-				g_free (auri);
-				camel_data_wrapper_decode_to_stream (dw, fstream, NULL);
-				camel_stream_flush (fstream, NULL);
-				camel_stream_close (fstream, NULL);
-				g_object_unref (fstream);
-				qDebug() << "Successfully saved attachment: "+uri;
-				return;
-			}
-		}
-	}
-
-	
-	
+	saveMultipartAttachment ((CamelMimePart *)message, uri);
+	g_object_unref (message);
 }
 
 bool EmailMessageListModel::openAttachment (int row, QString uri)
