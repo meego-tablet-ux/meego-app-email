@@ -175,6 +175,13 @@ public Q_SLOTS: // METHODS
         return asyncCallWithArgumentList(QLatin1String("searchByUids"), argumentList);
     }
 
+    inline QDBusPendingReply<QStringList> searchSortByExpression(const QString &expression, const QString &sort, bool ascending)
+    {
+        QList<QVariant> argumentList;
+        argumentList << qVariantFromValue(expression) << qVariantFromValue(sort) << qVariantFromValue(ascending);
+        return asyncCallWithArgumentList(QLatin1String("searchSortByExpression"), argumentList);
+    }
+
     inline QDBusPendingReply<> setDescription(const QString &desc)
     {
         QList<QVariant> argumentList;

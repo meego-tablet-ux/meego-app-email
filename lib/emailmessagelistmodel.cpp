@@ -596,7 +596,17 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
 void EmailMessageListModel::updateSearch ()
 {
-    QDBusPendingReply<QStringList> reply = m_folder_proxy->searchByExpression (search_str);
+	QString sort;
+	if (m_sortById == EmailMessageListModel::SortDate)
+		sort = QString ("date");
+	else if (m_sortById == EmailMessageListModel::SortSubject)
+		sort = QString ("subject");
+	else if (m_sortById == EmailMessageListModel::SortSender)
+		sort = QString ("sender");
+	else
+		sort = QString ("date");
+
+    QDBusPendingReply<QStringList> reply = m_folder_proxy->searchSortByExpression (search_str, sort, false);
     reply.waitForFinished();
     
     beginRemoveRows (QModelIndex(), 0, folder_uids.length()-1);
@@ -610,7 +620,6 @@ void EmailMessageListModel::updateSearch ()
     foreach (QString uid, folder_uids)
 	qDebug() << "Search result: " << uid;
 
-    sortMails();
     timer->stop();
 }
 
@@ -688,11 +697,22 @@ void EmailMessageListModel::setFolderKey (QVariant id)
                                                                         m_folder_proxy_id.path(),
                                                                         QDBusConnection::sessionBus(), this);
 	{
-		QString search = QString("(match-all (and " 
+		QString sort;
+		search_str = QString("(match-all (and " 
 						      "(not (system-flag \"deleted\")) "
 			        		      "(not (system-flag \"junk\")))) ");
+		if (m_sortById == EmailMessageListModel::SortDate)
+			sort = QString ("date");
+		else if (m_sortById == EmailMessageListModel::SortSubject)
+			sort = QString ("subject");
+
+		else if (m_sortById == EmailMessageListModel::SortSender)
+			sort = QString ("sender");
+		else
+			sort = QString ("date");
+
 		/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
-		QDBusPendingReply<QStringList> reply = m_folder_proxy->searchByExpression(search);
+		QDBusPendingReply<QStringList> reply = m_folder_proxy->searchSortByExpression(search_str, sort, false);
 	        reply.waitForFinished();
 		folder_uids = reply.value ();
 	}
@@ -717,7 +737,6 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 		m_infos.insert (uid, info);
 	}
 	endInsertRows();
-	sortMails ();
 
         connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
                                             this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
