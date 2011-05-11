@@ -29,15 +29,10 @@ Item {
         scene.folderListViewClickCount = 0;
         gettingMoreMessages = false;
     }
+
     Connections {
-        target: emailAgent
-        onSyncCompleted: {
-            gettingMoreMessages = false;
-        }
-        onError: {
-            gettingMoreMessages = false;
-        }
-        onRetrievalCompleted: {
+        target: messageListModel
+        onMessageRetrievalCompleted: {
             gettingMoreMessages = false;
         }
     }
@@ -215,7 +210,7 @@ Item {
                 }
                 onClicked: {
                     gettingMoreMessages = true;
-                    emailAgent.getMoreMessages(scene.currentFolderId);
+                    messageListModel.getMoreMessages(scene.currentFolderId);
                 }
             }
         }

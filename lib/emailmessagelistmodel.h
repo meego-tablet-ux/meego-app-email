@@ -88,6 +88,7 @@ public:
 
 signals:
     void messageDownloadCompleted();
+    void messageRetrievalCompleted();
 
 public slots:
     Q_INVOKABLE void setFolderKey (QVariant id);
@@ -124,6 +125,7 @@ public slots:
     Q_INVOKABLE void markMessageAsUnread (QVariant id);
     Q_INVOKABLE void saveAttachment (int row, QString uri);
     Q_INVOKABLE bool openAttachment (int row, QString uri);
+    Q_INVOKABLE void getMoreMessages ();
 
 private slots:
     void downloadActivityChanged(QMailServiceAction::Activity);
@@ -138,6 +140,7 @@ private:
 
     CamelFolderInfoArrayVariant m_folders; 
     QStringList folder_uids;
+    QStringList shown_uids;
     QStringList folder_vuids;
     QTimer *timer;
     QString search_str;
