@@ -863,7 +863,8 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
 		}
 	}
 
-	sortMails ();
+	if (added.length() > 0)
+		sortMails ();
 }
 
 void EmailMessageListModel::setAccountKey (QVariant id)
