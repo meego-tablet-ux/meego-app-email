@@ -842,24 +842,28 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
 		/* Add uid */
 		qDebug() << "Changed UID: " << uid;
 
-		/* Add message info */
-                QDBusError error;
-                CamelMessageInfoVariant info;
-                qDebug() << "Fetching uid " << uid;
-                QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-                reply.waitForFinished();
-                qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
-                if (reply.isError()) {
-                        error = reply.error();
-                        qDebug() << "Error: " << error.name () << " " << error.message();
-                        continue;
-                }
-                info = reply.value ();
-                m_infos.insert (uid, info);
-		
 		if (shown_uids.indexOf(uid) != -1) {
+			/* Add message info */
+	                QDBusError error;
+	                CamelMessageInfoVariant info;
+	                qDebug() << "Fetching uid " << uid;
+	                QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+	                reply.waitForFinished();
+	                qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+	                if (reply.isError()) {
+	                        error = reply.error();
+	                        qDebug() << "Error: " << error.name () << " " << error.message();
+	                        continue;
+        	        }
+	                info = reply.value ();
+	                m_infos.insert (uid, info);
+		
 			QModelIndex idx = createIndex (shown_uids.indexOf(uid), 0);
 			emit dataChanged(idx, idx);
+			
+		} else {
+			/* This UID isn't displayed. Forsafe we'll remove any stale info if present.*/
+			m_infos.remove (uid);
 		}
 	}
 
