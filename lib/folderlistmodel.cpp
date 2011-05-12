@@ -122,7 +122,7 @@ void FolderListModel::setAccountKey(QVariant id)
     EAccountList *account_list;
     QString quid;
     const char *url;
-
+    char *acc_id;
     if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
 	return;
     }
@@ -132,7 +132,9 @@ void FolderListModel::setAccountKey(QVariant id)
     g_object_unref (client);
 
     quid = id.value<QString>();    
-    m_account = getAccountById (account_list, (char *)quid.toLocal8Bit().constData());
+    acc_id = g_strdup (quid.toLocal8Bit().constData());
+    m_account = getAccountById (account_list, acc_id);
+    g_free (acc_id);
     g_object_ref (m_account);
     g_object_unref (account_list);
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
@@ -418,6 +420,7 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	CamelDataWrapper *plain;
 	CamelContentType *type;
 	gchar *charset;
+	char *cfrom, *csubject;
 	const gchar *iconv_charset = NULL;
 	CamelTransferEncoding plain_encoding;
 
@@ -427,7 +430,9 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 	msg = camel_mime_message_new ();
 	addr = camel_internet_address_new ();
-    	selected = getAccountByAddress (account_list, (char *)from.toLocal8Bit().constData());
+	cfrom = g_strdup (from.toLocal8Bit().constData());
+    	selected = getAccountByAddress (account_list, cfrom);
+	g_free (cfrom);
 	g_print("PRINT: %p %s %s\n", selected, selected->id->name, selected->id->address);
 	camel_internet_address_add (addr, selected->id->name, selected->id->address);
 	camel_mime_message_set_from (msg, addr);
@@ -439,15 +444,18 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 	g_object_unref (account_list);
 
-
-	camel_mime_message_set_subject (msg, subject.toLocal8Bit().constData());
+	csubject = g_strdup (subject.toLocal8Bit().constData());
+	camel_mime_message_set_subject (msg, csubject);
+	g_free (csubject);
 
 	addr = camel_internet_address_new ();
 	foreach (QString str, to) {
-		const char *email = str.toLocal8Bit().constData();
+		char *email = g_strdup(str.toLocal8Bit().constData());
 
 		if (camel_address_decode (CAMEL_ADDRESS (addr), email) <= 0)
 			camel_internet_address_add (addr, "", email);
+
+		g_free (email);
 	}
 	if (camel_address_length (CAMEL_ADDRESS (addr)) > 0) 
 		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_TO, addr);
@@ -456,10 +464,11 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 	addr = camel_internet_address_new ();
 	foreach (QString str, cc) {
-		const char *email = str.toLocal8Bit().constData();
+		char *email = g_strdup(str.toLocal8Bit().constData());
 
 		if (camel_address_decode (CAMEL_ADDRESS (addr), email) <= 0)
 			camel_internet_address_add (addr, "", email);
+		g_free (email);
 	}
 	if (camel_address_length (CAMEL_ADDRESS (addr)) > 0) 
 		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_CC, addr);
@@ -468,10 +477,11 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 	addr = camel_internet_address_new ();
 	foreach (QString str, bcc) {
-		const char *email = str.toLocal8Bit().constData();
+		char *email = g_strdup(str.toLocal8Bit().constData());
 
 		if (camel_address_decode (CAMEL_ADDRESS (addr), email) <= 0)
 			camel_internet_address_add (addr, "", email);
+		g_free (email);
 	}
 	if (camel_address_length (CAMEL_ADDRESS (addr)) > 0) 
 		camel_mime_message_set_recipients (msg, CAMEL_RECIPIENT_TYPE_BCC, addr);

@@ -626,7 +626,6 @@ void EmailMessageListModel::updateSearch ()
 void EmailMessageListModel::setSearch(const QString search)
 {
     char *query;
-    const char *str = search.toLocal8Bit().constData();
     query = g_strdup_printf("(match-all (and " 
 				"(not (system-flag \"deleted\")) "
 			        "(not (system-flag \"junk\")) "
@@ -635,7 +634,11 @@ void EmailMessageListModel::setSearch(const QString search)
                       			"(header-contains \"To\" \"%s\")"
                       			"(header-contains \"Cc\" \"%s\")"
                       			"(header-contains \"Bcc\" \"%s\")"
-		      			"(header-contains \"Subject\" \"%s\"))))", str, str, str, str, str);
+		      			"(header-contains \"Subject\" \"%s\"))))", search.toLocal8Bit().constData(), 
+										   search.toLocal8Bit().constData(), 
+ 										   search.toLocal8Bit().constData(),
+ 										   search.toLocal8Bit().constData(), 
+ 										   search.toLocal8Bit().constData());
 
     qDebug() << "Search for: " << search;
     

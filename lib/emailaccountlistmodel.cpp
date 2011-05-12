@@ -240,12 +240,13 @@ QVariant EmailAccountListModel::indexFromAccountId(QVariant id)
 {
     int idx=0;
     QString sid = id.toString();
-    
+    char *cid = g_strdup((char *)sid.toLocal8Bit().constData());
 
     if (id == 0)
         return idx;
     
-    idx = getIndexById ((char *)sid.toLocal8Bit().constData());
+    idx = getIndexById (cid);
+    g_free (cid);
     return idx;
 }
 
@@ -293,14 +294,16 @@ QVariant EmailAccountListModel::getAccountIdByIndex(int idx)
 
 void EmailAccountListModel::addPassword(QString key, QString password)
 {
-	const char *skey, *spass;
+	char *skey, *spass;
 	
 	//Handle Cancel password well. Like don't reprompt again in the same session/operation
-	skey = key.toLocal8Bit().constData();
-	spass = password.toLocal8Bit().constData();
+	skey = g_strdup(key.toLocal8Bit().constData());
+	spass = g_strdup(password.toLocal8Bit().constData());
 	qDebug() << "\n\nSave Password: "<< key;
 
 	session_instance->addPassword (key, password, true);
+	g_free (skey);
+	g_free (spass);
 }
 
 void EmailAccountListModel::sendReceive()
