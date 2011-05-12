@@ -716,14 +716,15 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 		else
 			sort = QString ("date");
 
+		/* Prepare the summary it speeds up the process. */
+		QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
+		reply_prep.waitForFinished();
+
 		/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
 		QDBusPendingReply<QStringList> reply = m_folder_proxy->searchSortByExpression(search_str, sort, false);
 	        reply.waitForFinished();
 		folder_uids = reply.value ();
-	}
-	{
-		QDBusPendingReply<> reply = m_folder_proxy->prepareSummary();
-		reply.waitForFinished();
+		g_print("Fetched %d uids\n", folder_uids.length());
 	}
 	beginInsertRows(QModelIndex(), 0, WINDOW_LIMIT-1);
 	foreach (QString uid, folder_uids) {
