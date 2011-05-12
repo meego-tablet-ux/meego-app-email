@@ -607,6 +607,9 @@ void EmailMessageListModel::updateSearch ()
 		sort = QString ("sender");
 	else
 		sort = QString ("date");
+	
+    QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
+    reply_prep.waitForFinished();
 
     QDBusPendingReply<QStringList> reply = m_folder_proxy->searchSortByExpression (search_str, sort, false);
     reply.waitForFinished();
