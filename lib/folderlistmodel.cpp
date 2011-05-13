@@ -32,6 +32,7 @@
 #include <QProcess>
 #include <qmailnamespace.h>
 #include <libedataserver/e-account-list.h>
+#include <libedataserver/e-data-server-util.h>
 #include <libedataserver/e-list.h>
 #include <gconf/gconf-client.h>
 #include <glib.h>
@@ -586,7 +587,29 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 			gchar *mime_type, *fpath;
 			CamelContentType *content_type;
 			GError *error;
+			char *newpath = NULL;
 			
+			if (uri.indexOf("file://") == -1) {
+				if (!g_file_test(uri.toLocal8Bit().constData(),G_FILE_TEST_EXISTS)) {
+					//File doesn't exist, so check tmp
+					char *oldpath = g_strdup (uri.toLocal8Bit().constData());
+					if (oldpath && *oldpath && oldpath[0] != '/') {
+						/* Not an absolute path. lets check tmp */
+						newpath = g_build_filename (e_get_user_cache_dir(), "tmp", oldpath, NULL);
+						uri = QString("file://")+QString (newpath);
+						qDebug() << "Built new path: "+ uri;
+					} else { /* Ignore and move on to the next attachment. */ 
+						g_free (oldpath);
+						continue;
+					}
+					g_free (oldpath);
+				} else {
+					uri = QString("file://")+QString (newpath);
+				}
+			}
+
+			qDebug() << "About to save "+ uri;
+
 			file = g_file_new_for_uri (uri.toLocal8Bit().constData());
 			finfo = g_file_query_info (file, ATTACHMENT_QUERY, G_FILE_QUERY_INFO_NONE, NULL, NULL);
 			ctype = g_file_info_get_content_type (finfo);
@@ -679,10 +702,15 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 			g_object_unref (wrapper);
 			g_free (mime_type);
+			g_object_unref (apart);
+			if (newpath) {
+				/* This is a tmp file. Remove it.*/
+				g_file_delete (file, NULL, NULL);
+				g_free (newpath);
+			}
 			g_object_unref (file);
 			g_object_unref (finfo);
-			g_object_unref (apart);
-					
+				
 		}
 
 		camel_medium_set_content (CAMEL_MEDIUM (msg), (CamelDataWrapper *)body);

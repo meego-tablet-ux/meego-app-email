@@ -23,6 +23,7 @@
 #include <qmailnamespace.h>
 #include <glib.h>
 #include <libedataserver/e-account-list.h>
+#include <libedataserver/e-data-server-util.h>
 #include <gconf/gconf-client.h>
 
 #define WINDOW_LIMIT 20
@@ -1366,28 +1367,40 @@ void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity
 #endif
 }
 
-void saveMimePart (QString uri, CamelMimePart *part)
+void saveMimePart (QString uri, CamelMimePart *part, bool tmp)
 {
-	QString downloadPath = QDir::homePath() + "/Downloads/" + uri;
-	QFile f(downloadPath);
 	CamelStream *fstream;
 	CamelDataWrapper *dw;
+	QString downloadPath; 
+	GError *error;
+
+	if (!tmp) 
+		downloadPath = QDir::homePath() + "/Downloads/" + uri;
+	else {
+		char *dpath = g_build_filename (e_get_user_cache_dir(), "tmp", (const char *)uri.toLocal8Bit().constData(), NULL);
+		downloadPath = QString(dpath);
+		g_free(dpath);
+	}
+
+	QFile f(downloadPath);
 
 	dw = camel_medium_get_content ((CamelMedium *)part);
 
 	if (f.exists())
 		f.remove();
 	
-	fstream = camel_stream_fs_new_with_name (downloadPath.toLocal8Bit().constData(), O_WRONLY|O_CREAT, 0600, NULL);
-				
+	fstream = camel_stream_fs_new_with_name (downloadPath.toLocal8Bit().constData(), O_WRONLY|O_CREAT, 0770, &error);
+	if (!fstream) {
+		g_print("ERROR: %s\n", error->message);
+	}
 	camel_data_wrapper_decode_to_stream (dw, fstream, NULL);
 	camel_stream_flush (fstream, NULL);
 	camel_stream_close (fstream, NULL);
 	g_object_unref (fstream);
-	qDebug() << "Successfully saved attachment: "+uri;
+	qDebug() << "Successfully saved attachment: "+uri+" in: "+downloadPath;
 }
 
-bool saveMultipartAttachment (CamelMimePart *mpart, QString uri)
+bool saveMultipartAttachment (CamelMimePart *mpart, QString uri, bool tmp)
 {
 	int parts, i;
 	CamelDataWrapper *containee;
@@ -1400,18 +1413,25 @@ bool saveMultipartAttachment (CamelMimePart *mpart, QString uri)
 		for (i=0;i<parts && !saved;i++) {
 			CamelMimePart *part = camel_multipart_get_part(CAMEL_MULTIPART(containee), i);
 
-			saved = saveMultipartAttachment (part, uri);
+			saved = saveMultipartAttachment (part, uri, tmp);
 		}
-	} else if (camel_mime_part_get_filename(mpart) != NULL && 
-			strcmp (camel_mime_part_get_filename(mpart), uri.toLocal8Bit().constData()) == 0) {
-		saveMimePart (uri, mpart);
-		return true;
+	} else if (camel_mime_part_get_filename(mpart) != NULL) {
+
+		if (uri.isEmpty()) {	
+			// We have to save all of the attachments in tmp dir of Evolution. 
+			QString auri = QString(camel_mime_part_get_filename(mpart));
+			saveMimePart (auri, mpart, tmp);
+			return false;
+		} else if (strcmp (camel_mime_part_get_filename(mpart), uri.toLocal8Bit().constData()) == 0) {
+			saveMimePart (uri, mpart, tmp);
+			return true;
+		}
 	} 
 
 	return saved;
 }
 
-void EmailMessageListModel::saveAttachment (int row, QString uri)
+void EmailMessageListModel::saveAttachmentIn (int row, QString uri, bool tmp)
 {
     	QDBusPendingReply<QString> reply;
 	QString qmsg;
@@ -1440,8 +1460,18 @@ void EmailMessageListModel::saveAttachment (int row, QString uri)
 	camel_stream_reset (stream, NULL);
 	g_object_unref(stream);
 
-	saveMultipartAttachment ((CamelMimePart *)message, uri);
+	saveMultipartAttachment ((CamelMimePart *)message, uri, tmp);
 	g_object_unref (message);
+}
+
+void EmailMessageListModel::saveAttachmentsInTemp (int row)
+{
+	saveAttachmentIn (row, QString(""), true);
+}
+
+void EmailMessageListModel::saveAttachment (int row, QString uri)
+{
+	saveAttachmentIn (row, uri, false);
 }
 
 bool EmailMessageListModel::openAttachment (int row, QString uri)

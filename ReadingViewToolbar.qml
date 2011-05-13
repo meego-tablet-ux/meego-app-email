@@ -187,6 +187,7 @@ Item {
 
                     newPage.composer.quotedBody = qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (scene.currentMessageIndex);
                     newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (scene.currentMessageIndex));
+		    messageListModel.saveAttachmentsInTemp (scene.currentMessageIndex);		    
                     newPage.composer.attachmentsModel = mailAttachmentModel;
                 }
             }

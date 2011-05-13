@@ -126,6 +126,9 @@ public slots:
     Q_INVOKABLE void saveAttachment (int row, QString uri);
     Q_INVOKABLE bool openAttachment (int row, QString uri);
     Q_INVOKABLE void getMoreMessages ();
+    Q_INVOKABLE void saveAttachmentIn (int row, QString uri, bool tmp);
+    Q_INVOKABLE void saveAttachmentsInTemp (int row);
+
 
 private slots:
     void downloadActivityChanged(QMailServiceAction::Activity);

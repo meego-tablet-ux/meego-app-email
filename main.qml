@@ -395,6 +395,7 @@ Labs.Window {
                     newPage.composer.quotedBody = qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (scene.currentMessageIndex);
                     newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (scene.currentMessageIndex));
                     scene.mailAttachments = messageListModel.attachments(scene.currentMessageIndex);
+		    messageListModel.saveAttachmentsInTemp (scene.currentMessageIndex);
                     mailAttachmentModel.init();
                     newPage.composer.attachmentsModel = mailAttachmentModel;
 
