@@ -1389,7 +1389,7 @@ void saveMimePart (QString uri, CamelMimePart *part, bool tmp)
 	if (f.exists())
 		f.remove();
 	
-	fstream = camel_stream_fs_new_with_name (downloadPath.toLocal8Bit().constData(), O_WRONLY|O_CREAT, 0770, &error);
+	fstream = camel_stream_fs_new_with_name (downloadPath.toLocal8Bit().constData(), O_WRONLY|O_CREAT, 0700, &error);
 	if (!fstream) {
 		g_print("ERROR: %s\n", error->message);
 	}
