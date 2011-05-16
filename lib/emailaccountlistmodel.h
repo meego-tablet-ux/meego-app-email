@@ -64,6 +64,9 @@ signals:
     void modelReset();
 private:
     OrgGnomeEvolutionDataserverMailSessionInterface *session_instance;
+    EAccountList *account_list;
+    QHash<QString, int> acc_unread;
+    void updateUnreadCount (EAccount *account);
 
 private slots:
     EAccount * getAccountByIndex (int idx) const;
@@ -75,8 +78,7 @@ private slots:
 //    void onAccountsRemoved(const QMailAccountIdList &);
 //    void onAccountsUpdated(const QMailAccountIdList &);
 
-private:
-EAccountList *account_list;
+
 };
 
 #endif

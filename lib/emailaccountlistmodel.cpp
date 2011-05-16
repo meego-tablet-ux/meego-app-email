@@ -15,6 +15,7 @@
 #include <gconf/gconf-client.h>
 #include "emailaccountlistmodel.h"
 #include "dbustypes.h"
+#include "e-gdbus-emailstore-proxy.h"
 
 void EmailAccountListModel::onGetPassword (const QString &title, const QString &prompt, const QString &key)
 {
@@ -26,6 +27,39 @@ void EmailAccountListModel::onSendReceiveComplete()
 {
 	qDebug() << "Send Receive complete \n\n";
 	emit sendReceiveCompleted();
+}
+
+void EmailAccountListModel::updateUnreadCount (EAccount *account)
+{	
+	QDBusObjectPath store_id;
+	OrgGnomeEvolutionDataserverMailStoreInterface *proxy;
+	CamelFolderInfoArrayVariant folderlist;
+	int count=0;
+	const char *url;
+
+	url = e_account_get_string (account, E_ACCOUNT_SOURCE_URL);
+	if (!url || !*url)
+		return;
+	QDBusPendingReply<QDBusObjectPath> reply = session_instance->getStore (QString(url));
+        reply.waitForFinished();
+        store_id = reply.value();
+
+        proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									store_id.path(),
+									QDBusConnection::sessionBus(), this);
+	
+	QDBusPendingReply<CamelFolderInfoArrayVariant> reply1 = proxy->getFolderInfo (QString(""), 
+								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+	reply1.waitForFinished();
+	folderlist = reply1.value ();	
+    	foreach (CamelFolderInfoVariant fInfo, folderlist)
+    	{
+		if (fInfo.unread_count > 0)
+			count+= fInfo.unread_count;
+	}
+
+	delete proxy;
+	acc_unread.insert (QString(account->uid), count);
 }
 
 EmailAccountListModel::EmailAccountListModel(QObject *parent) :
@@ -64,6 +98,19 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     QMailAccountListModel::setSynchronizeEnabled(true);
     QMailAccountListModel::setKey(QMailAccountKey::messageType(QMailMessage::Email));
 */
+
+    EIterator *iter;
+    EAccount *account = NULL;
+
+    iter = e_list_get_iterator (E_LIST (account_list));
+    while (e_iterator_is_valid (iter)) {
+        account = (EAccount *) e_iterator_get (iter);
+	updateUnreadCount(account);
+        e_iterator_next (iter);
+    }
+
+    g_object_unref (iter);
+
 }
 
 EmailAccountListModel::~EmailAccountListModel()
@@ -204,7 +251,7 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
     if (role == UnreadCount)
     {
-	return QVariant(1);
+	return acc_unread[QString(account->uid)];
     }
 
     if (role == MailAccountId)
