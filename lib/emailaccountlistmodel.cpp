@@ -12,6 +12,7 @@
 #include <glib.h>
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-list.h>
+#include <libedataserver/e-data-server-util.h>
 #include <gconf/gconf-client.h>
 #include "emailaccountlistmodel.h"
 #include "dbustypes.h"
@@ -67,6 +68,10 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 {
     qDebug() << "EmailAccountListModel constructor";
     QHash<int, QByteArray> roles;
+    char *path = g_build_filename (e_get_user_cache_dir(), "tmp", NULL);
+
+    g_mkdir_with_parents (path, 0700);
+    g_free (path);
 
     registerMyDataTypes ();
 
