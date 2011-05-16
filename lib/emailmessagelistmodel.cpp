@@ -199,9 +199,12 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 	if (qmsg.isEmpty()) {
 		reply = m_folder_proxy->getMessage(uid);
 		reply.waitForFinished();
-		qmsg = reply.value ();
-		m_messages->insert (uid, qmsg);
-                qDebug() << "BT Fetching message " << uid;
+		if (!reply.isError()) {
+			qmsg = reply.value ();
+			m_messages->insert (uid, qmsg);
+                	qDebug() << "BT Fetching message " << uid;
+		} else
+			return QString("");
         } else {
                 qDebug() << "BT Got message from cache " << uid;
 	}
@@ -435,9 +438,12 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 	if (qmsg.isEmpty()) {
 		reply = m_folder_proxy->getMessage(iuid);
 		reply.waitForFinished();
-		qmsg = reply.value ();
-		m_messages->insert(QString(iuid), qmsg);
-		qDebug() << "AR Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
+		if (!reply.isError()) {
+			qmsg = reply.value ();
+			m_messages->insert(QString(iuid), qmsg);
+			qDebug() << "AR Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
+		} else
+			qmsg = QString("");
 	} else {
 		qDebug() << "AR Got message from cache " << iuid;
 	}
@@ -1450,9 +1456,12 @@ void EmailMessageListModel::saveAttachmentIn (int row, QString uri, bool tmp)
 	if (qmsg.isEmpty()) {
 		reply = m_folder_proxy->getMessage(iuid);
 		reply.waitForFinished();
-		qmsg = reply.value ();
-		m_messages->insert(QString(iuid), qmsg);
-		qDebug() << "SaveAttach: Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
+		if (!reply.isError()) {	
+			qmsg = reply.value ();
+			m_messages->insert(QString(iuid), qmsg);
+			qDebug() << "SaveAttach: Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
+		} else
+			return;
 	} else {
 		qDebug() << "SaveAttach: Got message from cache " << iuid;
 	}
