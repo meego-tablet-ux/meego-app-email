@@ -481,13 +481,18 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageRecipientsRole)
     {
 	QStringList recipients;
-	QStringList mto = minfo.to.split (">,");
+	QStringList mto;
+	
+	mto = minfo.to.split (">,");
+	if (mto.length() == 1)
+		mto = minfo.to.split (">");
 	foreach (QString str, mto) {
 		QStringList email = str.split ("<", QString::KeepEmptyParts);
 		if (email.length() == 1)
 			recipients << email[0];
 		else 
 			recipients << email[1];
+
 	}
         return recipients;
     }
