@@ -143,7 +143,11 @@ void FolderListModel::setAccountKey(QVariant id)
     g_print ("fetching store: %s\n", url);
     OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
     if (instance && instance->isValid()) {
-	QDBusPendingReply<QDBusObjectPath> reply = instance->getStore (QString(url));
+	QDBusPendingReply<QDBusObjectPath> reply;
+	if (strncmp (url, "pop:", 4) == 0)
+		reply = instance->getLocalStore();
+	else 
+		reply = instance->getStore (QString(url));
         reply.waitForFinished();
         m_store_proxy_id = reply.value();
 	g_print ("Store PATH: %s\n", (char *) m_store_proxy_id.path().toLocal8Bit().constData());

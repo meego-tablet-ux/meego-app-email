@@ -926,8 +926,12 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
 OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-    if (instance && instance->isValid()) {
-        QDBusPendingReply<QDBusObjectPath> reply = instance->getStore (QString(url));
+    if (instance && instance->isValid() && url && *url) {
+        QDBusPendingReply<QDBusObjectPath> reply ;
+	if (strncmp (url, "pop:", 4) == 0)
+		reply = instance->getLocalStore();
+	else 
+		reply = instance->getStore (QString(url));
         reply.waitForFinished();
         m_store_proxy_id = reply.value();
         m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),

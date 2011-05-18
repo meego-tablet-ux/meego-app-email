@@ -41,7 +41,12 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 	url = e_account_get_string (account, E_ACCOUNT_SOURCE_URL);
 	if (!url || !*url)
 		return;
-	QDBusPendingReply<QDBusObjectPath> reply = session_instance->getStore (QString(url));
+	
+	QDBusPendingReply<QDBusObjectPath> reply;
+	if (strncmp (url, "pop:", 4) == 0)
+		reply  = session_instance->getLocalStore();
+	else
+		reply  = session_instance->getStore (QString(url));
         reply.waitForFinished();
         store_id = reply.value();
 
