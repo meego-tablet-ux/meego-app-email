@@ -124,6 +124,8 @@ void FolderListModel::setAccountKey(QVariant id)
     QString quid;
     const char *url;
     char *acc_id;
+    char *folder_name = NULL;
+
     if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
 	return;
     }
@@ -150,20 +152,28 @@ void FolderListModel::setAccountKey(QVariant id)
 		reply = instance->getStore (QString(url));
         reply.waitForFinished();
         m_store_proxy_id = reply.value();
+
+	if (strncmp (url, "pop:", 4) == 0) {
+		const char *email;
+
+		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
+		folder_name = g_strdup_printf ("%s/Inbox", email);
+	}
+
 	g_print ("Store PATH: %s\n", (char *) m_store_proxy_id.path().toLocal8Bit().constData());
         m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
 									m_store_proxy_id.path(),
 									QDBusConnection::sessionBus(), this);
 	
 	if (m_store_proxy && m_store_proxy->isValid()) {
-		QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(""), 
+		QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(folder_name ? folder_name : ""), 
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
 	g_print ("Got folder list....\n");
 
 	}
-	
+	g_free (folder_name);
 	if (!m_outbox_proxy) {
 		reply = instance->getLocalFolder (QString("Outbox"));
 		reply.waitForFinished();
@@ -271,6 +281,16 @@ QVariant FolderListModel::inboxFolderId()
 	}
     }
 
+    /* Check if anything ends with INBOX. POP has it like that */
+    for (int i = 0; i < m_folderlist.size(); i++)
+    {
+        CamelFolderInfoVariant folder(m_folderlist[i]);
+        if (folder.full_name.endsWith("INBOX", Qt::CaseInsensitive)) {
+	    g_print ("Returning INBOX ENDS WITH URI: %s\n", (char *)folder.uri.toLocal8Bit().constData());
+            return QVariant(folder.uri);
+	}
+    }
+   
     return QVariant();
 }
 
@@ -281,9 +301,19 @@ QVariant FolderListModel::inboxFolderName()
         CamelFolderInfoVariant folder(m_folderlist[i]);
 
        if (QString::compare(folder.full_name, "INBOX", Qt::CaseInsensitive) == 0) {
-            g_print ("Returning INBOX URI: %s\n", (char *)folder.uri.toLocal8Bit().constData());
+            g_print ("Returning INBOX NAME: %s\n", (char *)folder.uri.toLocal8Bit().constData());
             return QVariant(folder.folder_name);
         }
+    }
+
+   /* Check if anything ends with INBOX. POP has it like that */
+    for (int i = 0; i < m_folderlist.size(); i++)
+    {
+        CamelFolderInfoVariant folder(m_folderlist[i]);
+        if (folder.full_name.endsWith("INBOX", Qt::CaseInsensitive)) {
+	    g_print ("Returning INBOX ENDS WITH NAME: %s\n", (char *)folder.uri.toLocal8Bit().constData());
+            return QVariant(folder.folder_name);
+	}
     }
     return QVariant("");
 }

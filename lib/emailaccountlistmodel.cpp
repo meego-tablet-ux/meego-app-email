@@ -37,6 +37,7 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 	CamelFolderInfoArrayVariant folderlist;
 	int count=0;
 	const char *url;
+	char *folder_name = NULL;
 
 	url = e_account_get_string (account, E_ACCOUNT_SOURCE_URL);
 	if (!url || !*url)
@@ -49,12 +50,19 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 		reply  = session_instance->getStore (QString(url));
         reply.waitForFinished();
         store_id = reply.value();
+	
+	if (strncmp (url, "pop:", 4) == 0) {
+		const char *email;
+
+		email = e_account_get_string(account, E_ACCOUNT_ID_ADDRESS);
+		folder_name = g_strdup_printf ("%s/Inbox", email);
+	}
 
         proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
 									store_id.path(),
 									QDBusConnection::sessionBus(), this);
 	
-	QDBusPendingReply<CamelFolderInfoArrayVariant> reply1 = proxy->getFolderInfo (QString(""), 
+	QDBusPendingReply<CamelFolderInfoArrayVariant> reply1 = proxy->getFolderInfo (QString(folder_name ? folder_name : ""), 
 								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 	reply1.waitForFinished();
 	folderlist = reply1.value ();	
@@ -64,6 +72,7 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 			count+= fInfo.unread_count;
 	}
 
+	g_free (folder_name);		
 	delete proxy;
 	acc_unread.insert (QString(account->uid), count);
 }

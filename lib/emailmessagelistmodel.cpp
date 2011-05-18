@@ -898,6 +898,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     EAccount *acc;
     QString aid = id.toString ();
     int index=-1;
+    char *folder_name = NULL;
 
     if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
 	g_debug("Setting same account");
@@ -934,17 +935,27 @@ OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDat
 		reply = instance->getStore (QString(url));
         reply.waitForFinished();
         m_store_proxy_id = reply.value();
+
+	if (strncmp (url, "pop:", 4) == 0) {
+		const char *email;
+
+		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
+		folder_name = g_strdup_printf ("%s/Inbox", email);
+	}
+
         m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                         m_store_proxy_id.path(),
                                                                         QDBusConnection::sessionBus(), this);
 
         if (m_store_proxy && m_store_proxy->isValid()) {
-                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(""),
+                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(folder_name ? folder_name : ""),
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
 
         }
+
+	g_free (folder_name);
     }
 
     
