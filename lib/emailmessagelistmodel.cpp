@@ -334,6 +334,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageSelectModeRole] = "selected";
     setRoleNames(roles);
 
+    m_folder_proxy = NULL;
     m_sortById = EmailMessageListModel::SortDate;
     m_sortKey = 1;
     m_messages = new QHash <QString, QString>;
@@ -712,6 +713,8 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     folder_uids.clear();
     m_infos.clear();
     m_messages->clear();
+    if (m_folder_proxy)
+	delete m_folder_proxy;
 
     m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                         m_folder_proxy_id.path(),
