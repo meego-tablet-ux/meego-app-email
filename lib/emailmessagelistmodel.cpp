@@ -786,10 +786,13 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 void EmailMessageListModel::getMoreMessages ()
 {
 	int i, count;
+	int max;
 
 	count = shown_uids.length();
-	beginInsertRows(QModelIndex(), count-1, count+WINDOW_LIMIT-1);
-	for (i=count; i < count+WINDOW_LIMIT; i++) {
+
+	max = ((count+WINDOW_LIMIT) > (folder_uids.length() )) ? (folder_uids.length()) : count+WINDOW_LIMIT;
+	beginInsertRows(QModelIndex(), count-1, max-1);
+	for (i=count; i < max; i++) {
 		QString uid = folder_uids[i];
 		QDBusError error;
 		CamelMessageInfoVariant info;
