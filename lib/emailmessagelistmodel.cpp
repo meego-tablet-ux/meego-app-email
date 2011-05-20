@@ -1260,6 +1260,11 @@ int EmailMessageListModel::messagesCount ()
     return rowCount();
 }
 
+int EmailMessageListModel::totalCount ()
+{
+    return folder_uids.length();
+}
+
 void EmailMessageListModel::deSelectAllMessages()
 {
     if (m_selectedMsgIds.size() == 0)

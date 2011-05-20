@@ -115,6 +115,7 @@ public slots:
     Q_INVOKABLE QVariant toList (int index);
     Q_INVOKABLE QVariant messageRead (int index);
     Q_INVOKABLE int messagesCount ();
+    Q_INVOKABLE int totalCount ();
     Q_INVOKABLE void deSelectAllMessages();
     Q_INVOKABLE void selectMessage( int index );
     Q_INVOKABLE void deSelectMessage (int index );

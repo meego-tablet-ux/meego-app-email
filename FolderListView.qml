@@ -188,11 +188,11 @@ Item {
             height: 90
             width: parent.width
             visible: {
-                var folderServerCount = mailFolderListModel.folderServerCount(scene.currentFolderId);
 		messageListModel.setAccountKey (scene.currentMailAccountId);
 		if (scene.currentFolderId)
 			messageListModel.setFolderKey (scene.currentFolderId);
 
+                var folderServerCount = messageListModel.totalCount();
                 if (messageListView.count < folderServerCount)
                     return true;
                 else
