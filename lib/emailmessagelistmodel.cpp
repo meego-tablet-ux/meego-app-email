@@ -880,8 +880,21 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
 	                info = reply.value ();
 	                m_infos.insert (uid, info);
 		
-			QModelIndex idx = createIndex (shown_uids.indexOf(uid), 0);
-			emit dataChanged(idx, idx);
+			if ((info.flags & CAMEL_MESSAGE_DELETED) != 0) {
+				/* Message is deleted, it should be off the list now */
+				int index; 
+				qDebug() << "Removing UID of msg with deleted flag set : " << uid;
+
+				index = shown_uids.indexOf(uid);
+				if (index != -1) {
+			        	beginRemoveRows (QModelIndex(), index, index);
+					shown_uids.removeAt(index);
+					endRemoveRows ();
+				}
+			} else {
+				QModelIndex idx = createIndex (shown_uids.indexOf(uid), 0);
+				emit dataChanged(idx, idx);
+			}
 			
 		} else {
 			/* This UID isn't displayed. Forsafe we'll remove any stale info if present.*/
