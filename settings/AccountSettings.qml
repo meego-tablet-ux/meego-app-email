@@ -226,7 +226,7 @@ Item {
             onClicked: {
                 accountSettingsModel.saveChanges();
                 // cdata will be set if called from email app
-                if (scene.applicationData) {
+                if (window.applicationData) {
                     settingsPage.returnToEmail();
                 } else {
                     changesSaved.show();
