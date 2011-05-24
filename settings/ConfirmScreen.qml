@@ -6,12 +6,13 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import MeeGo.Settings 0.1
 
 Item {
     anchors.fill: parent
+
     Flickable {
         clip: true
         anchors.fill: parent
@@ -23,7 +24,7 @@ Item {
             width: settingsPage.width
             spacing: 2
             Text {
-                font.pixelSize: theme_fontPixelSizeLarge
+                font.pixelSize: theme.fontPixelSizeLarge
                 font.weight: Font.Bold
                 //color: "white"
                 text: qsTr("Account set up successfully!")
@@ -55,7 +56,7 @@ Item {
                 width: parent.width
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: theme_fontPixelSizeMedium
+                    font.pixelSize: theme.  fontPixelSizeMedium
                     font.weight: Font.Bold
                     //color: "white"
                     text: qsTr("Set up another account?")

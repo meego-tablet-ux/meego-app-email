@@ -6,7 +6,8 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Flickable {
     clip: true
@@ -14,6 +15,11 @@ Flickable {
     contentWidth: content.width
     contentHeight: content.height
     flickableDirection: Flickable.VerticalFlick
+
+    Theme {
+        id: theme
+    }
+
     Column {
         id: content
         width: settingsPage.width
@@ -21,13 +27,13 @@ Flickable {
         Item { width: 1; height: 20; }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: theme_fontPixelSizeMedium
+            font.pixelSize: theme.fontPixelSizeMedium
             //color: "white"
             text: qsTr("Welcome to your email.")
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: theme_fontPixelSizeLarge
+            font.pixelSize: theme.fontPixelSizeLarge
             //color: "white"
             text: qsTr("Set up your accounts")
         }

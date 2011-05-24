@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import "settings.js" as Settings
 
@@ -18,15 +18,17 @@ Rectangle {
     anchors.right: parent.right
     color: "#d5ecf6"
     height: 77
+
     Text {
         id: label
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
         anchors.margins: 10
-        font.pixelSize: theme_fontPixelSizeLarge
-        color: theme_fontColorNormal
+        font.pixelSize: theme.fontPixelSizeLarge
+        color: theme.fontColorNormal
         text: Settings.textForInterval(radioButton.value)
     }
+
     RadioButton {
         id: radioButton
         anchors.verticalCenter: parent.verticalCenter
@@ -34,6 +36,7 @@ Rectangle {
         anchors.margins: 20
         group: updateInterval
     }
+
     //FIXME: not supported by MeeGo.Components radiobutton
     //MouseArea {
     //    anchors.fill: parent

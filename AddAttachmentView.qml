@@ -12,8 +12,8 @@ import MeeGo.Components 0.1
 Item {
     id: addAttachmentPageContainer
 
-    parent: addAttachmentPage.content
-    width: scene.content.width
+    parent: addAttachmentPage
+    width: parent.width
     height: parent.height
 
     property ListModel attachments
@@ -76,7 +76,7 @@ Item {
         anchors.bottom: parent.bottom
 
         onOkay: {
-            scene.previousApplicationPage ();
+            window.popPage ();
         }
     }
 
@@ -91,7 +91,7 @@ Item {
     Component {
         id: musicPicker
         MusicPicker {
-            anchors.fill: parent
+            //anchors.fill: parent
 
             showPlaylists: false
             showAlbums: false
@@ -107,7 +107,7 @@ Item {
     Component {
         id: photoPicker
         PhotoPicker {
-            anchors.fill: parent
+            //anchors.fill: parent
 
             onPhotoSelected: {
                 console.log ("Photo: " + uri);
@@ -119,7 +119,7 @@ Item {
     Component {
         id: moviePicker
         VideoPicker {
-            anchors.fill: parent
+            //anchors.fill: parent
 
             onVideoSelected: {
                 console.log ("Video: " + uri);

@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
@@ -14,7 +14,7 @@ Item {
     id: container
 
     height: navigationBar.height
-    width: scene.content.width
+    width: window.content.width
 
     property int buttonWidth: (parent.width - 4) / 5
 
@@ -44,27 +44,27 @@ Item {
 
             Text {
                 text: qsTr ("Are you sure you want to delete this email?")
-                color:theme_fontColorNormal
-                font.pixelSize: theme_fontPixelSizeLarge
+                color:theme.fontColorNormal
+                font.pixelSize: theme.fontPixelSizeLarge
                 wrapMode: Text.Wrap
             }
         }
         onAccepted: {
-            messageListModel.deleteMessage (scene.mailId);
-            scene.previousApplicationPage();
+            messageListModel.deleteMessage (window.mailId);
+            window.popPage();
         }
     }
 
     function deleteMessage()
     {
-	messageListModel.deleteMessage(scene.mailId);
-        scene.previousApplicationPage();
+        messageListModel.deleteMessage (window.mailId);
+        window.popPage();
     }
 
     function setMessageDetails (composer, messageID, replyToAll) {
         var dateline = qsTr ("On %1 %2 wrote:").arg(messageListModel.timeStamp (messageID)).arg(messageListModel.mailSender (messageID));
 
-        composer.quotedBody = dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
+        composer.quotedBody = "\n" + dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
         attachmentsModel.clear();
         composer.attachmentsModel = attachmentsModel;
         toModel.clear();
@@ -98,7 +98,7 @@ Item {
     BorderImage {
         id: navigationBar
         width: parent.width
-        source: "image://meegotheme/widgets/common/action-bar/action-bar-background"
+        source: "image://themedimage/widgets/common/action-bar/action-bar-background"
     }
     Item  {
         anchors.left: parent.left
@@ -106,15 +106,15 @@ Item {
 
         Item {
             id: composeButton
-            width: (scene.content.width - 4) / 5
+            width: (parent.width - 4) / 5
 
             ToolbarButton {
                 anchors.horizontalCenter: composeButton.horizontalCenter
                 iconName: "mail-compose"
                 onClicked: {
                     var newPage;
-                    scene.addApplicationPage (composer);
-                    newPage = scene.currentApplication;
+                    window.addPage (composer);
+                    newPage = window.pageStack.currentPage;
                     attachmentsModel.clear();
                     newPage.composer.attachmentsModel = attachmentsModel;
                 }
@@ -123,22 +123,22 @@ Item {
         Image {
             id: separator1
             anchors.left: composeButton.right
-            source: "image://meegotheme/widgets/common/action-bar/action-bar-separator"
+            source: "image://themedimage/widgets/common/action-bar/action-bar-separator"
         }
 
         Item {
             id: replyButton
             anchors.left: separator1.right
-            width: (scene.content.width - 4) / 5
+            width: (parent.width - 4) / 5
             ToolbarButton {
                 anchors.horizontalCenter: replyButton.horizontalCenter
                 iconName: "mail-reply"
                 onClicked: {
                     var newPage;
 
-                    scene.addApplicationPage (composer);
-                    newPage = scene.currentApplication;
-                    setMessageDetails (newPage.composer, scene.currentMessageIndex, false);
+                    window.addPage (composer);
+                    newPage = window.pageStack.currentPage;
+                    setMessageDetails (newPage.composer, window.currentMessageIndex, false);
 		}
 	    }
         }
@@ -146,22 +146,22 @@ Item {
         Image {
             id: separator2
             anchors.left: replyButton.right
-            source: "image://meegotheme/widgets/common/action-bar/action-bar-separator"
+            source: "image://themedimage/widgets/common/action-bar/action-bar-separator"
         }
 
         Item {
             id:replyallButton
             anchors.left: separator2.right
-            width: (scene.content.width - 4) / 5
+            width: (parent.width - 4) / 5
             ToolbarButton {
                 anchors.horizontalCenter: replyallButton.horizontalCenter
                 iconName: "mail-reply-all"
                 onClicked: {
                     var newPage;
 
-                    scene.addApplicationPage (composer);
-                newPage = scene.currentApplication;
-                    setMessageDetails (newPage.composer, scene.currentMessageIndex, true);
+                    window.addPage (composer);
+                    newPage = window.pageStack.currentPage;
+                    setMessageDetails (newPage.composer, window.currentMessageIndex, true);
                 }
             }
         }
@@ -169,25 +169,25 @@ Item {
         Image {
             id: separator3
             anchors.left: replyallButton.right
-            source: "image://meegotheme/widgets/common/action-bar/action-bar-separator"
+            source: "image://themedimage/widgets/common/action-bar/action-bar-separator"
         }
 
         Item {
             id:forwardButton
             anchors.left: separator3.right
-            width: (scene.content.width - 4) / 5
+            width: (parent.width - 4) / 5
             ToolbarButton {
                 anchors.horizontalCenter: forwardButton.horizontalCenter
                 iconName: "mail-forward"
                 onClicked: {
                     var newPage;
 
-                    scene.addApplicationPage (composer);
-                    newPage = scene.currentApplication;
+                    window.addPage (composer);
+                    newPage = window.pageStack.currentPage;
 
-                    newPage.composer.quotedBody = qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (scene.currentMessageIndex);
-                    newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (scene.currentMessageIndex));
-		    messageListModel.saveAttachmentsInTemp (scene.currentMessageIndex);		    
+                    newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
+                    newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
+                    messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
                     newPage.composer.attachmentsModel = mailAttachmentModel;
                 }
             }
@@ -196,13 +196,13 @@ Item {
         Image {
             id: separator4
             anchors.left: forwardButton.right
-            source: "image://meegotheme/widgets/common/action-bar/action-bar-separator"
+            source: "image://themedimage/widgets/common/action-bar/action-bar-separator"
         }
 
         Item {
             id: deleteButton
             anchors.left: separator4.right
-            width: (scene.content.width - 4) / 5
+            width: (parent.width - 4) / 5
             ToolbarButton {
                 anchors.horizontalCenter: deleteButton.horizontalCenter
                 iconName: "edit-delete"

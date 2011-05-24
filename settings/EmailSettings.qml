@@ -6,16 +6,16 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Labs.Components 0.1 as Labs
 import MeeGo.Components 0.1
 import MeeGo.Settings 0.1
 import MeeGo.App.Email 0.1
 
-Labs.ApplicationPage {
-	id: settingsPage
+AppPage {
+    id: settingsPage
     property alias accountSettingsModel: accountSettingsModel
-	title: qsTr("Email Settings")
+    pageTitle: qsTr("Email Settings")
     disableSearch: true
     Translator { catalog: "meego-app-email" }
     EmailAccount { id: emailAccount }
@@ -27,7 +27,7 @@ Labs.ApplicationPage {
     }
     Loader {
         id: loader
-        parent: settingsPage.content
+//        parent: settingsPage.content
         anchors.fill: parent
     }
     function getHomescreen() {

@@ -6,7 +6,8 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Item {
     id: pill
@@ -21,8 +22,9 @@ Item {
     width: leftImage.width + centreImage.width + rightImage.width
     height: centreImage.height
 
+    TopItem { id: topItem }
+
     onUriChanged: {
-        console.log ("uri for attachment: " + uri);
         name = uri.slice (uri.lastIndexOf ('/') + 1);
     }
 
@@ -43,8 +45,8 @@ Item {
             id: text
             anchors.verticalCenter: parent.verticalCenter
             text: name
-            font.pixelSize: theme_fontPixelSizeMedium
-            color: theme_fontColorNormal
+            font.pixelSize: theme.fontPixelSizeMedium
+            color: theme.fontColorNormal
         }
     }
 
@@ -58,9 +60,9 @@ Item {
         anchors.fill: parent
 
         onPressAndHold: {
-            var map = mapToItem(scene, mouseX, mouseY);
+            var map = mapToItem(topItem.topItem , mouseX, mouseY);
             mX = map.x;
-            mY = map.y
+            mY = map.y;
             pill.longPress (uri, mX, mY);
         }
     }

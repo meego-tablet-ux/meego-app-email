@@ -135,7 +135,6 @@ bool EmailFeedModel::removeRows ( int row, int count, const QModelIndex & parent
         m_messages.removeAt(first);
     }
     endRemoveRows();
-    qDebug() << "Removed rows at EmaiLFee: Length " << m_messages.length();
     return true;
 }
 
@@ -149,13 +148,10 @@ void EmailFeedModel::sourceRowsInserted(const QModelIndex& parent, int first, in
     beginInsertRows(QModelIndex(), first, last);
     copyRowsFromSource(first, last);
     endInsertRows();
-    
-    qDebug() << "*********************** rows inserted " << m_messages.length();
 }
 
 void EmailFeedModel::sourceRowsRemoved(const QModelIndex& parent, int first, int last)
 {
-    qDebug() << "########## rows removed ############";
     Q_UNUSED(parent)
     removeRows(first,last-first+1, parent);
 }

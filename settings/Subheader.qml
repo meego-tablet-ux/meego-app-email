@@ -6,19 +6,20 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 
 Item {
     property alias text: label.text
     anchors.left: parent.left
     anchors.right: parent.right
     height: 60
+
     Text {
         id: label
         anchors.left: parent.left
         anchors.leftMargin: 10
-        font.pixelSize: theme_fontPixelSizeLarge
-        color: theme_fontColorNormal
+        font.pixelSize: theme.fontPixelSizeLarge
+        color: theme.fontColorNormal
         height: parent.height
         width: parent.width
         elide: Text.ElideRight

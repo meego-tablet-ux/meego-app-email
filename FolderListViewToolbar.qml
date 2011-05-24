@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
@@ -24,7 +24,7 @@ Item {
     BorderImage {
         id: navigationBarImage
         width: parent.width
-        source: "image://meegotheme/widgets/common/action-bar/action-bar-background"
+        source: "image://themedimage/widgets/common/action-bar/action-bar-background"
     }
     Item {
         anchors.fill: parent
@@ -38,7 +38,7 @@ Item {
         iconName: "mail-compose"
             onClicked: {
                 mailAttachmentModel.clear();
-                folderListView.addApplicationPage(composer);
+                window.addPage(composer);
             }
         }
         Image {
@@ -84,30 +84,30 @@ Item {
             Image {
                 id: refreshImage
                 anchors.centerIn: parent
-                opacity: scene.refreshInProgress ? 0 : 1
-                source: "image://meegotheme/icons/actionbar/view-sync"
+                opacity: window.refreshInProgress ? 0 : 1
+                source: "image://themedimage/icons/actionbar/view-sync"
             }
 
             EmailSpinner {
                 id: spinner
                 anchors.centerIn: parent
-                opacity: scene.refreshInProgress ? 1 : 0
-                spinning: scene.refreshInProgress
+                opacity: window.refreshInProgress ? 1 : 0
+                spinning: window.refreshInProgress
                 maxSpinTime: 3600000
             }
 
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    if (scene.refreshInProgress == true)
+                    if (window.refreshInProgress == true)
                     {
-			mailAccountListModel.cancelOperations();
-                        scene.refreshInProgress = false;
+                        mailAccountListModel.cancelOperations();
+                        window.refreshInProgress = false;
                     }
                     else
                     {
-			mailAccountListModel.sendReceive();
-                        scene.refreshInProgress = true;
+                        mailAccountListModel.sendReceive ();
+                        window.refreshInProgress = true;
                     }
                 }
             }

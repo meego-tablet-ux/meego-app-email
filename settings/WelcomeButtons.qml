@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 
 Column {
     anchors.left: parent.left
@@ -16,7 +16,7 @@ Column {
 
     WelcomeButton {
         title: qsTr("AOL")
-        icon: "image://meegotheme/icons/services/aim"
+        icon: "image://themedimage/icons/services/aim"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 4; // AOL
@@ -26,7 +26,7 @@ Column {
     }
     WelcomeButton {
         title: qsTr("Gmail")
-        icon: "image://meegotheme/icons/services/gmail"
+        icon: "image://themedimage/icons/services/gmail"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 2; // Gmail
@@ -36,7 +36,7 @@ Column {
     }
     WelcomeButton {
         title: qsTr("Microsoft Live Hotmail")
-        icon: "image://meegotheme/icons/services/msmail"
+        icon: "image://themedimage/icons/services/msmail"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 5; // Microsoft Live
@@ -58,8 +58,7 @@ Column {
     */
     WelcomeButton {
         title: qsTr("Yahoo!")
-//        icon: "image://meegotheme/icons/services/yahoo"
-        icon: "image://theme/email/icn_yahoo"
+        icon: "image://themedimage/icons/services/yahoo"
         onClicked: {
             emailAccount.clear();
             emailAccount.preset = 3; // Yahoo
@@ -69,7 +68,7 @@ Column {
     }
     WelcomeButton {
         title: qsTr("Other")
-        icon: "image://meegotheme/icons/services/generic"
+        icon: "image://themedimage/icons/services/generic"
         onClicked: {
             emailAccount.clear();
             emailAccount.recvSecurity = "0"; // None

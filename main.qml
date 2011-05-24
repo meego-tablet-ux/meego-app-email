@@ -6,13 +6,12 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
-import MeeGo.Labs.Components 0.1 as Labs
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
-Labs.Window {
-    id: scene
+Window {
+    id: window
     property string topicSender: qsTr("Sender")
     property string topicSubject: qsTr("Subject")
     property string topicDate: qsTr("Date Sent")
@@ -53,24 +52,102 @@ Labs.Window {
     property bool composerIsCurrentPage: false
     property string errMsg: "";
     property variant argv: [] 
+    property variant accountFilterModel: []
 
-    title: qsTr("Email")
-    showsearch: true
-    filterModel: []
+    Theme {
+        id: theme
+    }
+
+    toolBarTitle: qsTr("Email")
+    fullScreen: true
+    automaticBookSwitching: false
+    anchors.fill: parent
+
+    showToolBarSearch: false
+
+    bookMenuModel: accountFilterModel
+   
+    overlayItem:  Item {
+        id: globalSpaceItems
+        anchors.fill: parent
+
+        ModalDialog {
+            id:confirmDialog
+            showCancelButton: false
+            showAcceptButton: true
+            acceptButtonText: qsTr("OK")
+            title: qsTr("Error")
+
+            content: Column {
+                id:confirmMsg
+                anchors.fill: parent
+                anchors.margins: 10
+
+                Text {
+                    text: window.errMsg;
+                    color:theme.fontColorNormal
+                    font.pixelSize: theme.fontPixelSizeLarge
+                    wrapMode: Text.Wrap
+                }
+            }
+            onAccepted: {}
+        }
+
+        ModalDialog {
+            id:passwordDialog
+            property alias dlgText: prompt.text
+            showCancelButton: true
+            showAcceptButton: true
+            cancelButtonText: qsTr("Cancel")
+            acceptButtonText: qsTr("OK")
+            title: qsTr("Error")
+
+            content: Item {
+                id:passwordContent
+                anchors.fill: parent
+                anchors.margins: 10
+                Column {
+                    Text {
+                        id:prompt
+                        anchors.topMargin: 10
+                        text: scene.errMsg;
+                        color:theme_fontColorNormal
+                        font.pixelSize: theme_fontPixelSizeLarge
+                        wrapMode: Text.Wrap
+                    }
+
+                    TextEntry {
+                        id: entry
+                        width: parent.width
+                        anchors.topMargin: 10
+                        anchors.bottomMargin: 5
+                        defaultText: qsTr("password")
+                        textInput.echoMode: TextInput.Password
+                    }
+                }
+            }
+
+            onAccepted: {
+                mailAccountListModel.addPassword (dlgKey, entry.text);
+            }
+        }
+
+    }
+
 
     EmailAgent {
         id: emailAgent;
 
         onSyncBegin: {
-            scene.refreshInProgress = true;
+            window.refreshInProgress = true;
         }
 
         onSyncCompleted: {
-            scene.refreshInProgress = false;
+            window.refreshInProgress = false;
         }
 
         onError: {
-            scene.refreshInProgress = false;
+            window.refreshInProgress = false;
             if (code != 1040)
             {
                 errMsg = msg;
@@ -94,14 +171,14 @@ Labs.Window {
             var accountList = new Array();
             accountList = mailAccountListModel.getAllDisplayNames();
             accountList.push(qsTr("Account switcher"));
-            scene.filterModel = accountList;
+            window.accountFilterModel = accountList;
         }
 
         onAccountRemoved: {
             var accountList = new Array();
             accountList = mailAccountListModel.getAllDisplayNames();
             accountList.push(qsTr("Account switcher"));
-            scene.filterModel = accountList;
+            window.accountFilterModel = accountList;
         }
     }
 
@@ -117,10 +194,15 @@ Labs.Window {
         id: attachmentsModel
     }
 
+    Component.onCompleted: {
+        switchBook (mailAccount);
+        window.fastPageSwitch = true;
+    }
+
     function setMessageDetails (composer, messageID, replyToAll) {
         var dateline = qsTr ("On %1 %2 wrote:").arg(messageListModel.timeStamp (messageID)).arg(messageListModel.mailSender (messageID));
 
-        composer.quotedBody = dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
+        composer.quotedBody = "\n" + dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
         attachmentsModel.clear();
         composer.attachmentsModel = attachmentsModel;
         toModel.clear();
@@ -150,79 +232,6 @@ Labs.Window {
         composer.subject = "Re: " + messageListModel.subject (messageID);  //i18n ok
     }
 
-    ModalDialog {
-        id:confirmDialog
-        showCancelButton: false
-        showAcceptButton: true
-        acceptButtonText: qsTr("OK")
-        autoCenter: true
-        title: qsTr("Error")
-
-        content: Item {
-            id:confirmMsg
-            anchors.fill: parent
-            anchors.margins: 10
-
-            Text {
-                text: scene.errMsg;
-                color:theme_fontColorNormal
-                font.pixelSize: theme_fontPixelSizeLarge
-                wrapMode: Text.Wrap
-            }
-        }
-        onAccepted: {}
-    }
-
-    ModalDialog {
-        id:passwordDialog
-	property alias dlgText: prompt.text
-	property alias dlgKey: key.text
-        showCancelButton: true
-        showAcceptButton: true
-        cancelButtonText: qsTr("Cancel")
-        acceptButtonText: qsTr("OK")
-        autoCenter: true
-        title: qsTr("Error")
-	width: 750
-
-        content: Item {
-            id:passwordContent
-            anchors.fill: parent
-            anchors.margins: 10
-	    Column {	
-		Text {
-			id:prompt
-			width: 730
-                	anchors.topMargin: 10
-                	text: scene.errMsg;
-	                color:theme_fontColorNormal
-	                font.pixelSize: theme_fontPixelSizeLarge
-	                wrapMode: Text.Wrap
-	         }
-
-	         TextEntry {
-	                id: entry
-			width: 600
-                	anchors.topMargin: 10
-                	anchors.bottomMargin: 5
-	                defaultText: qsTr("password")
-			textInput.echoMode: TextInput.Password
-	          }
-		Text {
-			id:key
-			text: qsTr("key")
-			visible: false
-	         }
-
-	    }
-        }
-        onAccepted: {
-	    mailAccountListModel.addPassword (dlgKey, entry.text);
-        }
-
-    }
-
-
     FuzzyDateTime {
         id: fuzzy
     }
@@ -237,9 +246,9 @@ Labs.Window {
         property int idx: 0
         function init() {
             clear();
-             for (idx = 0; idx < scene.mailAttachments.length; idx ++)
+             for (idx = 0; idx < window.mailAttachments.length; idx ++)
              {
-                 append({"uri": scene.mailAttachments[idx]});
+                 append({"uri": window.mailAttachments[idx]});
              }
         }
     }
@@ -250,9 +259,9 @@ Labs.Window {
         property int idx: 0
         function init() {
             clear();
-            for (idx = 0; idx < scene.mailRecipients.length; idx ++)
+            for (idx = 0; idx < window.mailRecipients.length; idx ++)
             {
-                append({"email": scene.mailRecipients[idx]});
+                append({"email": window.mailRecipients[idx]});
             }
         }
     }
@@ -262,9 +271,9 @@ Labs.Window {
         property int idx: 0
         function init() {
             clear();
-            for (idx = 0; idx < scene.mailCc.length; idx ++)
+            for (idx = 0; idx < window.mailCc.length; idx ++)
             {
-                append({"email": scene.mailCc[idx]});
+                append({"email": window.mailCc[idx]});
             }
         }
     }
@@ -274,31 +283,29 @@ Labs.Window {
         property int idx: 0
         function init() {
             clear();
-            for (idx = 0; idx < scene.mailBcc.length; idx ++)
+            for (idx = 0; idx < window.mailBcc.length; idx ++)
             {
-                append({"email": scene.mailBcc[idx]});
+                append({"email": window.mailBcc[idx]});
             }
         }
     }
 
-    applicationPage: mailAccount
-
     Connections {
         target: mailAccountListModel
         onAskPassword: {
-		console.log ("ASKING PASSWORD: " + title + " " + prompt + " " + key);
-		passwordDialog.title = title;
-		passwordDialog.dlgText = prompt;
-		passwordDialog.dlgKey = key;
-		passwordDialog.show ();
+                console.log ("ASKING PASSWORD: " + title + " " + prompt + " " + key);
+                passwordDialog.title = title;
+                passwordDialog.dlgText = prompt;
+                passwordDialog.dlgKey = key;
+                passwordDialog.show ();
         }
         onSendReceiveBegin : {
-            scene.refreshInProgress = true;
+            window.refreshInProgress = true;
         }
 
         onSendReceiveCompleted: {
-	    console.log ("Send receive completed");
-            scene.refreshInProgress = false;
+            console.log ("Send receive completed");
+            window.refreshInProgress = false;
         }
 
 
@@ -315,11 +322,11 @@ Labs.Window {
                 // This is the command for opening up the composer window with attachments.
                 // cdata only contains a list of attachment files names 
                 var datalist = cdata.split(',');
-                scene.mailAttachments = datalist;
+                window.mailAttachments = datalist;
                 mailAttachmentModel.init();
-                if (scene.composerIsCurrentPage)
-                    scene.previousApplicationPage();
-                scene.addApplicationPage(composer);
+                if (window.composerIsCurrentPage)
+                    window.popPage();
+                window.addPage(composer);
             }
             else if (cmd == "compose")
             {
@@ -339,11 +346,11 @@ Labs.Window {
                 if (argv.length > 2)
                     bodyPath = argv[2];
 
-                if (scene.composerIsCurrentPage)
-                    scene.previousApplicationPage();
+                if (window.composerIsCurrentPage)
+                    window.popPage();
                 var newPage;
-                scene.addApplicationPage(composer);
-                newPage = scene.currentApplication;
+                window.addPage(composer);
+                newPage = window.pageStack.currentPage;
                 if (to != "")
                 {
                     toModel.clear();
@@ -365,37 +372,37 @@ Labs.Window {
             {
                 var msgUuid = parameters[1];
                 var msgIdx = messageListModel.indexFromMessageId(msgUuid);
-                scene.currentMessageIndex = msgIdx;
+                window.currentMessageIndex = msgIdx;
                 if (cmd == "reply")
                 {   
-                    if (scene.composerIsCurrentPage)
-                        scene.previousApplicationPage();
+                    if (window.composerIsCurrentPage)
+                        window.popPage();
                     var newPage;
-                    scene.addApplicationPage(composer);
-                    newPage = scene.currentApplication;
-                    setMessageDetails (newPage.composer, scene.currentMessageIndex, false);
+                    window.addPage(composer);
+                    newPage = window.pageStack.currentPage;
+                    setMessageDetails (newPage.composer, window.currentMessageIndex, false);
                 }
                 else if (cmd == "replyAll")
                 {
-                    if (scene.composerIsCurrentPage)
-                        scene.previousApplicationPage();
+                    if (window.composerIsCurrentPage)
+                        window.popPage();
                     var newPage;
-                    scene.addApplicationPage(composer);
-                    newPage = scene.currentApplication;
-                    setMessageDetails (newPage.composer, scene.currentMessageIndex, 2);
+                    window.addPage(composer);
+                    newPage = window.pageStack.currentPage;
+                    setMessageDetails (newPage.composer, window.currentMessageIndex, 2);
                 }
                 else if (cmd == "forward")
                 {
-                    if (scene.composerIsCurrentPage)
-                        scene.previousApplicationPage();
+                    if (window.composerIsCurrentPage)
+                        window.popPage();
                     var newPage;
-                    scene.addApplicationPage(composer);
-                    newPage = scene.currentApplication;
+                    window.addPage(composer);
+                    newPage = window.pageStack.currentPage;
 
-                    newPage.composer.quotedBody = qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (scene.currentMessageIndex);
-                    newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (scene.currentMessageIndex));
-                    scene.mailAttachments = messageListModel.attachments(scene.currentMessageIndex);
-		    messageListModel.saveAttachmentsInTemp (scene.currentMessageIndex);
+                    newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
+                    newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
+                    window.mailAttachments = messageListModel.attachments(window.currentMessageIndex);
+                    messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
                     mailAttachmentModel.init();
                     newPage.composer.attachmentsModel = mailAttachmentModel;
 
@@ -407,23 +414,22 @@ Labs.Window {
         }
     }
 
-    ///When a selection is made in the filter menu, you will get a signal here:
-    onFilterTriggered: {
-        if (index == (scene.filterModel.length - 1)) {
-            scene.applicationPage = mailAccount;
+    ///When a selection is made in the account filter menu, you will get a signal here:
+    onBookMenuTriggered: {
+        if (index == (window.accountFilterModel.length - 1)) {
+            window.switchBook(mailAccount);
         }
         else
         {
-            scene.currentMailAccountId = mailAccountListModel.getAccountIdByIndex(index);
-            scene.currentMailAccountIndex = index;
-            scene.currentAccountDisplayName = mailAccountListModel.getDisplayNameByIndex(index);
-            scene.folderListViewTitle = qsTr("%1 %2").arg(currentAccountDisplayName).arg(mailFolderListModel.inboxFolderName());
-            scene.applicationPage = null;
-            scene.applicationPage = folderList;
-            messageListModel.setAccountKey (scene.currentMailAccountId);
-            mailFolderListModel.setAccountKey (scene.currentMailAccountId);
-            scene.folderListViewClickCount = 0;
-            scene.currentFolderId = mailFolderListModel.inboxFolderId();
+            window.currentMailAccountId = mailAccountListModel.getAccountIdByIndex(index);
+            window.currentMailAccountIndex = index;
+            window.currentAccountDisplayName = mailAccountListModel.getDisplayNameByIndex(index);
+            messageListModel.setAccountKey (window.currentMailAccountId);
+            mailFolderListModel.setAccountKey (window.currentMailAccountId);
+            window.folderListViewTitle = currentAccountDisplayName + " " + mailFolderListModel.inboxFolderName();
+            window.folderListViewClickCount = 0;
+            window.currentFolderId = mailFolderListModel.inboxFolderId();
+            window.switchBook(folderList);
         }
     }
 
@@ -434,80 +440,103 @@ Labs.Window {
 
     Component {
         id: folderList
-        Labs.ApplicationPage {
+        AppPage {
             id: folderListView
             anchors.fill: parent
-            title: scene.folderListViewTitle
+            pageTitle: window.folderListViewTitle
+            enableCustomActionMenu: true
+
+            property bool folderListPageHasFocus: true
+
+            TopItem { id: folderListTopItem }
+
+            function closeMenu()
+            {
+                contextActionMenu.hide();
+            }
 
             Component.onCompleted: {
                 mailFolderListModel.setAccountKey (currentMailAccountId);
-                var idx = mailFolderListModel.indexFromFolderId(0);
-		//mailFolderListModel.setFolderKey (mailFolderListModel.inboxFolderId());
-		scene.currentFolderId = mailFolderListModel.inboxFolderId();
-                scene.folderListViewTitle = qsTr("%1 %2").arg(currentAccountDisplayName).arg(inboxLabel);
-                scene.folderListViewClickCount = 0;
+                window.currentFolderId = mailFolderListModel.inboxFolderId();
+                //window.folderListViewTitle = currentAccountDisplayName + " " + mailFolderListModel.inboxFolderName();
+                window.folderListViewClickCount = 0;
             }
 
             Component.onDestruction: {
-                scene.folderListViewClickCount = 0;
-                scene.accountPageClickCount= 0;
+                window.folderListViewClickCount = 0;
+                window.accountPageClickCount= 0;
             }
 
             onSearch: {
                 console.log("Application search query" + needle);
-		messageListModel.setSearch (needle);
-             }
+                messageListModel.setSearch (needle);
+            }
 
-             property int dateSortKey: 1
-             property int senderSortKey: 1
-             property int subjectSortKey: 1
+            onActivated: { folderListPageHasFocus = true }
 
-             menuContent: Item {
-                 height: folderListMenu.height
-                 width: folderListMenu.width
-                 FolderListMenu {
-                     id: folderListMenu
-                 }
-             }
+            onDeactivated: { folderListPageHasFocus = false }
 
-             FolderListView {}
+            onActionMenuIconClicked: {
+                if (folderListPageHasFocus) {
+                    contextActionMenu.setPosition(mouseX, mouseY)
+                    contextActionMenu.show()
+                }
+            }
+
+            property int dateSortKey: 1
+            property int senderSortKey: 1
+            property int subjectSortKey: 1
+
+            ContextMenu {
+                id: contextActionMenu
+
+                content: Item {
+                    height: folderListMenu.height
+                    width: folderListMenu.width
+                    FolderListMenu {
+                        id: folderListMenu
+                    }
+                }
+            }
+            FolderListView {}
         }
     }
 
     Component {
         id: mailAccount
-        Labs.ApplicationPage {
+        AppPage {
             id: accountListView
             anchors.fill: parent
-            title: qsTr("Account list")
+            pageTitle: qsTr("Account list")
             property int idx: 0
             Component.onCompleted: {
                 var accountList = new Array();
                 accountList = mailAccountListModel.getAllDisplayNames();
                 accountList.push(qsTr("Account switcher"));
-                scene.filterModel = accountList;
+                window.accountFilterModel = accountList;
             }
-
             AccountPage {}
         }
     }
 
     Component {
         id: composer
-        Labs.ApplicationPage {
+        AppPage {
             id: composerPage
 
+            TopItem { id: composerTopItem }
+
             Component.onCompleted: {
-                scene.composerIsCurrentPage = true;
+                window.composerIsCurrentPage = true;
             }
 
             Component.onDestruction: {
-                scene.composerIsCurrentPage = false;
+                window.composerIsCurrentPage = false;
             }
 
             property alias composer: composerView.composer
             anchors.fill: parent
-            title: qsTr("Composer")
+            pageTitle: qsTr("Composer")
             ComposerView {
                 id: composerView
             }
@@ -517,68 +546,56 @@ Labs.Window {
     function updateReadingView (msgid)
     {
         // This function will be used to update the reading view wit speicfied msgid.
-        scene.previousApplicationPage();
-        scene.mailId = messageListModel.messageId(msgid);
-        scene.mailSubject = messageListModel.subject(msgid);
-        scene.mailSender = messageListModel.mailSender(msgid);
-        scene.mailTimeStamp = messageListModel.timeStamp(msgid);
-        scene.mailBody = messageListModel.body(msgid);
-        scene.mailHtmlBody = messageListModel.htmlBody(msgid);
-        scene.mailQuotedBody = messageListModel.quotedBody(msgid);
-        scene.mailAttachments = messageListModel.attachments(msgid);
-        scene.numberOfMailAttachments = messageListModel.numberOfAttachments(msgid);
-        scene.mailRecipients = messageListModel.toList(msgid);
+        window.popPage();
+        window.mailId = messageListModel.messageId(msgid);
+        window.mailSubject = messageListModel.subject(msgid);
+        window.mailSender = messageListModel.mailSender(msgid);
+        window.mailTimeStamp = messageListModel.timeStamp(msgid);
+        window.mailBody = messageListModel.body(msgid);
+        window.mailHtmlBody = messageListModel.htmlBody(msgid);
+        window.mailQuotedBody = messageListModel.quotedBody(msgid);
+        window.mailAttachments = messageListModel.attachments(msgid);
+        window.numberOfMailAttachments = messageListModel.numberOfAttachments(msgid);
+        window.mailRecipients = messageListModel.toList(msgid);
         toListModel.init();
-        scene.mailCc = messageListModel.ccList(msgid);
+        window.mailCc = messageListModel.ccList(msgid);
         ccListModel.init();
-        scene.mailBcc = messageListModel.ccList(msgid);
+        window.mailBcc = messageListModel.ccList(msgid);
         bccListModel.init();
         mailAttachmentModel.init();
-        scene.currentMessageIndex = msgid;
-	messageListModel.deleteMessage (scene.mailId);
-        scene.addApplicationPage(reader);
+        window.currentMessageIndex = msgid;
+        messageListModel.markMessageAsRead (window.mailId);
+        window.addPage(reader);
     }
 
     Component {
         id: reader
-        Labs.ApplicationPage {
+        AppPage {
             id: readingView
             anchors.fill: parent
-            title: scene.mailSubject
+            pageTitle: window.mailSubject
+
+            TopItem { id: readingViewTopItem }
 
             Component.onDestruction: {
-                scene.accountPageClickCount = 0;
-                scene.folderListViewClickCount = 0;
+                window.accountPageClickCount = 0;
+                window.folderListViewClickCount = 0;
             }
 
-            menuContent: Item {
-                anchors.fill:parent
-                height: 50
-                id: markAsReadUnread
-                width: menuLabel.width + 20
-                Text {
-                    id: menuLabel
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 14
-                    text: scene.mailReadFlag ? qsTr("Mark as unread") : qsTr("Mark as read") 
-                    color:theme_fontColorNormal
-                    font.pixelSize: theme_fontPixelSizeLarge
-                }
-                MouseArea{
-                anchors.fill: parent
-                onClicked: {
-                    if (scene.mailReadFlag)
+            actionMenuModel : window.mailReadFlag ? [qsTr("Mark as unread")] : [qsTr("Mark as read")]
+            actionMenuPayload: [0]
+
+            onActionMenuTriggered: {
+                if (selectedItem == 0) {
+                    if (window.mailReadFlag)
                     {
-                        messageListModel.markMessageAsUnread (scene.mailId);
-                        scene.mailReadFlag = 0;
+                        messageListModel.markMessageAsUnread (window.mailId);
+                        window.mailReadFlag = 0;
                     }
                     else
                     {
-                        messageListModel.markMessageAsRead (scene.mailId);
-                        scene.mailReadFlag = 1;
-                    }
-                        readingView.closeMenu();
+                        messageListModel.markMessageAsRead (window.mailId);
+                        window.mailReadFlag = 1;
                     }
                 }
             }
@@ -587,6 +604,4 @@ Labs.Window {
             }
         }
     }
-
-    TopItem { id: topItem }
 }

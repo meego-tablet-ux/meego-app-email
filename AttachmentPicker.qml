@@ -7,6 +7,7 @@
  */
 
 import QtQuick 1.0
+import MeeGo.Components 0.1
 
 BorderImage {
     id: attachmentPickerButton
@@ -58,8 +59,8 @@ BorderImage {
         anchors.verticalCenter: parent.verticalCenter
         x: 90  // Force alignment of all picker labels
 
-        color: theme_fontColorNormal
-        font.pixelSize: theme_fontPixelSizeNormal
+        color: theme.fontColorNormal
+        font.pixelSize: theme.fontPixelSizeNormal
         text: pickerLabel
     }
 
@@ -71,7 +72,7 @@ BorderImage {
 //        anchors.verticalCenter: parent.verticalCenter
 //        width: 50
 //        fillMode: Image.Stretch
-//        source: "image://meegotheme/widgets/apps/email/accounts-unread"
+//        source: "image://themedimage/widgets/apps/email/accounts-unread"
 
 //        Text {
 //            id: text
@@ -79,8 +80,8 @@ BorderImage {
 //            anchors.horizontalCenter: parent.horizontalCenter
 //            verticalAlignment: Text.AlignVCenter
 //            text: pickerComponent.model.count
-//            font.pixelSize: theme_fontPixelSizeMedium
-//            color: theme_fontColorNormal
+//            font.pixelSize: theme.fontPixelSizeMedium
+//            color: theme.fontColorNormal
 //        }
 //    }
 

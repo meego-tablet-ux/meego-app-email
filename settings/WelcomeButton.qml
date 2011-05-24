@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 
 Rectangle {
     id: root
@@ -28,7 +28,7 @@ Rectangle {
     }
     Text {
         id: title
-        font.pixelSize: theme_fontPixelSizeLarge
+        font.pixelSize: theme.fontPixelSizeLarge
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: 100

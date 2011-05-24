@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import "settings.js" as Settings
 
@@ -14,6 +14,7 @@ Expandobox {
     // ugly workaround to index name collision in
     // DropDown onSelectionChanged signal
     property int listIndex: -1
+
     Component.onCompleted: { listIndex = index }
     barContent: Component {
         Item {
@@ -24,23 +25,17 @@ Expandobox {
                 anchors.margins: 20
                 source: { switch (model.preset) {
                     case "4":
-                        return "/usr/share/themes/" + theme_name + "/icons/services/aim.png";
-                        break;
+                        return "image://themedimage/icons/services/aim";
                     case "2":
-                        return "/usr/share/themes/" + theme_name + "/icons/services/gmail.png"
-                        break;
+                        return "image://themedimage/icons/services/gmail"
                     case "5":
-                        return "/usr/share/themes/" + theme_name + "/icons/services/msmail.png"
-                        break;
+                        return "image://themedimage/icons/services/msmail"
                     case "1":
-                        return "/usr/share/themes/" + theme_name + "/icons/services/generic.png"
-                        break;
+                        return "image://themedimage/icons/services/generic"
                     case "3":
-                        return "/usr/share/themes/" + theme_name + "/icons/services/yahoo.png"
-                        break;
+                        return "image://themedimage/icons/services/yahoo"
                     default:
-                        return "/usr/share/themes/" + theme_name + "/icons/services/generic.png"
-                        break;
+                        return "image://themedimage/icons/services/generic"
                     }
                 }
             }
@@ -50,9 +45,9 @@ Expandobox {
                 anchors.right: togglebutton.left
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 100
-                font.pixelSize: theme_fontPixelSizeLarge
+                font.pixelSize: theme.fontPixelSizeLarge
                 elide: Text.ElideRight
-                color: theme_fontColorNormal
+                color: theme.fontColorNormal
                 function unique(provider) {
                     var providers = new Array();
                     for (var i = 0; i < accountSettingsModel.rowCount(); i++) {

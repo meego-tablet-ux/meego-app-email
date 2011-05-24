@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 
 Column {
@@ -35,7 +35,7 @@ Column {
     Text {
         id: label
         height: 30
-        font.pixelSize: theme_fontPixelSizeLarge
+        font.pixelSize: theme.fontPixelSizeLarge
         font.italic: true
         color: "grey"
     }

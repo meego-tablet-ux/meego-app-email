@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 
 Column {
     property alias title: titleText.text
@@ -24,7 +24,7 @@ Column {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 10
-            font.pixelSize: theme_fontPixelSizeLarge
+            font.pixelSize: theme.fontPixelSizeLarge
             visible: text.length > 0
         }
         Item { width: 1; height: 10; }
@@ -33,7 +33,7 @@ Column {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 10
-            font.pixelSize: theme_fontPixelSizeMedium
+            font.pixelSize: theme.fontPixelSizeMedium
             wrapMode: Text.WordWrap
             visible: text.length > 0
         }

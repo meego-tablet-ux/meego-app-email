@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.App.Email 0.1
 
 Flickable {
@@ -34,6 +34,7 @@ Flickable {
 
             AttachmentPill {
                 uri: modelData
+                parent: container
 
                 onLongPress: {
                     container.attachmentSelected (uri, mX, mY);

@@ -6,16 +6,17 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 
 Rectangle {
     property alias text: message.text
     color: "#FFFFAA"
+
     Text {
         id: message
         anchors.fill: parent
         anchors.margins: 10
         color: "#FF0000"
-        font.pixelSize: theme_fontPixelSizeNormal
+        font.pixelSize: theme.fontPixelSizeNormal
     }
 }

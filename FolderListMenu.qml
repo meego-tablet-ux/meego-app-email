@@ -6,7 +6,8 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
+import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 import Qt.labs.gestures 2.0
 
@@ -14,10 +15,10 @@ Item {
     id: folderListMenu
     property bool scrollInFolderList: false
     height: {
-        var realHeight = scene.width;
-        if (scene.orientation == 1 || scene.orientation == 3)
+        var realHeight = window.width;
+        if (window.orientation == 1 || window.orientation == 3)
         {
-           realHeight = scene.height;
+           realHeight = window.height;
         }
         var maxHeight = 50 * (5 + mailFolderListModel.totalNumberOfFolders());
         if (maxHeight > (realHeight - 170))
@@ -30,6 +31,7 @@ Item {
     }
     
     width: Math.max(sortTitle.width, goToFolderTitle.width) + 30
+
     Item {
         id: sort
         height: 50
@@ -42,12 +44,13 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
-            color:theme_fontColorNormal
-            font.pixelSize: theme_fontPixelSizeLarge
+            color:theme.fontColorNormal
+            font.pixelSize: theme.fontPixelSizeLarge
             horizontalAlignment: Text.AlignLeft
             elide: Text.ElideRight
         }
     }
+
     SortFilter {
         id: sortFilter
         anchors.top: sort.bottom
@@ -97,13 +100,13 @@ Item {
         anchors.top: sortDivider.bottom
         Text {
             id: goToFolderTitle
-            text: scene.goToFolderLabel
+            text: window.goToFolderLabel
             font.bold: true
             anchors.left: parent.left
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
-            color:theme_fontColorNormal
-            font.pixelSize: theme_fontPixelSizeLarge
+            color:theme.fontColorNormal
+            font.pixelSize: theme.fontPixelSizeLarge
             horizontalAlignment: Text.AlignLeft
             elide: Text.ElideRight
         }
@@ -134,8 +137,8 @@ Item {
                 id: folderLabel
                 height: 50
                 text:  folderName
-                font.pixelSize: theme_fontPixelSizeLarge
-                color:theme_fontColorNormal
+                font.pixelSize: theme.fontPixelSizeLarge
+                color:theme.fontColorNormal
                 anchors.left: parent.left
                 anchors.leftMargin: 15
                 verticalAlignment: Text.AlignVCenter
@@ -143,11 +146,11 @@ Item {
             }
             Text {
                 height: 50
-                font.pixelSize: theme_fontPixelSizeLarge
+                font.pixelSize: theme.fontPixelSizeLarge
                 text: qsTr("(%1)").arg(folderUnreadCount)
                 anchors.left: folderLabel.right
                 anchors.leftMargin: 10
-                color:theme_fontColorNormal
+                color:theme.fontColorNormal
                 verticalAlignment: Text.AlignVCenter
                 opacity: folderUnreadCount ? 1 : 0
             }
@@ -155,10 +158,12 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    scene.currentFolderId = folderId;
-                    folderListView.title = qsTr("%1 %2").arg(currentAccountDisplayName).arg(folderName);
+                    window.currentFolderId = folderId;
+                    window.folderListViewTitle = currentAccountDisplayName + " " + folderName;
                     folderListView.closeMenu();
                     messageListModel.setFolderKey(folderId);
+                    window.popPage();
+                    window.addPage(folderList);
                 }
             }
         }

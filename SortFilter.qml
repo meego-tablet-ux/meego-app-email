@@ -6,7 +6,8 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Item {
     id: container
@@ -49,8 +50,8 @@ Item {
                 height: container.topicHeight
                 width: container.width
                 text: mitem
-                font.pixelSize: theme_fontPixelSizeLarge
-                color: theme_fontColorNormal
+                font.pixelSize: theme.fontPixelSizeLarge
+                color: theme.fontColorNormal
                 anchors.left: parent.left
                 anchors.leftMargin: 15
                 verticalAlignment: Text.AlignVCenter

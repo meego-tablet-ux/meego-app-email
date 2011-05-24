@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 
 Item {
@@ -44,14 +44,16 @@ Item {
 
         Image {
             width: parent.width
-            height: composer.height - header.height - parent.spacing
+            anchors.top:  header.bottom
+            anchors.bottom:parent.bottom
+
             source: "image://theme/email/bg_reademail_l"
 
             TextField {
                 id: editPane
-                font.pixelSize: theme_fontPixelSizeLarge
+                font.pixelSize: theme.fontPixelSizeLarge
                 text : {
-                    var sig = emailAgent.getSignatureForAccount(scene.currentMailAccountId);
+                    var sig = emailAgent.getSignatureForAccount(window.currentMailAccountId);
                     if (sig == "")
                         return composer.quotedBody;
                     else

@@ -30,6 +30,8 @@ Column {
 
     spacing: 5
 
+    TopItem { id: topItem }
+
     function completeEmailAddresses () {
         toRecipients.complete ();
         ccRecipients.complete ();
@@ -40,9 +42,9 @@ Column {
         target: mailAccountListModel
         onAccountAdded: {
             emailAccountList = accountsModel.getAllEmailAddresses();
-            if (scene.currentMailAccountIndex == -1)
+            if (window.currentMailAccountIndex == -1)
             {
-                scene.currentMailAccountIndex = 0;
+                window.currentMailAccountIndex = 0;
                 fromEmail = 0
                 accountSelector.selectedIndex = 0;
             }
@@ -53,7 +55,7 @@ Column {
     // We need to convert it to one to set it in the DropDown
     onAccountsModelChanged: {
         emailAccountList = accountsModel.getAllEmailAddresses();
-        fromEmail = scene.currentMailAccountIndex;
+        fromEmail = window.currentMailAccountIndex;
     }
 
     Row {
@@ -73,12 +75,12 @@ Column {
             minWidth: 400
             model: emailAccountList
             height: 53
-            title: emailAccountList[0];
+            title: emailAccountList[window.currentMailAccountIndex];
             titleColor: "black"
             replaceDropDownTitle: true
 
             Component.onCompleted: {
-                selectedIndex = 0;
+                selectedIndex = window.currentMailAccountIndex;;
             }
             onTriggered: {
                 fromEmail = index;
@@ -206,7 +208,7 @@ Column {
                 anchors.fill: parent
 
                 onClicked: {
-                    var map = mapToItem(scene, mouseX, mouseY);
+                    var map = mapToItem(topItem.topItem, mouseX, mouseY);
                     priorityContextMenu.setPosition(map.x, map.y)
 
                     if (priority == EmailMessage.NormalPriority)

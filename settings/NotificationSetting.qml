@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 
 Rectangle {
@@ -20,13 +20,19 @@ Rectangle {
     anchors.right: parent.right
     height: 77
     color: "#d5ecf6"
+
+    Theme {
+        id: theme
+    }
+
     Text {
         id: label
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
         anchors.margins: 10
-        font.pixelSize: theme_fontPixelSizeLarge
+        font.pixelSize: theme.fontPixelSizeLarge
     }
+
     ToggleButton {
         id: toggle
         anchors.right: parent.right

@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 
 BorderImage {
@@ -34,7 +34,7 @@ BorderImage {
         id: recipientListLabel
         x: 10
         anchors.verticalCenter: parent.verticalCenter
-        font.pixelSize: theme_fontPixelSizeLarge
+        font.pixelSize: theme.fontPixelSizeLarge
         color: "slategrey"
 
         visible: input.text == "" && repeater.model.count == 0
@@ -113,16 +113,12 @@ BorderImage {
                     width: input.width
                     height: 35
 
-                    TextInput {
+                    TextEntry {
                         id: input
                         visible: false
 
                         anchors.verticalCenter: parent.verticalCenter
                         inputMethodHints: Qt.ImhEmailCharactersOnly | Qt.ImhNoAutoUppercase
-
-                        CCPContextArea {
-                            editor: parent
-                        }
 
                         function addEmailAddress () {
                             if (text != "") {

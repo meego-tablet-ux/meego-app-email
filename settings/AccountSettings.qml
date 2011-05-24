@@ -6,11 +6,15 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 import MeeGo.Components 0.1
 import "settings.js" as Settings
 
 Item {
+    Theme {
+        id: theme
+    }
+
     Flickable {
         clip: true
         anchors.top: parent.top
@@ -41,8 +45,8 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
                     anchors.leftMargin: 100
-                    font.pixelSize: theme_fontPixelSizeLarge
-                    color: theme_fontColorNormal
+                    font.pixelSize: theme.fontPixelSizeLarge
+                    color: theme.fontColorNormal
                     text: qsTr("Set up new account")
                 }
                 Image {
@@ -64,16 +68,16 @@ Item {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.margins: 10
-                            font.pixelSize: theme_fontPixelSizeLarge
+                            font.pixelSize: theme.fontPixelSizeLarge
                             elide: Text.ElideRight
-                            color: theme_fontColorNormal
+                            color: theme.fontColorNormal
                             text: qsTr("Update:")
                         }
                         Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.margins: 10
-                            font.pixelSize: theme_fontPixelSizeMedium
+                            font.pixelSize: theme.fontPixelSizeMedium
                             color: "#2fa7d4"
                             text: Settings.textForInterval(updateInterval.selectedValue)
                         }
@@ -114,16 +118,16 @@ Item {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.margins: 10
-                            font.pixelSize: theme_fontPixelSizeLarge
+                            font.pixelSize: theme.fontPixelSizeLarge
                             elide: Text.ElideRight
-                            color: theme_fontColorNormal
+                            color: theme.fontColorNormal
                             text: qsTr("Signature")
                         }
                         Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.margins: 10
-                            font.pixelSize: theme_fontPixelSizeMedium
+                            font.pixelSize: theme.fontPixelSizeMedium
                             color: "#2fa7d4"
                             elide: Text.ElideRight
                             text: qsTr("\"%1\"").arg(accountSettingsModel.signature())
@@ -153,8 +157,8 @@ Item {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.margins: 10
-                            font.pixelSize: theme_fontPixelSizeLarge
-                            color: theme_fontColorNormal
+                            font.pixelSize: theme.fontPixelSizeLarge
+                            color: theme.fontColorNormal
                             text: qsTr("Notifications")
                         }
                     }

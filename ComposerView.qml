@@ -15,8 +15,8 @@ Item {
     id: composerViewContainer
 
     property alias composer: composer
-    parent: composerPage.content
-    width: scene.content.width
+    parent: composerPage
+    width: parent.width
     height: parent.height
 
     ListModel {
@@ -37,7 +37,6 @@ Item {
 
     Composer {
         id: composer
-
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -104,10 +103,9 @@ Item {
                 message.setPriority (composer.priority);
                 message.setBody (composer.body);
 
-                //message.send ();
-		mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
 
-                scene.previousApplicationPage ();
+                window.popPage ();
             }
         }
 
@@ -163,9 +161,8 @@ Item {
                 message.setPriority (composer.priority);
                 message.setBody (composer.body);
 
-                //message.saveDraft ();
-		mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
-                scene.previousApplicationPage ();
+                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+                window.popPage ();
             }
         }
 
@@ -183,10 +180,10 @@ Item {
             Component {
                 id: addAttachment
 
-                Labs.ApplicationPage {
+                AppPage {
                     id: addAttachmentPage
                     //: Attach a file (e.g. music, video, photo) to the document being composed.
-                    title: qsTr("Attach a file")
+                    pageTitle: qsTr("Attach a file")
 
                     AddAttachmentView {
                         attachments: composer.attachmentsModel
@@ -195,7 +192,7 @@ Item {
             }
 
             onClicked: {
-                scene.addApplicationPage(addAttachment)
+                window.addPage(addAttachment)
             }
         }
 
@@ -243,7 +240,7 @@ Item {
             text: qsTr ("Are you sure you want to discard this unsent email?")
         }
 
-        onAccepted: { scene.previousApplicationPage () }
+        onAccepted: { window.popPage () }
     }
 
 

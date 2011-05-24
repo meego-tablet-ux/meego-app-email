@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import Qt 4.7
+import QtQuick 1.0
 
 Item {
     id: container
@@ -23,7 +23,7 @@ Item {
     BorderImage {
         id: buttonBackground
         anchors.centerIn: parent
-        source: "image://meegotheme/widgets/common/action-item/action-item-background-active"
+        source: "image://themedimage/widgets/common/action-item/action-item-background-active"
         opacity: (container.state == "up") ? 0 : 1
     }
 
@@ -31,7 +31,7 @@ Item {
         id: image
         anchors.centerIn: parent
 
-        source: "image://meegotheme/icons/actionbar/" + iconName + ((container.state == "up") ? "" : "-active")
+        source: "image://themedimage/icons/actionbar/" + iconName + ((container.state == "up") ? "" : "-active")
         NumberAnimation on rotation {
             id: imageRotation
             running: false
