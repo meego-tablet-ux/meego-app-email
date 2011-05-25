@@ -119,6 +119,7 @@ public slots:
     Q_INVOKABLE void deSelectAllMessages();
     Q_INVOKABLE void selectMessage( int index );
     Q_INVOKABLE void deSelectMessage (int index );
+    Q_INVOKABLE void moveSelectedMessageIds(QVariant vFolderId);
     Q_INVOKABLE void deleteSelectedMessageIds();
     Q_INVOKABLE void deleteMessage(QVariant id);
     Q_INVOKABLE void deleteMessages(QList<QString>);

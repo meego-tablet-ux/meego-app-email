@@ -106,50 +106,137 @@ Item {
                     }
                     else
                     {
-                        mailAccountListModel.sendReceive ();
+                        mailAccountListModel.sendReceive();
                         window.refreshInProgress = true;
                     }
                 }
             }
         }
     }
+
     Item {
         anchors.fill: parent
         opacity: inEditMode == true ? 1 : 0
 
-        ToolbarButton {
-        id: deleteButton
-        anchors.left: parent.left
-        anchors.top: parent.top
-        iconName: "edit-delete"
-            onClicked: {
+        property variant selectedFolderId
+
+        TopItem { id: topItem }
+
+        ContextMenu {
+            id: folderSelectionMenu
+
+            title: qsTr("Choose folder:")
+
+            property bool scrollInFolderList: false
+
+            content: ListView {
+                id: listView
+//                anchors.left: parent.left
+//                anchors.top: goToFolder.bottom
+                height: {
+                    var realHeight = window.width;
+                    if (window.orientation == 1 || window.orientation == 3)
+                    {
+                       realHeight = window.height;
+                    }
+                    var maxHeight = 50 * (1 + mailFolderListModel.totalNumberOfFolders());
+                    if (maxHeight > (realHeight - 170))
+                    {
+                        folderSelectionMenu.scrollInFolderList = true;
+                        return (realHeight - 170);
+                    }
+                    else
+                        return maxHeight;
+                }
+
+                width: 300
+                spacing: 1
+                interactive: folderSelectionMenu.scrollInFolderList
+                clip: true
+
+                model: mailFolderListModel
+
+                delegate: Item {
+                    id: folderItem
+                    width: parent.width
+                    height: 50
+
+                    Image {
+                        width: parent.width
+                        source: "image://theme/email/divider_l"
+                    }
+
+                    Text {
+                        id: folderLabel
+                        height: 50
+                        text:  folderName
+                        font.pixelSize: theme.fontPixelSizeLarge
+                        color:theme.fontColorNormal
+                        anchors.left: parent.left
+                        anchors.leftMargin: 15
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            messageListModel.moveSelectedMessageIds(folderId);
+                            folderListContainer.numOfSelectedMessages = 0;
+                            folderSelectionMenu.hide();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Go polymorphic and design pattern-y.  Here we implement the
+        // Strategy design pattern.  The two strategies are "move" and
+        // "delete" selected messages.
+        QtObject {
+            id: messageMover
+
+            function run() {
+                folderSelectionMenu.setPosition(
+                            moveAction.x + moveAction.width / 2,
+                            mapToItem(window, window.width / 2,
+                                      moveAction.y + moveAction.height).y)
+                folderSelectionMenu.show()
+            }
+        }
+
+        QtObject {
+            id: messageDeleter
+
+            function run() {
                 messageListModel.deleteSelectedMessageIds();
                 folderListContainer.numOfSelectedMessages = 0;
             }
         }
-        Text {
-            anchors.left: deleteButton.right
-            anchors.verticalCenter: parent.verticalCenter
-            id: numberOfSelectedMessages
-            color: "white"
-            //: Arg1 is the number of selected messages
-            text: qsTr("(%1)").arg(folderListContainer.numOfSelectedMessages)
+
+        MessageAction {
+            id: moveAction
+            iconName: "mail-movetofolder"
+            action: messageMover
         }
-        Image {
-            id: separator1
-            anchors.left: numberOfSelectedMessages.right
-            anchors.leftMargin: 15
-            anchors.top: parent.top
-            height: parent.height
-            source: "image://theme/email/div"
+
+        MessageAction {
+            id: deleteAction
+            iconName: "edit-delete"
+            action: messageDeleter
+
+            anchors.left: moveAction.right
         }
+
+        // Separator left of the exit button on the far right.
         Image {
-            id: separator2
+            id: separator
             anchors.right: exitEditModeButton.left
             anchors.top: parent.top
             height: parent.height
             source: "image://theme/email/div"
         }
+
         Item {
             // FIX ME:  use the old icon until UX design team provide new ones.
             id: exitEditModeButton
@@ -173,6 +260,7 @@ Item {
                     duration: 2400
                 }
             }
+
             MouseArea {
                 anchors.fill: parent
                 onPressed : {

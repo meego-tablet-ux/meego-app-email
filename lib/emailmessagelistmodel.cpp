@@ -1320,9 +1320,14 @@ void EmailMessageListModel::deSelectMessage (int idx )
     dataChanged(index(idx), index(idx));
 }
 
+void EmailMessageListModel::moveSelectedMessageIds(QVariant vFolderId)
+{
+   // tbd:  Need to implement the equivalent in EDS.
+}
+
 void EmailMessageListModel::deleteSelectedMessageIds()
 {
-    if (m_selectedMsgIds.size() == 0)
+    if (m_selectedMsgIds.empty())
         return;
     deleteMessages(m_selectedMsgIds);
 }

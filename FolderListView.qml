@@ -389,12 +389,12 @@ Item {
                             if (selected)
                             {
                                 messageListModel.deSelectMessage(index);
-                                folderListContainer.numOfSelectedMessages = folderListContainer.numOfSelectedMessages - 1;
+                                --folderListContainer.numOfSelectedMessages;
                             }
                             else
                             {
                                 messageListModel.selectMessage(index);
-                                folderListContainer.numOfSelectedMessages = folderListContainer.numOfSelectedMessages + 1;
+                                ++folderListContainer.numOfSelectedMessages;
                             }
                         }
                         else
