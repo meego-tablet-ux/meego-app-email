@@ -71,13 +71,19 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
     if (role == FolderName)
     {
 	QString displayName;
-
+	
         if (folder.full_name == ".#evolution/Junk")
                 displayName = QString ("Junk");
         else if (folder.full_name == ".#evolution/Trash")
                 displayName = QString ("Trash");
         else {
+		const char *url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
                 displayName = QString (folder.full_name);
+
+		if (strncmp(url, "pop:", 4) == 0 &&
+			displayName.endsWith ("INBOX", Qt::CaseInsensitive))
+			displayName = QString ("Inbox");
+		
                 displayName.replace (QString("/"), QString(" / "));
         }
 
@@ -301,7 +307,6 @@ QVariant FolderListModel::inboxFolderName()
         CamelFolderInfoVariant folder(m_folderlist[i]);
 
        if (QString::compare(folder.full_name, "INBOX", Qt::CaseInsensitive) == 0) {
-            g_print ("Returning INBOX NAME: %s\n", (char *)folder.uri.toLocal8Bit().constData());
             return QVariant(folder.folder_name);
         }
     }
@@ -311,8 +316,7 @@ QVariant FolderListModel::inboxFolderName()
     {
         CamelFolderInfoVariant folder(m_folderlist[i]);
         if (folder.full_name.endsWith("INBOX", Qt::CaseInsensitive)) {
-	    g_print ("Returning INBOX ENDS WITH NAME: %s\n", (char *)folder.uri.toLocal8Bit().constData());
-            return QVariant(folder.folder_name);
+            return QVariant("Inbox");
 	}
     }
     return QVariant("");
