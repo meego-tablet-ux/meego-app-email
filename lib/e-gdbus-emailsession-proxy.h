@@ -86,6 +86,9 @@ public Q_SLOTS: // METHODS
     }
 
 Q_SIGNALS: // SIGNALS
+    void AccountAdded(const QString &uid);
+    void AccountChanged(const QString &uid);
+    void AccountRemoved(const QString &uid);
     void GetPassword(const QString &title, const QString &prompt, const QString &key);
     void sendReceiveComplete();
 };

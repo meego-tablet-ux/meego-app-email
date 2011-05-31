@@ -106,14 +106,14 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     session_instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
     QObject::connect (session_instance, SIGNAL(GetPassword(const QString &, const QString &, const QString &)), this, SLOT(onGetPassword (const QString &, const QString &, const QString &)));
     QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
-/*
-    connect (QMailStore::instance(), SIGNAL(accountsAdded(const QMailAccountIdList &)), this,
-             SLOT(onAccountsAdded (const QMailAccountIdList &)));
-    connect (QMailStore::instance(), SIGNAL(accountsRemoved(const QMailAccountIdList &)), this,
-             SLOT(onAccountsRemoved(const QMailAccountIdList &)));
-    connect (QMailStore::instance(), SIGNAL(accountsUpdated(const QMailAccountIdList &)), this,
-             SLOT(onAccountsUpdated(const QMailAccountIdList &)));
 
+    connect (session_instance, SIGNAL(AccountAdded(const QString &)), this,
+             SLOT(onAccountsAdded (const QString &)));
+    connect (session_instance, SIGNAL(AccountRemoved(const QString &)), this,
+             SLOT(onAccountsRemoved(const QString &)));
+    connect (session_instance, SIGNAL(AccountChanged (const QString &)), this,
+             SLOT(onAccountsUpdated(const QString &)));
+/*
     QMailAccountListModel::setSynchronizeEnabled(true);
     QMailAccountListModel::setKey(QMailAccountKey::messageType(QMailMessage::Email));
 */
@@ -280,27 +280,38 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
     return QVariant();
 }
-/*
-void EmailAccountListModel::onAccountsAdded(const QMailAccountIdList &ids)
+
+void EmailAccountListModel::onAccountsAdded(const QString &uid)
 {
-    Q_UNUSED(ids);
-    QMailAccountListModel::reset();
-    emit accountAdded(QVariant(ids[0]));
+    qDebug() << uid + ": Account added";
+    emit accountAdded(QVariant(uid));
+    beginInsertRows(QModelIndex(), rowCount(), rowCount());
+    endInsertRows();
+
 }
 
-void EmailAccountListModel::onAccountsRemoved(const QMailAccountIdList &ids)
+void EmailAccountListModel::onAccountsRemoved(const QString &uid)
 {
-    Q_UNUSED(ids);
-    QMailAccountListModel::reset();
-    emit accountRemoved(QVariant(ids[0]));
+    int idx;
+    char *cid = g_strdup((char *)uid.toLocal8Bit().constData());
+
+    idx = getIndexById (cid);
+    qDebug() << uid + ": Account removed";
+    beginRemoveRows (QModelIndex(), idx, idx);
+    endRemoveRows ();
+    g_free (cid);
+    emit accountRemoved(QVariant(uid));
 }
 
-void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
+void EmailAccountListModel::onAccountsUpdated(const QString &uid)
 {
-    Q_UNUSED(ids);
-    QMailAccountListModel::reset();
+    char *cid = g_strdup((char *)uid.toLocal8Bit().constData());
+    QModelIndex idx = createIndex (getIndexById(cid), 0);
+    emit dataChanged(idx, idx);
+    qDebug() << uid + ": Account changed";
+    g_free (cid);
 }
-*/
+
 
 QVariant EmailAccountListModel::indexFromAccountId(QVariant id)
 {

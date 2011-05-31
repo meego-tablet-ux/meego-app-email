@@ -74,9 +74,9 @@ private slots:
     int getIndexById(char *id);
     void onGetPassword (const QString &, const QString &, const QString &);
     void onSendReceiveComplete ();
-//    void onAccountsAdded(const QMailAccountIdList &);
-//    void onAccountsRemoved(const QMailAccountIdList &);
-//    void onAccountsUpdated(const QMailAccountIdList &);
+    void onAccountsAdded(const QString &);
+    void onAccountsRemoved(const QString &);
+    void onAccountsUpdated(const QString &);
 
 
 };
