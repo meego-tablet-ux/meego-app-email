@@ -50,6 +50,13 @@ public Q_SLOTS: // METHODS
         return asyncCallWithArgumentList(QLatin1String("cancelOperations"), argumentList);
     }
 
+    inline QDBusPendingReply<> fetchAccount(const QString &uid)
+    {
+        QList<QVariant> argumentList;
+        argumentList << qVariantFromValue(uid);
+        return asyncCallWithArgumentList(QLatin1String("fetchAccount"), argumentList);
+    }
+
     inline QDBusPendingReply<QDBusObjectPath> getFolderFromUri(const QString &uri)
     {
         QList<QVariant> argumentList;

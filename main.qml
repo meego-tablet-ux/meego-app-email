@@ -323,6 +323,22 @@ Window {
     }
 
     Connections {
+        target: messageListModel
+
+        onSendReceiveBegin : {
+            window.refreshInProgress = true;
+        }
+
+        onSendReceiveCompleted: {
+            console.log ("Send receive completed");
+            window.refreshInProgress = false;
+        }
+
+
+    }
+
+
+    Connections {
         target: mainWindow
         onCall: {
             var cmd = parameters[0];

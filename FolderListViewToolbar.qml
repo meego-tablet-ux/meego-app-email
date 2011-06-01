@@ -101,12 +101,12 @@ Item {
                 onClicked: {
                     if (window.refreshInProgress == true)
                     {
-                        mailAccountListModel.cancelOperations();
+                        messageListModel.cancelOperations();
                         window.refreshInProgress = false;
                     }
                     else
                     {
-                        mailAccountListModel.sendReceive();
+                        messageListModel.sendReceive();
                         window.refreshInProgress = true;
                     }
                 }

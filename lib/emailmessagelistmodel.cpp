@@ -342,6 +342,9 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     search_str = QString();
     connect(timer, SIGNAL(timeout()), this, SLOT(updateSearch()));
 
+    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+    QObject::connect (instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
+
     initMailServer();
 /*
     QMailAccountIdList ids = QMailStore::instance()->queryAccounts(
@@ -680,6 +683,37 @@ void EmailMessageListModel::setSearch(const QString search)
 #endif
 }
 
+void EmailMessageListModel::onSendReceiveComplete()
+{
+	qDebug() << "Send Receive complete \n\n";
+	emit sendReceiveCompleted();
+}
+
+void EmailMessageListModel::sendReceive()
+{
+	OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+	const char *url;
+
+	url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
+	if  (strncmp (url, "pop:", 4) == 0) {
+		/* Fetch entire account for POP */
+		instance->fetchAccount (m_account->uid);
+	} else {
+		/* For rest just do refreshInfo */
+		m_folder_proxy->refreshInfo();
+	}	
+	
+	emit sendReceiveBegin();
+}
+
+void EmailMessageListModel::cancelOperations()
+{
+	OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+	
+	emit sendReceiveCompleted();
+	instance->cancelOperations();
+}
+
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
     int count=0;
@@ -770,7 +804,9 @@ void EmailMessageListModel::setFolderKey (QVariant id)
                                             this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
 
 
-
+	/* Refresh the folder anyway to see any new mails. */
+	sendReceive();
+	
 #if 0
     m_currentFolderId = id.value<QMailFolderId>();
     if (!m_currentFolderId.isValid())
@@ -942,7 +978,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     const char *url;
 
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
     if (instance && instance->isValid() && url && *url) {
         QDBusPendingReply<QDBusObjectPath> reply ;
 	if (strncmp (url, "pop:", 4) == 0)

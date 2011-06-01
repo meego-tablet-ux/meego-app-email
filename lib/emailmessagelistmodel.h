@@ -89,6 +89,8 @@ public:
 signals:
     void messageDownloadCompleted();
     void messageRetrievalCompleted();
+    void sendReceiveCompleted ();
+    void sendReceiveBegin ();
 
 public slots:
     Q_INVOKABLE void setFolderKey (QVariant id);
@@ -130,12 +132,15 @@ public slots:
     Q_INVOKABLE void getMoreMessages ();
     Q_INVOKABLE void saveAttachmentIn (int row, QString uri, bool tmp);
     Q_INVOKABLE void saveAttachmentsInTemp (int row);
+    Q_INVOKABLE void sendReceive ();
+    Q_INVOKABLE void cancelOperations();
 
 
 private slots:
     void downloadActivityChanged(QMailServiceAction::Activity);
     void myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
     void updateSearch ();
+    void onSendReceiveComplete ();
 
 private:
     void initMailServer ();
