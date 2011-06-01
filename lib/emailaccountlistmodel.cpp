@@ -66,6 +66,15 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 	reply1.waitForFinished();
 	folderlist = reply1.value ();	
+	/* For POP3, create the folder if itsn't available */
+	if (folderlist.length() == 0 && strncmp (url, "pop:", 4) == 0) {
+		QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
+		/* Create folder first*/
+		reply2 = proxy->createFolder ("", folder_name);
+		reply2.waitForFinished();
+		folderlist = reply2.value ();	
+	}
+
     	foreach (CamelFolderInfoVariant fInfo, folderlist)
     	{
 		if (fInfo.unread_count > 0)
