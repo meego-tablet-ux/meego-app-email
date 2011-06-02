@@ -1358,7 +1358,21 @@ void EmailMessageListModel::deSelectMessage (int idx )
 
 void EmailMessageListModel::moveSelectedMessageIds(QVariant vFolderId)
 {
-   // tbd:  Need to implement the equivalent in EDS.
+   QDBusPendingReply<QDBusObjectPath> reply ;
+   QDBusObjectPath dest_folder_path;
+
+    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+    reply = instance->getFolderFromUri (vFolderId.toString());
+    reply.waitForFinished();
+
+    dest_folder_path = reply.value();
+    
+    m_folder_proxy->transferMessagesTo (m_selectedMsgIds, dest_folder_path, true);
+
+    foreach (QString uid, m_selectedMsgIds)
+	setMessageFlag (uid, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN);
+
+    m_selectedMsgIds.clear();
 }
 
 void EmailMessageListModel::deleteSelectedMessageIds()
