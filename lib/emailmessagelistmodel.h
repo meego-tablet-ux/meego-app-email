@@ -118,6 +118,7 @@ public slots:
     Q_INVOKABLE QVariant messageRead (int index);
     Q_INVOKABLE int messagesCount ();
     Q_INVOKABLE int totalCount ();
+    Q_INVOKABLE bool stillMoreMessages ();
     Q_INVOKABLE void deSelectAllMessages();
     Q_INVOKABLE void selectMessage( int index );
     Q_INVOKABLE void deSelectMessage (int index );
@@ -141,6 +142,7 @@ private slots:
     void myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
     void updateSearch ();
     void onSendReceiveComplete ();
+    void fetchMoreMessagesFinished (QDBusPendingCallWatcher *call);
 
 private:
     void initMailServer ();
@@ -154,6 +156,7 @@ private:
     QStringList folder_vuids;
     QTimer *timer;
     QString search_str;
+    bool messages_present;
 
     QString accout_id;
     QString m_current_folder;

@@ -200,7 +200,7 @@ Item {
 
                 var folderServerCount = messageListModel.totalCount();
 
-                if (messageListView.count < folderServerCount)
+                if (messageListView.count < folderServerCount || messageListModel.stillMoreMessages())
                     return true;
                 else
                     return false;

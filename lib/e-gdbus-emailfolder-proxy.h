@@ -66,6 +66,13 @@ public Q_SLOTS: // METHODS
         return asyncCallWithArgumentList(QLatin1String("expunge"), argumentList);
     }
 
+    inline QDBusPendingReply<bool> fetchOldMessages(int count)
+    {
+        QList<QVariant> argumentList;
+        argumentList << qVariantFromValue(count);
+        return asyncCallWithArgumentList(QLatin1String("fetchOldMessages"), argumentList);
+    }
+
     inline QDBusPendingReply<QString> getDescription()
     {
         QList<QVariant> argumentList;
