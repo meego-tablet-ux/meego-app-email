@@ -35,6 +35,10 @@ Column {
         suppress = false;
     }
 
+    Theme {
+        id: theme
+    }
+
     Text {
         id: label
         height: 30

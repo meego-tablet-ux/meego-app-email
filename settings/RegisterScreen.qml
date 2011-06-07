@@ -9,6 +9,7 @@
 import QtQuick 1.0
 import MeeGo.Components 0.1
 import MeeGo.Settings 0.1
+import MeeGo.App.Email 0.1
 
 Item {
     anchors.fill: parent
@@ -72,6 +73,11 @@ Item {
             settingsPage.state = settingsPage.getHomescreen();
         }
     }
+	// Added By Daewon.Park
+	EmailAccountListModel {
+		id : accountListModel
+	}
+
 
     //FIXME use standard action bar here
     Rectangle {
@@ -108,6 +114,19 @@ Item {
                 } else {
                     passwordField.errorText = "";
                 }
+
+				// Added By Daewon.Park
+				var accountList = accountListModel.getAllEmailAddresses();
+					for(var i = 0; i < accountList.length; i++) {
+							console.log("Account : " + addressField.text + " : " + accountList[i]);
+							if(addressField.text === accountList[i]) {
+									addressField.errorText = qsTr("Same account is already registered");
+									errors++;
+									break;
+							}
+				}
+
+
                 return errors === 0;
             }
             onClicked: {

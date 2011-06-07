@@ -38,6 +38,7 @@ Item {
         iconName: "mail-compose"
             onClicked: {
                 mailAttachmentModel.clear();
+                window.composeInTextMode = true;
                 window.addPage(composer);
             }
         }
@@ -106,7 +107,7 @@ Item {
                     }
                     else
                     {
-                        messageListModel.sendReceive();
+                        messageListModel.sendReceive()
                         window.refreshInProgress = true;
                     }
                 }
@@ -215,17 +216,17 @@ Item {
         }
 
         MessageAction {
-            id: moveAction
-            iconName: "mail-movetofolder"
-            action: messageMover
-        }
-
-        MessageAction {
             id: deleteAction
             iconName: "edit-delete"
             action: messageDeleter
+        }
 
-            anchors.left: moveAction.right
+        MessageAction {
+            id: moveAction
+            iconName: "mail-movetofolder"
+            action: messageMover
+
+            anchors.left: deleteAction.right
         }
 
         // Separator left of the exit button on the far right.

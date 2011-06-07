@@ -30,6 +30,21 @@ Column {
 
     spacing: 5
 
+    ModalContextMenu {
+        id: ctxAttachmentMenuAction
+        property int indexTapAndHeld: -1
+
+        content:  ActionMenu {
+            id: ctxAttachment
+            model: [ qsTr("Delete") ]
+            onTriggered:{
+                header.attachmentsModel.remove(ctxAttachmentMenuAction.indexTapAndHeld)
+                ctxAttachmentMenuAction.hide()
+            }
+        }
+    }
+
+
     TopItem { id: topItem }
 
     function completeEmailAddresses () {
@@ -236,8 +251,8 @@ Column {
 
                     model: [ highText, normalText, lowText ]
                     payload: [ EmailMessage.HighPriority,
-                               EmailMessage.NormalPriority,
-                               EmailMessage.LowPriority ]
+                        EmailMessage.NormalPriority,
+                        EmailMessage.LowPriority ]
 
                     highlightSelectedItem: true
 
@@ -259,6 +274,14 @@ Column {
         width: parent.width - 20
         height: 41
         opacity: (model.count > 0) ? 1 : 0
-    }
 
+        onAttachmentSelected:{
+
+            ctxAttachmentMenuAction.x=mX
+            ctxAttachmentMenuAction.y=mY
+            ctxAttachmentMenuAction.indexTapAndHeld= mIndex
+            ctxAttachmentMenuAction.show()
+        }
+    }
 }
+

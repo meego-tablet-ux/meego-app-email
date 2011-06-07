@@ -7,10 +7,15 @@
  */
 
 import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Rectangle {
     property alias text: message.text
     color: "#FFFFAA"
+
+    Theme {
+        id: theme
+    }
 
     Text {
         id: message

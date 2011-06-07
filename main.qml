@@ -39,6 +39,7 @@ Window {
     property variant mailBcc: []
     property variant mailId;
     property bool mailReadFlag;
+    property bool editableDraft:false;
     property string mailTimeStamp: "";
     property string mailBody: "";
     property string mailHtmlBody: "";
@@ -50,6 +51,7 @@ Window {
     property bool refreshInProgress: false
     property bool callFromRemote: false
     property bool composerIsCurrentPage: false
+    property bool composeInTextMode: true
     property string errMsg: "";
     property variant argv: [] 
     property variant accountFilterModel: []
@@ -337,7 +339,6 @@ Window {
 
     }
 
-
     Connections {
         target: mainWindow
         onCall: {
@@ -554,6 +555,31 @@ Window {
             TopItem { id: composerTopItem }
 
             Component.onCompleted: {
+                if (window.editableDraft)
+                {
+                    composerView.composer.body= window.mailBody
+                    composerView.composer.subject= window.mailSubject
+
+                    var idx;
+                    composerView.composer.toModel.clear();
+                    for (idx = 0; idx < window.mailRecipients.length; idx++)
+                        composerView.composer.toModel.append({"name": "", "email": window.mailRecipients[idx]});
+
+                    composerView.composer.bccModel.clear();
+                    for (idx = 0; idx < window.mailCc.length; idx ++)
+                        composerView.composer.bccModel.append({"email": window.mailCc[idx]});
+
+                    composerView.composer.bccModel.clear();
+                    for (idx = 0; idx < window.mailBcc.length; idx ++)
+                        composerView.composer.bccModel.append({"email": window.mailBcc[idx]});
+
+                    composerView.composer.attachmentsModel.clear();
+                    for (idx = 0; idx < window.mailAttachments.length; idx ++)
+                        composerView.composer.attachmentsModel.append({"uri": window.mailAttachments[idx]});
+
+                }
+
+                window.editableDraft= false
                 window.composerIsCurrentPage = true;
             }
 

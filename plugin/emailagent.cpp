@@ -486,6 +486,14 @@ bool EmailAgent::openAttachment(const QString & uri)
     return status;
 }
 
+void EmailAgent::openBrowser(const QString & url)
+{
+    QString executable("xdg-open");
+    QStringList parameters;
+    parameters << url;
+    QProcess::startDetached(executable, parameters);
+}
+
 void EmailAgent::flagMessages(const QMailMessageIdList &ids, quint64 setMask,
         quint64 unsetMask)
 {

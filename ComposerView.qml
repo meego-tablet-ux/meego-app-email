@@ -15,6 +15,7 @@ Item {
     id: composerViewContainer
 
     property alias composer: composer
+
     parent: composerPage
     width: parent.width
     height: parent.height
@@ -68,8 +69,6 @@ Item {
                 var i;
                 var message;
 
-                console.log ("Send email");
-
                 composer.completeEmailAddresses ();
 
                 message = messageComponent.createObject (composer);
@@ -101,10 +100,12 @@ Item {
 
                 message.setSubject (composer.subject);
                 message.setPriority (composer.priority);
-                message.setBody (composer.body);
+                if (window.composeInTextMode)
+                    message.setBody (composer.textBody, true);
+                else
+                    message.setBody (composer.htmlBody, false);
 
                 mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
-
                 window.popPage ();
             }
         }
@@ -130,6 +131,9 @@ Item {
 
                 composer.completeEmailAddresses ();
 
+                //if this is a draft e-mail, the old draft needs to be deleted
+                emailAgent.deleteMessage (window.mailId)
+
                 message = messageComponent.createObject (composer);
                 message.setFrom (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail));
 
@@ -137,6 +141,8 @@ Item {
                 for (i = 0; i < composer.toModel.count; i++) {
                     to[i] = composer.toModel.get (i).email;
                 }
+
+
                 message.setTo (to);
 
                 var cc = new Array ();
@@ -159,7 +165,11 @@ Item {
 
                 message.setSubject (composer.subject);
                 message.setPriority (composer.priority);
-                message.setBody (composer.body);
+                if (window.composeInTextMode)
+                    message.setBody (composer.textBody, true);
+                else
+                    message.setBody (composer.htmlBody, false);
+
 
                 mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
                 window.popPage ();
@@ -230,18 +240,13 @@ Item {
         }
     }
 
-    ModalDialog {
+    ModalMessageBox {
         id: verifyCancel
         acceptButtonText: qsTr ("Yes")
         cancelButtonText: qsTr ("Cancel")
         title: qsTr ("Discard Email")
-        content: Text {
-            anchors.leftMargin: 10
-            text: qsTr ("Are you sure you want to discard this unsent email?")
-        }
-
+        text: qsTr ("Are you sure you want to discard this unsent email?")
         onAccepted: { window.popPage () }
     }
-
-
 }
+

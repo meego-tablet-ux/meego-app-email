@@ -13,7 +13,9 @@ import Qt.labs.gestures 2.0
 
 Item {
     id: folderListMenu
-    property bool scrollInFolderList: false
+    property bool scrollInFolderList: false    
+    property string createNewFolder: qsTr("Create new folder")
+
     height: {
         var realHeight = window.width;
         if (window.orientation == 1 || window.orientation == 3)
@@ -30,7 +32,7 @@ Item {
             return maxHeight;
     }
     
-    width: Math.max(sortTitle.width, goToFolderTitle.width) + 30
+    width: Math.max(sortTitle.width, goToFolderTitle.width, createFolderLabel.width + createButton.width) + 30
 
     Item {
         id: sort
@@ -115,8 +117,8 @@ Item {
         id: listView
         anchors.left: parent.left
         anchors.top: goToFolder.bottom
+        anchors.bottom: createFolderDivider.top
         width: folderListMenu.width
-        anchors.bottom: folderListMenu.bottom
         spacing: 1
         interactive: folderListMenu.scrollInFolderList
         clip: true
@@ -162,10 +164,76 @@ Item {
                     window.folderListViewTitle = currentAccountDisplayName + " " + folderName;
                     folderListView.closeMenu();
                     messageListModel.setFolderKey(folderId);
-                    window.popPage();
-                    window.addPage(folderList);
+                    folderList=null;
+                    window.switchBook(folderList);
                 }
             }
         }
     }
+
+    Image {
+        id: createFolderDivider
+        anchors.bottom: createFolderLabel.top
+        width: parent.width
+        source: "image://theme/email/divider_l"
+    }
+
+    Text {
+        id: createFolderLabel
+        height: 50
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        anchors.bottom: folderListMenu.bottom
+        text: createNewFolder
+        verticalAlignment: Text.AlignVCenter
+
+        font.bold: true
+        color:theme.fontColorNormal
+        font.pixelSize: theme.fontPixelSizeLarge
+        horizontalAlignment: Text.AlignLeft
+        elide: Text.ElideRight
+    }
+
+    Image {
+        id: createButton
+        anchors.top: createFolderLabel.top
+        anchors.bottom: createFolderLabel.bottom
+        anchors.right: parent.right
+        anchors.rightMargin: 5
+        source: "image://theme/email/btn_addperson"
+        fillMode: Image.PreserveAspectFit
+
+        MouseArea {
+            anchors.fill: parent
+
+            onClicked: {
+                createFolderDialog.show()
+            }
+        }
+
+        ModalDialog {
+            id: createFolderDialog
+
+            showAcceptButton: true
+            showCancelButton: true
+            acceptButtonText: qsTr("Create")
+            cancelButtonText: qsTr("Cancel")
+            title: createNewFolder
+
+            content: TextEntry {
+                id: folderNameEntry
+
+                anchors.centerIn: parent
+                //: Default custom e-mail folder name.
+                text: qsTr("Untitled Folder")
+            }
+
+            onAccepted: {
+                emailAgent.createFolder(folderNameEntry.text,
+                                        window.currentMailAccountId,
+                                        window.currentFolderId)
+            }
+        }
+    }
+
 }

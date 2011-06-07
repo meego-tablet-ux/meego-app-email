@@ -7,6 +7,7 @@
  */
 
 import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Rectangle {
     id: root
@@ -17,6 +18,10 @@ Rectangle {
     anchors.right: parent.right
     height: 80
     color: mousearea.pressed ? "lightgrey" : "white"
+
+    Theme {
+        id: theme
+    }
 
     signal clicked()
 

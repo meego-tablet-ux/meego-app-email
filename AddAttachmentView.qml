@@ -28,8 +28,20 @@ Item {
         attachments.append ({"uri": uri});
     }
 
+	function pickerMultipleSelected (uris) {
+		for(var i = 0; i < uris.length; i++) {
+			pickerSelected (uris[i]);
+		}
+	}
+
+
     function addPicker (pickerComponent) {
         var picker = pickerComponent.createObject (addAttachmentPageContainer);
+
+		if(pickerComponent == photoPicker) {
+			picker.multiSelection = true;
+			console.log('multiSelection is Enabled');
+		}
         picker.show ();
         picker.rejected.connect (pickerCancelled);
     }
@@ -113,6 +125,12 @@ Item {
                 console.log ("Photo: " + uri);
                 pickerSelected(uri);
             }
+
+			onMultiplePhotosSelected: {
+				console.log ("Multiple Photo Selected");
+				pickerMultipleSelected(uris);
+			}
+
         }
     }
 

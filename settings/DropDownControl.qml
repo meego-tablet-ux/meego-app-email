@@ -23,6 +23,10 @@ Column {
 
     signal triggered (int index)
 
+    Theme {
+        id: theme
+    }
+
     Text {
         id: label
         height: 30

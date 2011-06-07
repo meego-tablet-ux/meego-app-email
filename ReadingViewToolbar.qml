@@ -64,7 +64,17 @@ Item {
     function setMessageDetails (composer, messageID, replyToAll) {
         var dateline = qsTr ("On %1 %2 wrote:").arg(messageListModel.timeStamp (messageID)).arg(messageListModel.mailSender (messageID));
 
-        composer.quotedBody = "\n" + dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
+        if (window.mailHtmlBody != "")
+        {
+            window.composeInTextMode = false;
+            composer.setQuotedHtmlBody(dateline, messageListModel.htmlBody(messageID))
+        }
+        else
+        {
+            window.composeInTextMode = true;
+            composer.quotedBody = "\n" + dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
+        }
+
         attachmentsModel.clear();
         composer.attachmentsModel = attachmentsModel;
         toModel.clear();
@@ -93,6 +103,7 @@ Item {
         // FIXME: Also need to only add Re: if it isn't already in the subject
         // to prevent "Re: Re: Re: Re: " subjects.
         composer.subject = "Re: " + messageListModel.subject (messageID);  //i18n ok
+
     }
 
     BorderImage {
@@ -113,6 +124,7 @@ Item {
                 iconName: "mail-compose"
                 onClicked: {
                     var newPage;
+                    window.composeInTextMode = true;    // default to text mode.
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
                     attachmentsModel.clear();
@@ -139,6 +151,7 @@ Item {
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
                     setMessageDetails (newPage.composer, window.currentMessageIndex, false);
+
 		}
 	    }
         }
@@ -185,7 +198,18 @@ Item {
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
 
-                    newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
+                    if (window.mailHtmlBody != "")
+                    {
+                        window.composeInTextMode = false;
+                        newPage.composer.setQuotedHtmlBody(qsTr("-------- Forwarded Message --------"), window.mailHtmlBody)
+                    }
+                    else
+                    {
+                        window.composeInTextMode = true;
+                        newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + 
+                                                messageListModel.quotedBody (window.currentMessageIndex);
+                    }
+
                     newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
                     messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
                     newPage.composer.attachmentsModel = mailAttachmentModel;
