@@ -227,7 +227,7 @@ Item {
             height: 90
             width: parent.width
             visible: {
-                if (messageListView.count < folderServerCount || messageListModel.stillMoreMessages()))
+                if (messageListView.count < folderServerCount || messageListModel.stillMoreMessages())
                     return true;
                 else
                     return false;
