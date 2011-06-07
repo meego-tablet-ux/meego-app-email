@@ -15,6 +15,7 @@
 #include "emailmessage.h"
 #include "emailaccountsettingsmodel.h"
 #include "emailaccount.h"
+#include "htmlfield.h"
 
 void components::registerTypes(const char *uri)
 {
@@ -25,6 +26,7 @@ void components::registerTypes(const char *uri)
     qmlRegisterType<EmailMessage>(uri, 0, 0, "EmailMessage");
     qmlRegisterType<EmailAccountSettingsModel>(uri, 0, 0, "EmailAccountSettingsModel");
     qmlRegisterType<EmailAccount>(uri, 0, 0, "EmailAccount");
+    qmlRegisterType<HtmlField>(uri, 0, 0, "HtmlField");
 }
 
 Q_EXPORT_PLUGIN(components);

@@ -78,8 +78,8 @@ Item {
                 }
             }
 
-           /*  TODO:  need to add the download progress dialog back???
-           Connections {
+            /*  TODO:  need to add the download progress dialog back???
+            Connections {
                 target: emailAgent
                 onAttachmentDownloadStarted: {
                     downloadInProgress = true;
@@ -216,7 +216,6 @@ Item {
             onAttachmentSelected: {
                 container.uri = uri;
                 attachmentContextMenu.model = [openLabel, saveLabel];
-console.log ("===========>  " + mX + " - " + mY);
                 attachmentContextMenu.setPosition(mX, mY);
                 attachmentContextMenu.show();
             }
@@ -267,19 +266,63 @@ console.log ("===========>  " + mX + " - " + mY);
                 else if (contentY+height <= r.y+r.height)
                     contentY = r.y+r.height-height;
             }
-            WebView {
+
+            GestureArea {
+                id: webGestureArea
+                anchors.fill: parent
+
+                Pinch {
+                    id: webpinch
+                    property real startScale: 1.0;
+                    property real minScale: 0.5;
+                    property real maxScale: 5.0;
+
+                    onStarted: {
+
+                        flick.interactive = false;
+                        flick.centerPoint = window.mapToItem(flick, gesture.centerPoint.x, gesture.centerPoint.y);
+                        startScale = htmlViewer.contentsScale;
+                        htmlViewer.startZooming();
+                    }
+
+                    onUpdated: {
+                        var cw = flick.contentWidth;
+                        var ch = flick.contentHeight;
+
+                        if (window.mailHtmlBody == "") {
+                            var newPixelSize = edit.font.pixelSize * gesture.scaleFactor;
+                            edit.font.pixelSize = Math.max(theme.fontPixelSizeLarge, Math.min(newPixelSize, theme.fontPixelSizeLargest3));
+                        } else {
+                            htmlViewer.contentsScale = Math.max(minScale, Math.min(startScale * gesture.totalScaleFactor, maxScale));
+                        }
+
+                        flick.contentX = (flick.centerPoint.x + flick.contentX) / cw * flick.contentWidth - flick.centerPoint.x;
+                        flick.contentY = (flick.centerPoint.y + flick.contentY) / ch * flick.contentHeight - flick.centerPoint.y;
+
+                    }
+
+
+                    onFinished: {
+                        htmlViewer.stopZooming();
+                        flick.interactive = true;
+                    }
+                }
+            }
+
+            HtmlField {
                 id: htmlViewer
+                editable: false
                 html: window.mailHtmlBody
                 transformOrigin: Item.TopLeft
                 anchors.left: parent.left
                 anchors.topMargin: 2
-                preferredWidth: flick.width
-                preferredHeight: flick.height
-                settings.autoLoadImages: true
                 contentsScale: 1
                 focus: true
                 clip: true
-                opacity:  (window.mailHtmlBody == "") ? 0 : 1
+                visible: (window.mailHtmlBody != "")
+                onLinkClicked: {
+                    emailAgent.openBrowser(url);
+                }
             }
 
             TextEdit {
@@ -295,41 +338,9 @@ console.log ("===========>  " + mX + " - " + mY);
                 readOnly: true
                 onCursorRectangleChanged: flick.ensureVisible(cursorRectangle)
                 text: window.mailBody
-                opacity:  (window.mailHtmlBody == "") ? 1 : 0
+                visible:  (window.mailHtmlBody == "")
             }
 
-            GestureArea {
-                anchors.fill: parent
-
-                Pinch {
-                    onStarted: {
-                        flick.interactive = false;
-                        flick.centerPoint = window.mapToItem(flick, gesture.centerPoint.x, gesture.centerPoint.y);
-                    }
-
-                    onUpdated: {
-                        var cw = flick.contentWidth;
-                        var ch = flick.contentHeight;
-
-                        if (window.mailHtmlBody == "") {
-                            var newPixelSize = edit.font.pixelSize * gesture.scaleFactor;
-                            edit.font.pixelSize = Math.max(theme.fontPixelSizeLarge, Math.min(newPixelSize, theme.fontPixelSizeLargest3));
-                        } else {
-                            var newScale = htmlViewer.contentsScale * gesture.scaleFactor;
-                            var minScale = 1.0;
-                            var maxScale = 5.0;
-                            htmlViewer.contentsScale = Math.max(minScale, Math.min(newScale, maxScale));
-                        }
-
-                        flick.contentX = (flick.centerPoint.x + flick.contentX) / cw * flick.contentWidth - flick.centerPoint.x;
-                        flick.contentY = (flick.centerPoint.y + flick.contentY) / ch * flick.contentHeight - flick.centerPoint.y;
-                    }
-
-                    onFinished: {
-                        flick.interactive = true;
-                    }
-                }
-            }
         }
     }
 

@@ -7,6 +7,7 @@
  */
 
 import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Column {
     property alias title: titleText.text
@@ -14,6 +15,11 @@ Column {
     property alias children: column2.children
     anchors.left: parent.left
     anchors.right: parent.right
+
+    Theme {
+        id: theme
+    }
+
     Column {
         anchors.left: parent.left
         anchors.right: parent.right

@@ -17,15 +17,21 @@ Item {
     anchors.fill: parent
 
     property string chooseFolder: qsTr("Choose folder:")
-    property string createNewFolder: qsTr("Create new folder")
     property string renameFolder: qsTr("Rename folder")
     property string deleteFolder: qsTr("Delete folder")
     property string attachments: qsTr("Attachments")
     property bool gettingMoreMessages: false
     property bool inSelectMode: false
     property int numOfSelectedMessages: 0
+    property int folderServerCount: 0
 
     Component.onCompleted: { 
+        messageListModel.setAccountKey (window.currentMailAccountId);
+        if (window.currentFolderId)
+            messageListModel.setFolderKey (window.currentFolderId);
+
+        folderServerCount = messageListModel.totalCount();
+
         window.folderListViewClickCount = 0;
         gettingMoreMessages = false;
     }
@@ -56,7 +62,19 @@ Item {
     function setMessageDetails (composer, messageID, replyToAll) {
         var dateline = qsTr ("On %1 %2 wrote:").arg(messageListModel.timeStamp (messageID)).arg(messageListModel.mailSender (messageID));
 
-        composer.quotedBody = "\n" + dateline + "\n" +  messageListModel.quotedBody (messageID); //i18n ok
+        var htmlBodyText = messageListModel.htmlBody(window.currentMessageIndex);
+        if (htmlBodyText != "")
+        {
+            // set the composer to edit in html mode
+            window.composeInTextMode = false;
+            composer.setQuotedHtmlBody(dateline,htmlBodyText)
+        }
+        else
+        {
+            window.composeInTextMode = true;
+            composer.quotedBody = "\n" + dateline + "\n" + messageListModel.quotedBody (messageID); //i18n ok
+        }
+
         attachmentsModel.clear();
         composer.attachmentsModel = attachmentsModel;
         toModel.clear();
@@ -84,6 +102,11 @@ Item {
         // FIXME: Also need to only add Re: if it isn't already in the subject
         // to prevent "Re: Re: Re: Re: " subjects.
         composer.subject = "Re: " + messageListModel.subject (messageID);  //i18n ok
+    }
+
+    function isDraftFolder()
+    {
+        return folderListContainer.parent.pageTitle.indexOf( qsTr("Drafts") ) != -1 ;
     }
 
     ModalDialog {
@@ -126,8 +149,19 @@ Item {
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
 
-                    newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + 
-							messageListModel.quotedBody (window.currentMessageIndex);
+                    var htmlBodyText = messageListModel.htmlBody(window.currentMessageIndex);
+                    if (htmlBodyText != "")
+                    {
+                        window.composeInTextMode = false;
+                        newPage.composer.setQuotedHtmlBody(qsTr("-------- Forwarded Message --------"), htmlBodyText)
+
+                    }
+                    else
+                    {
+                        window.composeInTextMode = true;
+                        newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
+                    }
+
                     newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
                     window.mailAttachments = messageListModel.attachments(window.currentMessageIndex);
                     messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
@@ -166,7 +200,7 @@ Item {
         anchors.top: parent.top
         opacity: messageListView.count > 0 ? 0 : 1
         Text {
-            id:confirmMsg
+            id: noMessageText
             text: qsTr ("There are no messages in this folder.")
             anchors.centerIn: emptyMailboxView
             color:theme.fontColorNormal
@@ -193,13 +227,6 @@ Item {
             height: 90
             width: parent.width
             visible: {
-
-                messageListModel.setAccountKey (window.currentMailAccountId);
-                if (window.currentFolderId)
-                        messageListModel.setFolderKey (window.currentFolderId);
-
-                var folderServerCount = messageListModel.totalCount();
-
                 if (messageListView.count < folderServerCount)
                     return true;
                 else
@@ -418,7 +445,14 @@ Item {
                             mailAttachmentModel.init();
                             messageListModel.markMessageAsRead (messageId);
                             window.mailReadFlag = true;
-                            window.addPage(reader);
+
+                            if ( isDraftFolder() )
+                            {   window.editableDraft= true
+				window.addPage(composer);
+                            }
+                            else
+                                window.addPage(reader);
+
                         }
                         window.folderListViewClickCount = 0;
                         return;

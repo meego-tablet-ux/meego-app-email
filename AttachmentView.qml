@@ -13,7 +13,7 @@ Flickable {
     id: container
 
     property int topicHeight: 39
-    signal attachmentSelected(string uri, int mX, int mY);
+    signal attachmentSelected(string uri, int mX, int mY, int mIndex);
 
     //property alias currentTopic: attachmentListView.currentIndex
     property alias model: repeater.model
@@ -37,7 +37,7 @@ Flickable {
                 parent: container
 
                 onLongPress: {
-                    container.attachmentSelected (uri, mX, mY);
+                   container.attachmentSelected (uri, mX, mY, mIndex);
                 }
             }
         }

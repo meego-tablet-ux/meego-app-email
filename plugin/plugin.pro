@@ -2,7 +2,7 @@ include (../common.pri)
 TEMPLATE = lib
 TARGET = Email
 
-QT += declarative
+QT += declarative webkit
 CONFIG += qt \
     plugin \
     link_pkgconfig \
@@ -10,7 +10,7 @@ CONFIG += qt \
 
 PKGCONFIG += qmfmessageserver\
     qmfclient \
-    mlite	\
+    mlite       \
     libedataserver-1.2
 
 INCLUDEPATH += ../lib
@@ -22,8 +22,8 @@ OBJECTS_DIR = .obj
 MOC_DIR = .moc
 
 #Input
-SOURCES += components.cpp emailagent.cpp emailmessage.cpp emailaccountsettingsmodel.cpp emailaccount.cpp
-HEADERS += components.h  emailagent.h emailmessage.h emailaccountsettingsmodel.h emailaccount.h
+SOURCES += components.cpp emailagent.cpp emailmessage.cpp emailaccountsettingsmodel.cpp emailaccount.cpp htmlfield.cpp
+HEADERS += components.h  emailagent.h emailmessage.h emailaccountsettingsmodel.h emailaccount.h htmlfield.h
 
 qmldir.files += $$TARGET
 qmldir.path += $$[QT_INSTALL_IMPORTS]/MeeGo/App

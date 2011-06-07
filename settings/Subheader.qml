@@ -7,12 +7,17 @@
  */
 
 import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Item {
     property alias text: label.text
     anchors.left: parent.left
     anchors.right: parent.right
     height: 60
+
+    Theme {
+        id: theme
+    }
 
     Text {
         id: label

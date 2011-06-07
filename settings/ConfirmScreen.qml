@@ -13,6 +13,10 @@ import MeeGo.Settings 0.1
 Item {
     anchors.fill: parent
 
+    Theme {
+        id: theme
+    }
+
     Flickable {
         clip: true
         anchors.fill: parent

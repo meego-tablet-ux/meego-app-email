@@ -15,6 +15,10 @@ Expandobox {
     // DropDown onSelectionChanged signal
     property int listIndex: -1
 
+    Theme {
+        id: theme
+    }
+
     Component.onCompleted: { listIndex = index }
     barContent: Component {
         Item {
