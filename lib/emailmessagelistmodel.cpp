@@ -1435,10 +1435,13 @@ QVariant EmailMessageListModel::recipients (int idx)
                 QStringList email = str.split ("<", QString::KeepEmptyParts);
                 recipients << email[1];
         }
-	mto = info.cc.split (">,");
-        foreach (QString str, mto) {
-                QStringList email = str.split ("<", QString::KeepEmptyParts);
-                recipients << email[1];
+        if (info.cc.size() > 0)
+        {
+		mto = info.cc.split (">,");
+        	foreach (QString str, mto) {
+                	QStringList email = str.split ("<", QString::KeepEmptyParts);
+                    	recipients << email[1];
+		}
         }
 
     return recipients;

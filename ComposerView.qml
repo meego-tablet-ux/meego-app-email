@@ -100,12 +100,21 @@ Item {
 
                 message.setSubject (composer.subject);
                 message.setPriority (composer.priority);
-                if (window.composeInTextMode)
-                    message.setBody (composer.textBody, true);
-                else
-                    message.setBody (composer.htmlBody, false);
 
-                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+                //Todo:  need to ask Srinivasa on how to send email in html mode.
+                var body = "";
+                if (window.composeInTextMode)
+                {
+                    body = composer.textBody;
+                    message.setBody (composer.textBody, true);
+                }
+                else
+                {
+                    body = composer.htmlBody;
+                    message.setBody (composer.htmlBody, false);
+                }
+
+                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, att, composer.priority);
                 window.popPage ();
             }
         }
@@ -165,13 +174,20 @@ Item {
 
                 message.setSubject (composer.subject);
                 message.setPriority (composer.priority);
+                // Todo: Need to add code to save draft in html
+                var body = "";
                 if (window.composeInTextMode)
+                {
+                    body = composer.textBody;
                     message.setBody (composer.textBody, true);
+                }
                 else
+                {
+                    body = composer.htmlBody;
                     message.setBody (composer.htmlBody, false);
+                }
 
-
-                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, composer.body, att, composer.priority);
+                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, att, composer.priority);
                 window.popPage ();
             }
         }

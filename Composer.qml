@@ -36,7 +36,6 @@ Item {
     function setQuotedHtmlBody(header,quotedHtml) {
         var newBody;
         newBody = "<DIV style=\"background-color:#ffffff\"><DIV CONTENTEDITABLE=\"true\"></DIV>" + header + "</DIV>";
-        newBody += "<p>" + qsTr("-------- Forwarded Message --------") + "</p>\n";
         newBody += "<blockquote style=\"margin: 0pt 0pt 0pt 0.8ex; border-left: 1px solid rgb(204, 204, 204); padding-left: 1ex;\">\n";
         newBody += quotedHtml + "\n</blockquote>\n";
         quotedBody = newBody;
