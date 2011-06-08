@@ -229,7 +229,7 @@ Item {
             }
 
             onAccepted: {
-                emailAgent.createFolder(folderNameEntry.text,
+                mailFolderListModel.createFolder(folderNameEntry.text,
                                         window.currentMailAccountId,
                                         window.currentFolderId)
             }

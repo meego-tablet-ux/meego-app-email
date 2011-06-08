@@ -103,18 +103,19 @@ Item {
 
                 //Todo:  need to ask Srinivasa on how to send email in html mode.
                 var body = "";
+
                 if (window.composeInTextMode)
                 {
                     body = composer.textBody;
                     message.setBody (composer.textBody, true);
+                    mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, false, att, composer.priority);
                 }
                 else
                 {
                     body = composer.htmlBody;
                     message.setBody (composer.htmlBody, false);
+                    mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, true, att, composer.priority);
                 }
-
-                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, att, composer.priority);
                 window.popPage ();
             }
         }
@@ -141,7 +142,7 @@ Item {
                 composer.completeEmailAddresses ();
 
                 //if this is a draft e-mail, the old draft needs to be deleted
-                emailAgent.deleteMessage (window.mailId)
+                messageListModel.deleteMessage (window.mailId)
 
                 message = messageComponent.createObject (composer);
                 message.setFrom (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail));
@@ -180,14 +181,14 @@ Item {
                 {
                     body = composer.textBody;
                     message.setBody (composer.textBody, true);
+                    mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, false, att, composer.priority);
                 }
                 else
                 {
                     body = composer.htmlBody;
                     message.setBody (composer.htmlBody, false);
+                    mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, true, att, composer.priority);
                 }
-
-                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, att, composer.priority);
                 window.popPage ();
             }
         }

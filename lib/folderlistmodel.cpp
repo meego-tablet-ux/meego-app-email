@@ -176,6 +176,7 @@ void FolderListModel::setAccountKey(QVariant id)
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
+		m_folderlist.removeLast();
 	g_print ("Got folder list....\n");
 
 	}
@@ -448,7 +449,7 @@ best_charset (const char *buf, int buflen,
 
 #define ATTACHMENT_QUERY "standard::*,preview::*,thumbnail::*"
 
-CamelMimeMessage * createMessage (const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
+CamelMimeMessage * createMessage (const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	GConfClient *client;
@@ -539,7 +540,7 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 	stream = camel_stream_mem_new_with_buffer (body.toLocal8Bit().constData(), body.length());
 
-	type = camel_content_type_new ("text", "plain");
+	type = camel_content_type_new ("text", html ? "html" : "plain");
 	if ((charset = best_charset (body.toLocal8Bit().constData(), body.length(), /*p->charset, */ &plain_encoding))) {
 		camel_content_type_set_param (type, "charset", charset);
 		iconv_charset = camel_iconv_charset_name (charset);
@@ -830,14 +831,14 @@ void createInfo (CamelMessageInfoVariant &info, const QString &from, const QStri
 	return;
 }
 
-int FolderListModel::saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
+int FolderListModel::saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	CamelStream *stream;
         GByteArray *array;
 	CamelMessageInfoVariant info;
 
-	msg = createMessage (from, to, cc, bcc, subject, body, attachment_uris, priority);
+	msg = createMessage (from, to, cc, bcc, subject, body, html, attachment_uris, priority);
 	stream = camel_stream_mem_new ();
         camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
         array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
@@ -854,14 +855,14 @@ int FolderListModel::saveDraft(const QString &from, const QStringList &to, const
 	
 }
 
-int FolderListModel::sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority)
+int FolderListModel::sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	CamelStream *stream;
         GByteArray *array;
 	CamelMessageInfoVariant info;
 
-	msg = createMessage (from, to, cc, bcc, subject, body, attachment_uris, priority);
+	msg = createMessage (from, to, cc, bcc, subject, body, html, attachment_uris, priority);
 	stream = camel_stream_mem_new ();
         camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
         array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
@@ -878,6 +879,32 @@ int FolderListModel::sendMessage(const QString &from, const QStringList &to, con
 	return 0;
 } 
 
+void FolderListModel::createFolder(const QString &name, QVariant parentFolderId)
+{
+	QDBusPendingReply<CamelFolderInfoArrayVariant> reply;
+	CamelFolderInfoArrayVariant newlist;
+
+	//See what to do with parentFolderId, do we have to create under Parent?
+	reply = m_store_proxy->createFolder ("", name);
+	reply.waitForFinished();
+	newlist = reply.value ();
+	newlist.removeLast();
+
+	/* Add the new folder to the folder list. */
+    	beginInsertRows(QModelIndex(), rowCount(), rowCount()+newlist.length()-1);
+	m_folderlist.append (newlist);
+    	endInsertRows();
+}
+
+void FolderListModel::deleteFolder(QVariant folderId)
+{
+
+
+}
+
+void FolderListModel::renameFolder(QVariant folderId, const QString &name)
+{
+}
 
 
 

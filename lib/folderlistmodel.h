@@ -54,9 +54,13 @@ public:
     Q_INVOKABLE QVariant folderServerCount(QVariant vFolderId);
     Q_INVOKABLE QVariant inboxFolderId ();
     Q_INVOKABLE QVariant inboxFolderName();
+    Q_INVOKABLE void createFolder(const QString &name, QVariant parentFolderId);
+    Q_INVOKABLE void deleteFolder(QVariant folderId);
+    Q_INVOKABLE void renameFolder(QVariant folderId, const QString &name);
+
     Q_INVOKABLE int totalNumberOfFolders();
-    Q_INVOKABLE int saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority);
-    Q_INVOKABLE int sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QStringList &attachment_uris, int priority); 
+    Q_INVOKABLE int saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority);
+    Q_INVOKABLE int sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority); 
 
 
 
