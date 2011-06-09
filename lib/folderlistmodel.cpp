@@ -36,6 +36,7 @@
 #include <libedataserver/e-list.h>
 #include <gconf/gconf-client.h>
 #include <glib.h>
+#include <errno.h>
 
 FolderListModel::FolderListModel(QObject *parent) :
     QAbstractListModel(parent)
@@ -397,7 +398,7 @@ best_encoding (const char *buf, int buflen, const gchar *charset)
 			if ((guchar) *ch > 127)
 				count++;
 		}
-	} while (status == (gsize) -1);// && errno == E2BIG);
+	} while (status == (gsize) -1 && errno == E2BIG);
 	camel_iconv_close (cd);
 
 	if (status == (gsize) -1 || status > 0)
@@ -536,15 +537,53 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-MSMail-Priority", "Low");
 	} else
 		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-MSMail-Priority", "Normal");
-		
 
 	stream = camel_stream_mem_new_with_buffer (body.toLocal8Bit().constData(), body.length());
-
 	type = camel_content_type_new ("text", html ? "html" : "plain");
-	if ((charset = best_charset (body.toLocal8Bit().constData(), body.length(), /*p->charset, */ &plain_encoding))) {
-		camel_content_type_set_param (type, "charset", charset);
-		iconv_charset = camel_iconv_charset_name (charset);
-		g_free (charset);
+
+	if (html) {
+		/* possible that we have non-utf8. lets filter that out first */
+		static char *gcharset = NULL;
+		CamelStream *filter_stream = NULL;
+		CamelStream *newstream;
+		CamelMimeFilter *charenc = NULL;
+
+		if (!gcharset)  {	
+			GConfClient *gconf = gconf_client_get_default ();
+			gcharset = gconf_client_get_string (gconf, "/apps/evolution/mail/display/charset",NULL);
+			if (!gcharset || !*gcharset) {
+				gcharset = gconf_client_get_string (gconf, "/apps/evolution/mail/composer/charset",NULL);
+				if (!gcharset || !*gcharset) {
+					gcharset = g_strdup ("us-ascii");
+				}
+			}
+
+			g_object_unref (gconf);
+		}
+		newstream = camel_stream_mem_new ();
+		filter_stream = camel_stream_filter_new (stream);
+		charenc = camel_mime_filter_charset_new (gcharset, "UTF-8");
+		camel_stream_filter_add (CAMEL_STREAM_FILTER (filter_stream), charenc);
+		g_object_unref (charenc);
+		g_object_unref (stream);
+		camel_stream_write_to_stream (filter_stream, newstream, NULL);
+		
+		stream = newstream;	
+        	GByteArray *array;
+	        array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
+		array->data[array->len-1] = 0;
+
+		if ((charset = best_charset ((const char *)array->data, array->len, /*p->charset, */ &plain_encoding))) {
+			camel_content_type_set_param (type, "charset", charset);
+			iconv_charset = camel_iconv_charset_name (charset);
+			g_free (charset);
+		}
+	} else {
+		if ((charset = best_charset (body.toLocal8Bit().constData(), body.length(), /*p->charset, */ &plain_encoding))) {
+			camel_content_type_set_param (type, "charset", charset);
+			iconv_charset = camel_iconv_charset_name (charset);
+			g_free (charset);
+		}
 	}
 
 	/* convert the stream to the appropriate charset */
