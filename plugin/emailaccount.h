@@ -2,17 +2,18 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
 #ifndef EMAILACCOUNT_H
 #define EMAILACCOUNT_H
 
-#include <QMailAccount>
-#include <QMailServiceConfiguration>
-#include <QMailServiceAction>
+#include <libedataserver/e-account.h>
 #include <mgconfitem.h>
+#include "e-gdbus-emailsession-proxy.h"
+#include <gconf/gconf-client.h>
+#include <libedataserver/e-account-list.h>
 
 class EmailAccount : public QObject {
     Q_OBJECT
@@ -49,7 +50,7 @@ class EmailAccount : public QObject {
 
 public:
     EmailAccount();
-    EmailAccount(const QMailAccount &other);
+    EmailAccount(EAccount *other);
     ~EmailAccount();
 
     Q_INVOKABLE bool save();
@@ -118,16 +119,25 @@ signals:
 
 private slots:
     void testConfiguration();
-    void activityChanged(QMailServiceAction::Activity activity);
 
 private:
-    QMailAccount *mAccount;
-    QMailAccountConfiguration *mAccountConfig;
-    QMailServiceConfiguration *mRecvCfg;
-    QMailServiceConfiguration *mSendCfg;
-    QMailRetrievalAction *mRetrievalAction;
-    QMailTransmitAction *mTransmitAction;
-    QString mRecvType;
+    EAccount *mAccount;
+    OrgGnomeEvolutionDataserverMailSessionInterface *session;
+    EAccountList *mAccountList;
+    int mPreset;
+    QString mDescription;
+    int mRecvType;
+    QString mRecvServer;
+    int mRecvPort;
+    int mRecvSecurity;
+    QString mRecvUsername;
+    QString mRecvPassword;
+    QString mSendServer;
+    int mSendPort;
+    int mSendSecurity;
+    int mSendAuth;
+    QString mSendUsername;
+    QString mSendPassword;
     QString mPassword;
     QString mErrorMessage;
     int mErrorCode;
@@ -138,15 +148,17 @@ private:
 
     // workaround to QMF hiding its base64 password encoder in
     // protected methods
-    class Base64 : public QMailServiceConfiguration {
+    /*class Base64 : public QMailServiceConfiguration {
     public:
         static QString decode(const QString &value)
             { return decodeValue(value); }
         static QString encode(const QString &value)
             { return encodeValue(value); }
-    };
+    };*/
 };
 
 
 #endif // EMAILACCOUNT_H
+
+
 

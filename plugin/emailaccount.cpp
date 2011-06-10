@@ -2,149 +2,177 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-#include <QMailStore>
-#include <QMailMessage>
 #include <QtNetwork/QNetworkConfigurationManager>
 #include <QTimer>
 
 #include "emailaccount.h"
 
-EmailAccount::EmailAccount()
-    : mAccount(new QMailAccount()),
-    mAccountConfig(new QMailAccountConfiguration()),
-    mRecvCfg(0),
-    mSendCfg(0),
-    mRetrievalAction(new QMailRetrievalAction(this)),
-    mTransmitAction(new QMailTransmitAction(this)),
-    mErrorCode(0),
-    mUpdateIntervalConf(new MGConfItem("/apps/meego-app-email/updateinterval")),
-    mSignatureConf(new MGConfItem("/apps/meego-app-email/signature"))
-{ 
-    mAccount->setMessageType(QMailMessage::Email);
-    init();
-}
+#include <gconf/gconf-client.h>
 
-EmailAccount::EmailAccount(const QMailAccount &other)
-    : mAccount(new QMailAccount(other)),
-    mAccountConfig(new QMailAccountConfiguration()),
-    mRecvCfg(0),
-    mSendCfg(0),
-    mRetrievalAction(new QMailRetrievalAction(this)),
-    mTransmitAction(new QMailTransmitAction(this)),
+#define CAMEL_COMPILATION 1
+#include <camel/camel-url.h>
+
+#include <libedataserver/e-account-list.h>
+
+#include "e-gdbus-emailsession-proxy.h"
+#include "e-gdbus-emailstore-proxy.h"
+
+EmailAccount::EmailAccount()
+:   mAccount(e_account_new()),
     mErrorCode(0),
     mUpdateIntervalConf(new MGConfItem("/apps/meego-app-email/updateinterval")),
     mSignatureConf(new MGConfItem("/apps/meego-app-email/signature"))
 {
-    *mAccountConfig = QMailStore::instance()->accountConfiguration(mAccount->id());
+    init();
+}
+
+EmailAccount::EmailAccount(EAccount *other)
+:   mAccount(e_account_new()),
+    mErrorCode(0),
+    mUpdateIntervalConf(new MGConfItem("/apps/meego-app-email/updateinterval")),
+    mSignatureConf(new MGConfItem("/apps/meego-app-email/signature"))
+{
+    e_account_import(mAccount, other);
     init();
 }
 
 EmailAccount::~EmailAccount()
 {
-    delete mRecvCfg;
-    delete mSendCfg;
-    delete mAccount;
+    g_object_unref(mAccount);
+    g_object_unref(mAccountList);
+    delete session;
 }
 
 void EmailAccount::init()
 {
-    QStringList services = mAccountConfig->services();
-    if (!services.contains("qmfstoragemanager")) {
-        // add qmfstoragemanager configuration
-        mAccountConfig->addServiceConfiguration("qmfstoragemanager");
-        QMailServiceConfiguration storageCfg(mAccountConfig, "qmfstoragemanager");
-        storageCfg.setType(QMailServiceConfiguration::Storage);
-        storageCfg.setVersion(101);
-        storageCfg.setValue("basePath", "");
-    }
-    if (!services.contains("smtp")) {
-        // add SMTP configuration
-        mAccountConfig->addServiceConfiguration("smtp");
-    }
-    if (services.contains("imap4")) {
-        mRecvType = "imap4";
-    } else if (services.contains("pop3")) {
-        mRecvType = "pop3";
-    } else {
-        // add POP configuration
-        mRecvType = "pop3";
-        mAccountConfig->addServiceConfiguration(mRecvType);
-    }
-    mSendCfg = new QMailServiceConfiguration(mAccountConfig, "smtp");
-    mRecvCfg = new QMailServiceConfiguration(mAccountConfig, mRecvType);
-    mSendCfg->setType(QMailServiceConfiguration::Sink);
-    mSendCfg->setVersion(100);
-    mRecvCfg->setType(QMailServiceConfiguration::Source);
-    mRecvCfg->setVersion(100);
+    mPreset = 0;
+    mRecvType = 0;
+    mRecvServer.clear();
+    mRecvPort = 0;
+    mRecvSecurity = 0;
+    mRecvUsername.clear();
+    mRecvPassword.clear();
+    mSendServer.clear();
+    mSendPort = 0;
+    mSendSecurity = 0;
+    mSendAuth = 0;
+    mSendUsername.clear();
+    mSendPassword.clear();
+    mPassword.clear();
 
-    /*
-    serviceCode["IMAP"] = "imap4";
-    serviceCode["POP"] = "pop3";
+    gchar *uid = mAccount->uid;
+    g_object_unref(mAccount);
 
-    encryptionCode["None"] = "0";
-    encryptionCode["SSL"] = "1";
-    encryptionCode["TLS"] = "2";
-
-    authenticationCode["None"] = "0";
-    authenticationCode["Login"] = "1";
-    authenticationCode["Plain"] = "2";
-    authenticationCode["Cram MD5"] = "3";
-    */
-
-    connect(mRetrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)), this, SLOT(activityChanged(QMailServiceAction::Activity)));
-    connect(mTransmitAction, SIGNAL(activityChanged(QMailServiceAction::Activity)), this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    mAccount = e_account_new();
+    mAccount->uid = uid;
 }
 
 void EmailAccount::clear()
 {
-    delete mAccount;
-    delete mAccountConfig;
-    mAccount = new QMailAccount();
-    mAccountConfig = new QMailAccountConfiguration();
-    mAccount->setMessageType(QMailMessage::Email);
-    mPassword.clear();
     init();
 }
 
 bool EmailAccount::save()
 {
-    bool result;
-    QString signature = mSignatureConf->value().toString();
-    mAccount->setSignature(signature);
-    mAccount->setStatus(QMailAccount::AppendSignature, !signature.isEmpty());
-    mRecvCfg->setValue("checkInterval", QString("%1").arg(mUpdateIntervalConf->value().toInt()));
-    mAccount->setStatus(QMailAccount::UserEditable, true);
-    mAccount->setStatus(QMailAccount::UserRemovable, true);
-    mAccount->setStatus(QMailAccount::MessageSource, true);
-    mAccount->setStatus(QMailAccount::CanRetrieve, true);
-    mAccount->setStatus(QMailAccount::MessageSink, true);
-    mAccount->setStatus(QMailAccount::CanTransmit, true);
-    mAccount->setStatus(QMailAccount::Enabled, true);
-    mAccount->setStatus(QMailAccount::CanCreateFolders, true);
-    mAccount->setFromAddress(QMailAddress(address()));
-    if (mAccount->id().isValid()) {
-        result = QMailStore::instance()->updateAccount(mAccount, mAccountConfig);
-    } else {
-        if (preset() == noPreset) {
-            // set description to server for custom email accounts
-            setDescription(server());
-        }
-        result = QMailStore::instance()->addAccount(mAccount, mAccountConfig);
+    session = new OrgGnomeEvolutionDataserverMailSessionInterface("org.gnome.evolution.dataserver.Mail",
+                                                                  "/org/gnome/evolution/dataserver/Mail/Session",
+                                                                  QDBusConnection::sessionBus(), this);
+
+    e_account_set_string(mAccount, E_ACCOUNT_NAME, QString(name() + " - " + description()).toUtf8());
+    e_account_set_string(mAccount, E_ACCOUNT_ID_SIGNATURE, mSignatureConf->value().toString().toUtf8());
+    e_account_set_bool(mAccount, E_ACCOUNT_SOURCE_AUTO_CHECK, true);
+    e_account_set_int(mAccount, E_ACCOUNT_SOURCE_AUTO_CHECK_TIME, mUpdateIntervalConf->value().toInt());
+
+    QString recvSecurStr;
+    switch (recvSecurity().toInt()) {
+        case 0: recvSecurStr = "never"; break;
+        case 1: recvSecurStr = "always"; break;
+        case 2: recvSecurStr = "whenever-possible";
     }
-    return result;
+
+    QString sourceUrl;
+    if (recvType() == "0") {
+        e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Drafts");
+        e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Sent");
+
+        sourceUrl = "pop://" + recvUsername().replace("@", "%40") + "@" + recvServer() + ":" + recvPort() + "/;" +
+                    "keep_on_server=true;mobile;disable_autofetch;" +
+                    "command=ssh%20-C%20-l%20%25u%20%25h%20exec%20/usr/sbin/dovecot%20--exec-mail%20imap;";
+    } else if (recvType() == "1") {
+        // FIXME remove if e_account_list_change() in testConfiguration() works
+        e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Drafts");
+        e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Sent");
+
+        sourceUrl = "imapx://" + recvUsername().replace("@", "%40") + "@" + recvServer() + ":" + recvPort() + "/;" +
+                    "mobile;fetch-order=descending;" +
+                    "command=ssh%20-C%20-l%20%25u%20%25h%20exec%20/usr/sbin/dovecot%20--exec-mail%20imap;";
+    }
+    sourceUrl.append("use_ssl=" + recvSecurStr + ";use_lsub;cachedconn=5;check_all=1;use_idle;use_qresync;sync_offline=1");
+    e_account_set_string(mAccount, E_ACCOUNT_SOURCE_URL, sourceUrl.toAscii());
+    e_account_set_string(mAccount, E_ACCOUNT_SOURCE_SAVE_PASSWD, sendPassword().toUtf8());
+
+    CamelURL *sourceCamelUrl = camel_url_new(sourceUrl.toAscii(), NULL);
+    char *sourceKey = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+ 
+    session->addPassword(sourceKey, recvPassword(), TRUE);
+    camel_url_free(sourceCamelUrl);
+    g_free(sourceKey);
+
+    QString sendSecurStr;
+    switch (sendSecurity().toInt()) {
+        case 0: sendSecurStr = "never"; break;
+        case 1: sendSecurStr = "always"; break;
+        case 2: sendSecurStr = "whenever-possible";
+    }
+    QString transportUrl = "smtp://" + sendUsername().replace("@", "%40") + ";";
+    if (sendAuth() != 0) {
+        QString authType;
+        switch (sendAuth().toInt()) {
+            case 1: authType = "LOGIN"; break;
+            case 2: authType = "PLAIN"; break;
+            case 3: authType = "CRAM-MD5";
+        }
+        transportUrl.append("auth=" + authType + "@" + sendServer() + ":" + sendPort() + "/;");
+    }
+    transportUrl.append("use_ssl=" + sendSecurStr);
+    e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_URL, transportUrl.toAscii());
+    e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_SAVE_PASSWD, recvPassword().toUtf8());
+
+    CamelURL *transportCamelUrl = camel_url_new(transportUrl.toAscii(), NULL);
+    char *transportKey = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+    session->addPassword(transportKey, sendPassword(), TRUE);
+    camel_url_free(transportCamelUrl);
+    g_free(transportKey);
+
+    setEnabled(true);
+
+    GConfClient *client = gconf_client_get_default();
+    mAccountList = e_account_list_new(client);
+    g_object_unref(client);
+
+    const EAccount *acc1 = e_account_list_find(mAccountList, E_ACCOUNT_FIND_NAME, QString(name() + " - " + description()).toUtf8());
+    const EAccount *acc2 = e_account_list_find(mAccountList, E_ACCOUNT_FIND_ID_NAME, name().toUtf8());
+    const EAccount *acc3 = e_account_list_find(mAccountList, E_ACCOUNT_FIND_ID_ADDRESS, address().toAscii());
+
+    if (acc1 && acc2 && acc3 && acc1 == acc2 && acc1 == acc3)
+        e_account_list_change(mAccountList, mAccount);
+    else
+        e_account_list_add(mAccountList, mAccount);
+    e_account_list_save(mAccountList);
+
+    return true;
 }
 
 bool EmailAccount::remove()
 {
     bool result = false;
-    if (mAccount->id().isValid()) {
-        result = QMailStore::instance()->removeAccount(mAccount->id());
-        mAccount->setId(QMailAccountId());
-    }
+
+    e_account_list_remove(mAccountList, mAccount);
+
     return result;
 }
 
@@ -161,53 +189,67 @@ void EmailAccount::test()
 
 void EmailAccount::testConfiguration()
 {
-    if (mAccount->id().isValid()) {
-        if (mAccount->status() & QMailAccount::MessageSource) {
-            mRetrievalAction->retrieveFolderList(mAccount->id(), QMailFolderId(), true);
-        } else if (mAccount->status() & QMailAccount::MessageSink) {
-            mTransmitAction->transmitMessages(mAccount->id());
-        } else {
-            qWarning() << "account has no message sources or sinks";
-        }
-    } else {
+    QString sourceUrl = e_account_get_string(mAccount, E_ACCOUNT_SOURCE_URL);
+    if (sourceUrl.isEmpty()) {
+        emit testFailed();
+        return;
     }
-}
 
-void EmailAccount::activityChanged(QMailServiceAction::Activity activity)
-{
-    if (sender() == static_cast<QObject*>(mRetrievalAction)) {
-        const QMailServiceAction::Status status(mRetrievalAction->status());
-        if (activity == QMailServiceAction::Successful) {
-            if (mAccount->status() & QMailAccount::MessageSink) {
-                mTransmitAction->transmitMessages(mAccount->id());
-            } else {
-                emit testSucceeded();
-            }
-        } else if (activity == QMailServiceAction::Failed) {
-            mErrorMessage = status.text;
-            mErrorCode = status.errorCode;
-            if (status.errorCode == 1040) {
-                // ignore error 1040/"Account updated by other process"
-                mTransmitAction->transmitMessages(mAccount->id());
-            } else {
-                emit testFailed();
-            }
-        }
-    } else if (sender() == static_cast<QObject*>(mTransmitAction)) {
-        const QMailServiceAction::Status status(mTransmitAction->status());
-        if (activity == QMailServiceAction::Successful) {
-            emit testSucceeded();
-        } else if (activity == QMailServiceAction::Failed) {
-            mErrorMessage = status.text;
-            mErrorCode = status.errorCode;
-            if (status.errorCode == 1040) {
-                // ignore error 1040/"Account updated by other process"
-                emit testSucceeded();
-            } else {
-                emit testFailed();
-            }
-        }
+    if (sourceUrl.startsWith("pop:")) {
+        emit testSucceeded();
+        return;
     }
+
+    QDBusPendingReply<QDBusObjectPath> storeReply = session->getStore(sourceUrl);
+    storeReply.waitForFinished();
+    QDBusObjectPath store_id = storeReply.value();
+
+    OrgGnomeEvolutionDataserverMailStoreInterface *proxy;
+    proxy = new OrgGnomeEvolutionDataserverMailStoreInterface(QString("org.gnome.evolution.dataserver.Mail"),
+                                                              store_id.path(), QDBusConnection::sessionBus(), this);
+    QDBusPendingReply<CamelFolderInfoArrayVariant> infoArrayReply;
+    infoArrayReply = proxy->getFolderInfo("",
+                                          CAMEL_STORE_FOLDER_INFO_RECURSIVE |
+                                          CAMEL_STORE_FOLDER_INFO_FAST |
+                                          CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+    infoArrayReply.waitForFinished();
+    CamelFolderInfoArrayVariant infoArray = infoArrayReply.value();
+
+    if (infoArray.length() == 0) {
+        emit testFailed();
+        return;
+    }
+
+    delete proxy;
+
+    QString draftUri;
+    QString sentUri;
+    foreach (CamelFolderInfoVariant info, infoArray) {
+        if (info.folder_name.contains("draft", Qt::CaseInsensitive))
+            draftUri = info.uri;
+        if (info.folder_name.contains("sent", Qt::CaseInsensitive))
+            sentUri = info.uri;
+    }
+
+    if (!draftUri.isEmpty()) {
+        e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, draftUri.toAscii());
+    } else {
+        e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Drafts");
+    }	
+
+
+    if (!sentUri.isEmpty()) {
+        e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, sentUri.toAscii());
+    } else {
+        e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Sent");
+    }
+
+
+    e_account_list_change(mAccountList, mAccount);
+    e_account_list_save(mAccountList);
+    qDebug() << e_account_to_xml(mAccount);
+	
+    emit testSucceeded();
 }
 
 void EmailAccount::applyPreset()
@@ -229,12 +271,12 @@ void EmailAccount::applyPreset()
             break;
         case gmailPreset:
             setRecvType("1");                    // imap
-            setRecvServer("imap.gmail.com");
+            setRecvServer("imap.googlemail.com");
             setRecvPort("993");
             setRecvSecurity("1");                // SSL
             setRecvUsername(address());          // full email address
             setRecvPassword(password());
-            setSendServer("smtp.gmail.com");
+            setSendServer("smtp.googlemail.com");
             setSendPort("465");
             setSendSecurity("1");                // SSL
             setSendAuth("1");                    // Login
@@ -302,53 +344,51 @@ void EmailAccount::applyPreset()
 
 QString EmailAccount::description() const
 {
-    return mAccount->name();
+    return mDescription;
 }
 
 void EmailAccount::setDescription(QString val)
 {
-    mAccount->setName(val);
+    mDescription = val;
 }
 
 bool EmailAccount::enabled() const
 {
-    return mAccount->status() & QMailAccount::Enabled;
+    return mAccount->enabled;
 }
 
 void EmailAccount::setEnabled(bool val)
 {
-    mAccount->setStatus(QMailAccount::Enabled, val);
+    mAccount->enabled = val;
 }
 
 QString EmailAccount::name() const
 {
-    return mSendCfg->value("username");
+    return e_account_get_string(mAccount, E_ACCOUNT_ID_NAME);
 }
 
 void EmailAccount::setName(QString val)
 {
-    mSendCfg->setValue("username", val);
+    e_account_set_string(mAccount, E_ACCOUNT_ID_NAME, val.toUtf8());
 }
 
 QString EmailAccount::address() const
 {
-    return mSendCfg->value("address");
+    return e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS);
 }
 
 void EmailAccount::setAddress(QString val)
 {
-    mSendCfg->setValue("address", val);
+    e_account_set_string(mAccount, E_ACCOUNT_ID_ADDRESS, val.toAscii());
 }
 
 QString EmailAccount::username() const
 {
-    // read-only property, returns username part of email address
     return address().remove(QRegExp("@.*$"));
 }
 
 QString EmailAccount::server() const
 {
-    // read-only property, returns server part of email address
     return address().remove(QRegExp("^.*@"));
 }
 
@@ -364,168 +404,136 @@ void EmailAccount::setPassword(QString val)
 
 QString EmailAccount::recvType() const
 {
-    if (mRecvType == "pop3")
-        return "0";
-    else if (mRecvType == "imap4")
-        return "1";
-    else
-        return QString();
+    // 0 == pop3, 1 == imap4
+    return QString::number(mRecvType);
 }
 
 void EmailAccount::setRecvType(QString val)
 {
-    // prevent bug where recv type gets reset
-    // when loading the first time
-    QString newRecvType;
-    if (val == "0")
-        newRecvType = "pop3";
-    else if (val == "1")
-        newRecvType = "imap4";
+    int newRecvType = val.toInt();
     if (newRecvType != mRecvType) {
-        mAccountConfig->removeServiceConfiguration(mRecvType);
-        mAccountConfig->addServiceConfiguration(newRecvType);
         mRecvType = newRecvType;
-        delete mRecvCfg;
-        mRecvCfg = new QMailServiceConfiguration(mAccountConfig, mRecvType);
-        mRecvCfg->setType(QMailServiceConfiguration::Source);
-        mRecvCfg->setVersion(100);
-        /*
-        if (newRecvType == "imap4") {
-            mRecvCfg->setValue("authentication", "0");
-            mRecvCfg->setValue("autoDownload", "0");
-            mRecvCfg->setValue("baseFolder", "");
-            mRecvCfg->setValue("canDelete", "1");
-            mRecvCfg->setValue("checkInterval", "0");
-            mRecvCfg->setValue("intervalCheckRoamingEnabled", "1");
-            mRecvCfg->setValue("maxSize", "20");
-            mRecvCfg->setValue("pushEnabled", "0");
-            mRecvCfg->setValue("pushCapable", "1");
-            mRecvCfg->setValue("pushFolders", "INBOX");
-            mRecvCfg->setValue("textSubtype", "html");
-            mRecvCfg->setValue("capabilities", "IMAP4rev1 SORT THREAD=REFERENCES MULTIAPPEND UNSELECT LITERAL+ IDLE CHILDREN NAMESPACE LOGIN-REFERRALS AUTH=PLAIN");
-        }
-        */
     }
 }
 
 QString EmailAccount::recvServer() const
 {
-    return mRecvCfg->value("server");
+    return mRecvServer;
 }
 
 void EmailAccount::setRecvServer(QString val)
 {
-    mRecvCfg->setValue("server", val);
+    mRecvServer = val;
 }
 
 QString EmailAccount::recvPort() const
 {
-    return mRecvCfg->value("port");
+    return QString::number(mRecvPort);
 }
 
 void EmailAccount::setRecvPort(QString val)
 {
-    mRecvCfg->setValue("port", val);
+    mRecvPort = val.toInt();
 }
 
 QString EmailAccount::recvSecurity() const
 {
-    return mRecvCfg->value("encryption");
+    return QString::number(mRecvSecurity);
 }
 
 void EmailAccount::setRecvSecurity(QString val)
 {
-    mRecvCfg->setValue("encryption", val);
+    mRecvSecurity = val.toInt();
 }
 
 QString EmailAccount::recvUsername() const
 {
-    return mRecvCfg->value("username");
+    return mRecvUsername;
 }
 
 void EmailAccount::setRecvUsername(QString val)
 {
-    mRecvCfg->setValue("username", val);
+    mRecvUsername = val;
 }
 
 QString EmailAccount::recvPassword() const
 {
-    return Base64::decode(mRecvCfg->value("password"));
+    return mRecvPassword;
 }
 
 void EmailAccount::setRecvPassword(QString val)
 {
-    mRecvCfg->setValue("password", Base64::encode(val));
+    mRecvPassword = val;
 }
 
 QString EmailAccount::sendServer() const
 {
-    return mSendCfg->value("server");
+    return mSendServer;
 }
 
 void EmailAccount::setSendServer(QString val)
 {
-    mSendCfg->setValue("server", val);
+    mSendServer = val;
 }
 
 QString EmailAccount::sendPort() const
 {
-    return mSendCfg->value("port");
+    return QString::number(mSendPort);
 }
 
 void EmailAccount::setSendPort(QString val)
 {
-    mSendCfg->setValue("port", val);
+    mSendPort = val.toInt();
 }
 
 QString EmailAccount::sendAuth() const
 {
-    return mSendCfg->value("authentication");
+    return QString::number(mSendAuth);
 }
 
 void EmailAccount::setSendAuth(QString val)
 {
-    mSendCfg->setValue("authentication", val);
+    mSendAuth = val.toInt();
 }
 
 QString EmailAccount::sendSecurity() const
 {
-    return mSendCfg->value("encryption");
+    return QString::number(mSendSecurity);
 }
 
 void EmailAccount::setSendSecurity(QString val)
 {
-    mSendCfg->setValue("encryption", val);
+    mSendSecurity = val.toInt();
 }
 
 QString EmailAccount::sendUsername() const
 {
-    return mSendCfg->value("smtpusername");
+    return mSendUsername;
 }
 
 void EmailAccount::setSendUsername(QString val)
 {
-    mSendCfg->setValue("smtpusername", val);
+    mSendUsername = val;
 }
 
 QString EmailAccount::sendPassword() const
 {
-    return Base64::decode(mSendCfg->value("smtppassword"));
+    return mSendPassword;
 }
 
 void EmailAccount::setSendPassword(QString val)
 {
-    mSendCfg->setValue("smtppassword", Base64::encode(val));
+    mSendPassword = val;
 }
 
 int EmailAccount::preset() const
 {
-    return mAccount->customField("preset").toInt();
+    return mPreset;
 }
 
 void EmailAccount::setPreset(int val)
 {
-    mAccount->setCustomField("preset", QString::number(val));
+    mPreset = val;
 }
 
 QString EmailAccount::errorMessage() const
@@ -537,3 +545,5 @@ int EmailAccount::errorCode() const
 {
     return mErrorCode;
 }
+
+
