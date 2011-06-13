@@ -57,6 +57,7 @@ public:
     Q_INVOKABLE void createFolder(const QString &name, QVariant parentFolderId);
     Q_INVOKABLE void deleteFolder(QVariant folderId);
     Q_INVOKABLE void renameFolder(QVariant folderId, const QString &name);
+    Q_INVOKABLE int getFolderMailCount ();
 
     Q_INVOKABLE int totalNumberOfFolders();
     Q_INVOKABLE int saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority);
@@ -67,6 +68,7 @@ public:
 
 private:
     CamelFolderInfoArrayVariant m_folderlist;
+    char *pop_foldername;
     EAccount * getAccountById(EAccountList *account_list, char *id);
     EAccount *m_account;
     QDBusObjectPath m_store_proxy_id;

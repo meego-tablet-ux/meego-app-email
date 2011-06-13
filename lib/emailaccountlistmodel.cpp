@@ -30,6 +30,12 @@ void EmailAccountListModel::onSendReceiveComplete()
 	emit sendReceiveCompleted();
 }
 
+void EmailAccountListModel::setUnreadCount (QVariant id, int count)
+{
+	acc_unread[id.toString()] = count;
+	onAccountsUpdated (id.toString());
+}
+
 void EmailAccountListModel::updateUnreadCount (EAccount *account)
 {	
 	QDBusObjectPath store_id;

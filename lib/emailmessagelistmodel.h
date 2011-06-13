@@ -91,6 +91,7 @@ signals:
     void messageRetrievalCompleted();
     void sendReceiveCompleted ();
     void sendReceiveBegin ();
+    void folderChanged ();
 
 public slots:
     Q_INVOKABLE void setFolderKey (QVariant id);

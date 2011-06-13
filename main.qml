@@ -171,6 +171,11 @@ Window {
 
     EmailMessageListModel {
         id: messageListModel
+	onFolderChanged: {
+		var count;
+		count = mailFolderListModel.getFolderMailCount();
+		mailAccountListModel.setUnreadCount (window.currentMailAccountId, count);
+	}
     }
 
     FolderListModel {

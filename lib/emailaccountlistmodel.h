@@ -45,6 +45,7 @@ public:
 
 public slots:
     Q_INVOKABLE QVariant indexFromAccountId(QVariant id);
+    Q_INVOKABLE void setUnreadCount(QVariant id, int count);
     Q_INVOKABLE QVariant getDisplayNameByIndex(int idx);
     Q_INVOKABLE QVariant getEmailAddressByIndex(int idx);
     Q_INVOKABLE int getRowCount();

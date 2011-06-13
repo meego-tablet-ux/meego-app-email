@@ -50,6 +50,8 @@ FolderListModel::FolderListModel(QObject *parent) :
     m_outbox_proxy = NULL;
     m_sent_proxy = NULL;
     m_drafts_proxy = NULL;
+    pop_foldername = NULL;
+
 }
 
 FolderListModel::~FolderListModel()
@@ -124,6 +126,48 @@ EAccount * FolderListModel::getAccountById(EAccountList *account_list, char *id)
     return NULL;
 }
 
+int FolderListModel::getFolderMailCount()
+{
+	int old = m_folderlist.count();
+	int count = 0;
+
+	QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(pop_foldername ? pop_foldername : ""), 
+								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+	reply.waitForFinished();
+	m_folderlist = reply.value ();	
+	
+	if (m_folderlist.count() == old) {
+		QModelIndex s_idx = createIndex (0, 0);
+		QModelIndex e_idx = createIndex (m_folderlist.count() - 1, 0);
+
+		emit dataChanged(s_idx, e_idx);
+	} else if (m_folderlist.count() > old) {
+		QModelIndex s_idx = createIndex (0, 0);
+		QModelIndex e_idx = createIndex (old - 1, 0);
+
+		emit dataChanged(s_idx, e_idx);
+		beginInsertRows (QModelIndex(), old-1, m_folderlist.count()-1);
+		endInsertRows();
+	} else if (m_folderlist.count() < old) {
+		QModelIndex s_idx = createIndex (0, 0);
+		QModelIndex e_idx = createIndex (m_folderlist.count() - 1, 0);
+
+		emit dataChanged(s_idx, e_idx);
+
+		beginRemoveRows (QModelIndex(), m_folderlist.count()-1, old-1);
+		endRemoveRows();
+	
+	}
+
+    	foreach (CamelFolderInfoVariant fInfo, m_folderlist)
+    	{
+		if (fInfo.unread_count > 0)
+			count+= fInfo.unread_count;
+	}
+
+	return count;
+}
+
 void FolderListModel::setAccountKey(QVariant id)
 {
     GConfClient *client;
@@ -131,12 +175,17 @@ void FolderListModel::setAccountKey(QVariant id)
     QString quid;
     const char *url;
     char *acc_id;
-    char *folder_name = NULL;
+    
+   
 
     if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
 	return;
     }
 
+    if (pop_foldername) {
+	g_free (pop_foldername);
+	pop_foldername = NULL;
+    }
     client = gconf_client_get_default ();
     account_list = e_account_list_new (client);
     g_object_unref (client);
@@ -164,7 +213,7 @@ void FolderListModel::setAccountKey(QVariant id)
 		const char *email;
 
 		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
-		folder_name = g_strdup_printf ("%s/Inbox", email);
+		pop_foldername = g_strdup_printf ("%s/Inbox", email);
 	}
 
 	g_print ("Store PATH: %s\n", (char *) m_store_proxy_id.path().toLocal8Bit().constData());
@@ -173,12 +222,12 @@ void FolderListModel::setAccountKey(QVariant id)
 									QDBusConnection::sessionBus(), this);
 	
 	if (m_store_proxy && m_store_proxy->isValid()) {
-		QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(folder_name ? folder_name : ""), 
+		QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(pop_foldername ? pop_foldername : ""), 
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
 	}
-	g_free (folder_name);
+
 	if (!m_outbox_proxy) {
 		reply = instance->getLocalFolder (QString("Outbox"));
 		reply.waitForFinished();
