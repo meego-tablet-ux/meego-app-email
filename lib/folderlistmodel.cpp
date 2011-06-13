@@ -177,9 +177,6 @@ void FolderListModel::setAccountKey(QVariant id)
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
-		m_folderlist.removeLast();
-	g_print ("Got folder list....\n");
-
 	}
 	g_free (folder_name);
 	if (!m_outbox_proxy) {

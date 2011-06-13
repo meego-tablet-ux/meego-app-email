@@ -49,6 +49,8 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 	else
 		reply  = session_instance->getStore (QString(url));
         reply.waitForFinished();
+	if (reply.isError())
+		return;
         store_id = reply.value();
 	
 	if (strncmp (url, "pop:", 4) == 0) {
