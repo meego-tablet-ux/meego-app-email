@@ -22,21 +22,15 @@
 #include "e-gdbus-emailstore-proxy.h"
 
 EmailAccount::EmailAccount()
-:   mAccount(e_account_new()),
-    mErrorCode(0),
+:   mErrorCode(0),
     mUpdateIntervalConf(new MGConfItem("/apps/meego-app-email/updateinterval")),
     mSignatureConf(new MGConfItem("/apps/meego-app-email/signature"))
 {
-    init();
-}
+    mAccount = NULL;
+    GConfClient *client = gconf_client_get_default();
+    mAccountList = e_account_list_new(client);
+    g_object_unref(client);
 
-EmailAccount::EmailAccount(EAccount *other)
-:   mAccount(e_account_new()),
-    mErrorCode(0),
-    mUpdateIntervalConf(new MGConfItem("/apps/meego-app-email/updateinterval")),
-    mSignatureConf(new MGConfItem("/apps/meego-app-email/signature"))
-{
-    e_account_import(mAccount, other);
     init();
 }
 
@@ -64,11 +58,13 @@ void EmailAccount::init()
     mSendPassword.clear();
     mPassword.clear();
 
-    gchar *uid = mAccount->uid;
-    g_object_unref(mAccount);
-
-    mAccount = e_account_new();
-    mAccount->uid = uid;
+    EAccount *acc = e_account_new();
+    if (mAccount) {
+        g_free (acc->uid);
+        acc->uid = g_strdup(mAccount->uid);
+        g_object_unref(mAccount);
+    }
+    mAccount = acc;
 }
 
 void EmailAccount::clear()
@@ -103,21 +99,17 @@ bool EmailAccount::save()
                     "keep_on_server=true;mobile;disable_autofetch;" +
                     "command=ssh%20-C%20-l%20%25u%20%25h%20exec%20/usr/sbin/dovecot%20--exec-mail%20imap;";
     } else if (recvType() == "1") {
-        // FIXME remove if e_account_list_change() in testConfiguration() works
-        e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Drafts");
-        e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Sent");
-
         sourceUrl = "imapx://" + recvUsername().replace("@", "%40") + "@" + recvServer() + ":" + recvPort() + "/;" +
                     "mobile;fetch-order=descending;" +
                     "command=ssh%20-C%20-l%20%25u%20%25h%20exec%20/usr/sbin/dovecot%20--exec-mail%20imap;";
     }
     sourceUrl.append("use_ssl=" + recvSecurStr + ";use_lsub;cachedconn=5;check_all=1;use_idle;use_qresync;sync_offline=1");
-    e_account_set_string(mAccount, E_ACCOUNT_SOURCE_URL, sourceUrl.toAscii());
+    e_account_set_string(mAccount, E_ACCOUNT_SOURCE_URL, sourceUrl.toUtf8());
     e_account_set_string(mAccount, E_ACCOUNT_SOURCE_SAVE_PASSWD, sendPassword().toUtf8());
 
-    CamelURL *sourceCamelUrl = camel_url_new(sourceUrl.toAscii(), NULL);
+    CamelURL *sourceCamelUrl = camel_url_new(sourceUrl.toUtf8(), NULL);
     char *sourceKey = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
- 
+
     session->addPassword(sourceKey, recvPassword(), TRUE);
     camel_url_free(sourceCamelUrl);
     g_free(sourceKey);
@@ -139,10 +131,10 @@ bool EmailAccount::save()
         transportUrl.append("auth=" + authType + "@" + sendServer() + ":" + sendPort() + "/;");
     }
     transportUrl.append("use_ssl=" + sendSecurStr);
-    e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_URL, transportUrl.toAscii());
+    e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_URL, transportUrl.toUtf8());
     e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_SAVE_PASSWD, recvPassword().toUtf8());
 
-    CamelURL *transportCamelUrl = camel_url_new(transportUrl.toAscii(), NULL);
+    CamelURL *transportCamelUrl = camel_url_new(transportUrl.toUtf8(), NULL);
     char *transportKey = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
     session->addPassword(transportKey, sendPassword(), TRUE);
     camel_url_free(transportCamelUrl);
@@ -150,17 +142,21 @@ bool EmailAccount::save()
 
     setEnabled(true);
 
-    GConfClient *client = gconf_client_get_default();
-    mAccountList = e_account_list_new(client);
-    g_object_unref(client);
-
-    const EAccount *acc1 = e_account_list_find(mAccountList, E_ACCOUNT_FIND_NAME, QString(name() + " - " + description()).toUtf8());
-    const EAccount *acc2 = e_account_list_find(mAccountList, E_ACCOUNT_FIND_ID_NAME, name().toUtf8());
-    const EAccount *acc3 = e_account_list_find(mAccountList, E_ACCOUNT_FIND_ID_ADDRESS, address().toAscii());
-
-    if (acc1 && acc2 && acc3 && acc1 == acc2 && acc1 == acc3)
-        e_account_list_change(mAccountList, mAccount);
-    else
+    bool found = false;
+    EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
+    while (e_iterator_is_valid(iter)) {
+        EAccount *acc = (EAccount *)e_iterator_get(iter);
+        if (strcmp(mAccount->uid, acc->uid) == 0) {
+            found = true;
+            if (acc != mAccount)
+                e_account_import(acc, mAccount);
+            e_account_list_change(mAccountList, acc);
+            break;
+        }
+        e_iterator_next(iter);
+    }
+    g_object_unref(iter);
+    if (!found)
         e_account_list_add(mAccountList, mAccount);
     e_account_list_save(mAccountList);
 
@@ -170,8 +166,18 @@ bool EmailAccount::save()
 bool EmailAccount::remove()
 {
     bool result = false;
-
-    e_account_list_remove(mAccountList, mAccount);
+    EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
+    while (e_iterator_is_valid(iter)) {
+        EAccount *acc = (EAccount *)e_iterator_get(iter);
+        if (strcmp(mAccount->uid, acc->uid) == 0) {
+            e_account_list_remove(mAccountList, acc);
+            e_account_list_save(mAccountList);
+            result = true;
+            break;
+        }
+        e_iterator_next(iter);
+    }
+    g_object_unref(iter);
 
     return result;
 }
@@ -231,12 +237,16 @@ void EmailAccount::testConfiguration()
             sentUri = info.uri;
     }
 
+    if (draftUri.isEmpty() && sentUri.isEmpty()) {
+        emit testFailed();
+        return;
+    }
+
     if (!draftUri.isEmpty()) {
         e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, draftUri.toAscii());
     } else {
         e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Drafts");
-    }	
-
+    }
 
     if (!sentUri.isEmpty()) {
         e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, sentUri.toAscii());
@@ -244,11 +254,27 @@ void EmailAccount::testConfiguration()
         e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, "mbox:/home/meego/.local/share/evolution/mail/local#Sent");
     }
 
+    bool found = false;
+    EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
+    while (e_iterator_is_valid(iter)) {
+        EAccount *acc = (EAccount *)e_iterator_get(iter);
+        if (strcmp(mAccount->uid, acc->uid) == 0) {
+            qDebug() << mAccount << acc;
+            found = true;
+            if (acc != mAccount)
+                e_account_import(acc, mAccount);
+            e_account_list_change(mAccountList, acc);
+            e_account_list_save(mAccountList);
+            break;
+        }
+        e_iterator_next(iter);
+    }
+    g_object_unref(iter);
+    if (!found) {
+        emit testFailed();
+        return;
+    }
 
-    e_account_list_change(mAccountList, mAccount);
-    e_account_list_save(mAccountList);
-    qDebug() << e_account_to_xml(mAccount);
-	
     emit testSucceeded();
 }
 
@@ -379,7 +405,7 @@ QString EmailAccount::address() const
 
 void EmailAccount::setAddress(QString val)
 {
-    e_account_set_string(mAccount, E_ACCOUNT_ID_ADDRESS, val.toAscii());
+    e_account_set_string(mAccount, E_ACCOUNT_ID_ADDRESS, val.toUtf8());
 }
 
 QString EmailAccount::username() const

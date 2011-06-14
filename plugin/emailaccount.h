@@ -50,7 +50,6 @@ class EmailAccount : public QObject {
 
 public:
     EmailAccount();
-    EmailAccount(EAccount *other);
     ~EmailAccount();
 
     Q_INVOKABLE bool save();
@@ -121,8 +120,8 @@ private slots:
     void testConfiguration();
 
 private:
-    EAccount *mAccount;
     OrgGnomeEvolutionDataserverMailSessionInterface *session;
+    EAccount *mAccount;
     EAccountList *mAccountList;
     int mPreset;
     QString mDescription;
@@ -145,18 +144,7 @@ private:
     MGConfItem *mSignatureConf;
 
     void init();
-
-    // workaround to QMF hiding its base64 password encoder in
-    // protected methods
-    /*class Base64 : public QMailServiceConfiguration {
-    public:
-        static QString decode(const QString &value)
-            { return decodeValue(value); }
-        static QString encode(const QString &value)
-            { return encodeValue(value); }
-    };*/
 };
-
 
 #endif // EMAILACCOUNT_H
 
