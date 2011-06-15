@@ -26,8 +26,28 @@ void EmailAccountListModel::onGetPassword (const QString &title, const QString &
 
 void EmailAccountListModel::onSendReceiveComplete()
 {
-	qDebug() << "Send Receive complete \n\n";
-	emit sendReceiveCompleted();
+   qDebug() << "Send Receive complete \n\n";
+   emit sendReceiveCompleted();
+
+    /* Update unread count once send recv is done. */
+    EIterator *iter;
+    EAccount *account = NULL;
+
+    iter = e_list_get_iterator (E_LIST (account_list));
+    while (e_iterator_is_valid (iter)) {
+	EAccountService *service;
+
+	account = (EAccount *) e_iterator_get (iter);
+	service = account->source;
+
+	if (service->url && *service->url && account->enabled) {
+		updateUnreadCount(account);
+		onAccountsUpdated (QString(account->uid));
+	}
+        e_iterator_next (iter);
+    }
+
+    g_object_unref (iter);
 }
 
 void EmailAccountListModel::setUnreadCount (QVariant id, int count)
@@ -140,8 +160,13 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 
     iter = e_list_get_iterator (E_LIST (account_list));
     while (e_iterator_is_valid (iter)) {
-        account = (EAccount *) e_iterator_get (iter);
-	updateUnreadCount(account);
+	EAccountService *service;
+
+	account = (EAccount *) e_iterator_get (iter);
+	service = account->source;
+
+	if (service->url && *service->url && account->enabled)
+		updateUnreadCount(account);
         e_iterator_next (iter);
     }
 
@@ -167,7 +192,7 @@ EAccount * EmailAccountListModel::getAccountByIndex(int idx) const
 	service = account->source;
 	
 	/* Iterate over valid accounts only */
-	if (service->url && *service->url) {
+	if (service->url && *service->url && account->enabled) {
 	        i++;
 	}
 	
@@ -215,7 +240,7 @@ int EmailAccountListModel::getIndexById(char *id)
 	service = account->source;
 	
 	/* Iterate over valid accounts only */
-	if (service->url && *service->url)
+	if (service->url && *service->url && account->enabled)
         	index++;
         account = (EAccount *) e_iterator_get (iter);
         if (strcmp (id, account->uid) == 0)
@@ -244,7 +269,7 @@ int EmailAccountListModel::rowCount(const QModelIndex &parent) const
 	service = acc->source;
 	
 	/* Iterate over valid accounts only */
-	if (service->url && *service->url)
+	if (service->url && *service->url && acc->enabled)
 	        i++;
 
         e_iterator_next (iter);
