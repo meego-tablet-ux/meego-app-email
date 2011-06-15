@@ -64,6 +64,13 @@ public Q_SLOTS: // METHODS
         return asyncCallWithArgumentList(QLatin1String("fetchOldMessages"), argumentList);
     }
 
+    inline QDBusPendingReply<QString> findPassword(const QString &key)
+    {
+        QList<QVariant> argumentList;
+        argumentList << qVariantFromValue(key);
+        return asyncCallWithArgumentList(QLatin1String("findPassword"), argumentList);
+    }
+
     inline QDBusPendingReply<QDBusObjectPath> getFolderFromUri(const QString &uri)
     {
         QList<QVariant> argumentList;
