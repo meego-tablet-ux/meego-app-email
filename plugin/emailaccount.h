@@ -9,13 +9,13 @@
 #ifndef EMAILACCOUNT_H
 #define EMAILACCOUNT_H
 
-#include <libedataserver/e-account.h>
 #include <mgconfitem.h>
-#include "e-gdbus-emailsession-proxy.h"
-#include <gconf/gconf-client.h>
+#include <libedataserver/e-account.h>
 #include <libedataserver/e-account-list.h>
+#include "e-gdbus-emailsession-proxy.h"
 
-class EmailAccount : public QObject {
+class EmailAccount : public QObject
+{
     Q_OBJECT
 
     Q_PROPERTY(QString description READ description WRITE setDescription)
@@ -120,6 +120,7 @@ private slots:
     void testConfiguration();
 
 private:
+	bool mModified;
     OrgGnomeEvolutionDataserverMailSessionInterface *session;
     EAccount *mAccount;
     EAccountList *mAccountList;
@@ -147,6 +148,8 @@ private:
 };
 
 #endif // EMAILACCOUNT_H
+
+
 
 
 

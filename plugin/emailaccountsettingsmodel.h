@@ -2,7 +2,7 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -10,9 +10,11 @@
 #define EMAILACCOUNTSETTINGSMODEL_H
 
 #include <QAbstractListModel>
-#include <QMailAccount>
-#include <QMailServiceConfiguration>
 #include <mgconfitem.h>
+
+#include <libedataserver/e-account.h>
+#include <libedataserver/e-account-list.h>
+#include "e-gdbus-emailsession-proxy.h"
 
 class EmailAccountSettingsModel : public QAbstractListModel {
     Q_OBJECT
@@ -41,6 +43,8 @@ public:
         PresetRole
     };
     EmailAccountSettingsModel(QObject *parent = 0);
+    ~EmailAccountSettingsModel();
+
     Q_INVOKABLE void reload();
     Q_INVOKABLE int rowCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
@@ -64,9 +68,11 @@ public slots:
     void deleteRow(int row);
 
 private:
-    QList<QMailAccount> mAccounts;
-    QList<QMailAccountConfiguration> mAccountConfigs;
+    QHash<int,QByteArray> roles;
+
+    EAccountList *mAccountList;
     int mUpdateInterval;
+    int mLength;
     QString mSignature;
     bool mNewMailNotification;
     bool mConfirmDeleteMail;
@@ -74,18 +80,10 @@ private:
     MGConfItem *mSignatureConf;
     MGConfItem *mNewMailNotificationConf;
     MGConfItem *mConfirmDeleteMailConf;
+    OrgGnomeEvolutionDataserverMailSessionInterface *session;
 
     void init();
-    static QMailAccountConfiguration::ServiceConfiguration *getRecvCfg(QMailAccountConfiguration &acctcfg);
-};
-
-
-// workaround to QMF hiding its base64 password encoder in
-// protected methods
-class QMailDecoder : public QMailServiceConfiguration {
-public:
-    static QString decode(const QString &value) { return decodeValue(value); }
-    static QString encode(const QString &value) { return encodeValue(value); }
+    EAccount *getAccountByIndex(int idx) const;
 };
 
 #endif // EMAILACCOUNTSETTINGSMODEL_H

@@ -2,19 +2,36 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-#include <QMailStore>
-#include <QMailMessage>
-
 #include "emailaccountsettingsmodel.h"
+
+#include <gconf/gconf-client.h>
+#include "e-gdbus-emailsession-proxy.h"
+
+#define CAMEL_COMPILATION 1
+#include <camel/camel-url.h>
+
+#include <QDebug>
+
+static void
+account_changed (EAccountList *eal, EAccount *ea, gpointer dummy)
+{
+    printf("Accouint changed\n");
+    EIterator *iter = e_list_get_iterator(E_LIST(eal));
+    while (e_iterator_is_valid(iter)) {
+        EAccount *acc = (EAccount *)e_iterator_get(iter);
+        //qDebug() << e_account_to_xml(acc);
+        e_iterator_next(iter);
+    }
+
+}
 
 EmailAccountSettingsModel::EmailAccountSettingsModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    QHash<int,QByteArray> roles;
     roles[DescriptionRole] = "description";
     roles[EnabledRole] = "enabled";
     roles[NameRole] = "name";
@@ -38,58 +55,75 @@ EmailAccountSettingsModel::EmailAccountSettingsModel(QObject *parent)
     roles[PresetRole] = "preset";
     setRoleNames(roles);
 
-    /*
-    service["IMAP"] = "imap4";
-    service["POP"] = "pop3";
-
-    encryption["None"] = "0";
-    encryption["SSL"] = "1";
-    encryption["TLS"] = "2";
-
-    authentication["None"] = "0";
-    authentication["Login"] = "1";
-    authentication["Plain"] = "2";
-    authentication["Cram MD5"] = "3";
-    */
-
     mUpdateIntervalConf = new MGConfItem("/apps/meego-app-email/updateinterval");
     mSignatureConf = new MGConfItem("/apps/meego-app-email/signature");
     mNewMailNotificationConf = new MGConfItem("/apps/meego-app-email/newmailnotifications");
     mConfirmDeleteMailConf = new MGConfItem("/apps/meego-app-email/confirmdeletemail");
+
+    GConfClient *client = gconf_client_get_default();
+    mAccountList = e_account_list_new(client);
+    g_signal_connect (mAccountList, "account-changed", G_CALLBACK(account_changed), mAccountList);
+    g_object_unref(client);
+    session = new OrgGnomeEvolutionDataserverMailSessionInterface("org.gnome.evolution.dataserver.Mail",
+                                                                       "/org/gnome/evolution/dataserver/Mail/Session",
+                                                                       QDBusConnection::sessionBus(), this);
+
     init();
+}
+
+EmailAccountSettingsModel::~EmailAccountSettingsModel()
+{
+    delete session;
+    g_object_unref(mAccountList);
+}
+
+EAccount * EmailAccountSettingsModel::getAccountByIndex(int idx) const
+{
+    EIterator *iter;
+    int i=-1;
+    EAccount *account = NULL;
+
+    iter = e_list_get_iterator (E_LIST (mAccountList));
+    for (; e_iterator_is_valid (iter); e_iterator_next (iter)) {
+
+	account = (EAccount *) e_iterator_get (iter);
+	        i++;
+	
+	if (i == idx)
+		break;
+    }
+
+    if (!e_iterator_is_valid (iter))
+	account = NULL;
+	
+    g_object_unref (iter);
+
+    return account;
 }
 
 void EmailAccountSettingsModel::init()
 {
-    mAccounts.clear();
-    mAccountConfigs.clear();
-    QMailStore *mailstore = QMailStore::instance();
-    QMailAccountIdList idlist = mailstore->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email));
-    QMailAccountId id;
-    foreach (id, idlist) {
-        mAccounts.append(mailstore->account(id));
-        mAccountConfigs.append(mailstore->accountConfiguration(id));
+    EIterator *iter;
+    int i=0;
+
+    iter = e_list_get_iterator (E_LIST (mAccountList));
+    while (e_iterator_is_valid (iter)) {
+	EAccount *acc;
+
+	acc = (EAccount *) e_iterator_get (iter);
+	
+	i++;
+
+        e_iterator_next (iter);
+	
     }
+
+    mLength = i;
     // initialize global settings from gconf
     mUpdateInterval = mUpdateIntervalConf->value().toInt();
     mSignature = mSignatureConf->value().toString();
     mNewMailNotification = mNewMailNotificationConf->value().toBool();
     mConfirmDeleteMail = mConfirmDeleteMailConf->value().toBool();
-}
-
-QMailAccountConfiguration::ServiceConfiguration *EmailAccountSettingsModel::getRecvCfg(QMailAccountConfiguration &acctcfg)
-{
-    QStringList services;
-    QString recvsvc;
-    services = acctcfg.services();
-    if (services.contains("imap4")) {
-        recvsvc = "imap4";
-    } else if (services.contains("pop3")) {
-        recvsvc = "pop3";
-    } else {
-        return NULL;
-    }
-    return &acctcfg.serviceConfiguration(recvsvc);
 }
 
 void EmailAccountSettingsModel::reload()
@@ -101,246 +135,402 @@ void EmailAccountSettingsModel::reload()
 
 int EmailAccountSettingsModel::rowCount(const QModelIndex &parent) const
 {
-    Q_UNUSED(parent);
-    return mAccounts.size();
+    return mLength;
 }
 
 QVariant EmailAccountSettingsModel::data(const QModelIndex &index, int role) const
 {
-    if (index.isValid() && index.row() < mAccounts.size()) {
-        QMailAccountConfiguration::ServiceConfiguration svccfg;
-        QStringList services;
-        QString recvsvc;
-        QString sendpass, recvpass;
-        //determine receiving protocol
-        services = mAccountConfigs[index.row()].services();
-        if (services.contains("imap4")) {
-            recvsvc = "imap4";
-        } else if (services.contains("pop3")) {
-            recvsvc = "pop3";
+    QVariant result;
+    if (index.isValid() && index.row() < rowCount()) {
+        EAccount *acc = getAccountByIndex(index.row());
+        QString sourceUrl = e_account_get_string(acc, E_ACCOUNT_SOURCE_URL);
+        CamelURL *sourceCamelUrl = camel_url_new(sourceUrl.toUtf8(), NULL);
+        int recvType;
+        QString protocol = sourceCamelUrl->protocol;
+        if (protocol == "pop") {
+            recvType = 0;
+        } else if (protocol == "imapx") {
+            recvType = 1;
         } else {
             qWarning("EmailAccountSettingsModel::data: No IMAP or POP service found for account");
+            camel_url_free(sourceCamelUrl);
             return QVariant();
         }
+
+        QString transportUrl = e_account_get_string(acc, E_ACCOUNT_TRANSPORT_URL);
+        CamelURL *transportCamelUrl = camel_url_new(transportUrl.toUtf8(), NULL);
+
         switch (role) {
             case DescriptionRole:
-                return mAccounts[index.row()].name();
+                result = e_account_get_string(acc, E_ACCOUNT_NAME);
                 break;
             case EnabledRole:
-                return bool(mAccounts[index.row()].status() & QMailAccount::Enabled);
+                result = acc->enabled;
                 break;
             case NameRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("username");
+                result = e_account_get_string(acc, E_ACCOUNT_ID_NAME);
                 break;
             case AddressRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("address");
+                result = e_account_get_string(acc, E_ACCOUNT_ID_ADDRESS);
                 break;
-            case PasswordRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                recvpass = QMailDecoder::decode(svccfg.value("password"));
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                sendpass = QMailDecoder::decode(svccfg.value("smtppassword"));
-                if (recvpass == sendpass) {
-                    return recvpass;
-                } else {
-                    return QString();
-                }
+            case PasswordRole: {
+               char *key = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+            
+                QString recvpass = session->findPassword (QString(key));
+                g_free (key);
+                key = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+                QString sendpass = session->findPassword (QString(key));
+                g_free (key);
+                 
+                if (recvpass == sendpass)
+                    result = recvpass;
+
                 break;
+            }
             case RecvTypeRole:
-                if (recvsvc == "pop3")
-                    return 0;
-                else if (recvsvc == "imap4")
-                    return 1;
-                else
-                    return QVariant();
+                result = recvType;
                 break;
             case RecvServerRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                return svccfg.value("server");
+                result = sourceCamelUrl->host;
                 break;
             case RecvPortRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                return svccfg.value("port");
+                result = sourceCamelUrl->port;
                 break;
-            case RecvSecurityRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                return svccfg.value("encryption");
+            case RecvSecurityRole: {
+                QString recvSecurity = camel_url_get_param(sourceCamelUrl, "use_ssl");
+                if (recvSecurity == "never")
+                    result = 0;
+                else if (recvSecurity == "always")
+                    result = 1;
+                else if (recvSecurity == "whenever-possible")
+                    result = 2;
                 break;
+            }
             case RecvUsernameRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                return svccfg.value("username");
+                result = sourceCamelUrl->user;
                 break;
-            case RecvPasswordRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                return QMailDecoder::decode(svccfg.value("password"));
+            case RecvPasswordRole: {
+                char *key = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+                result = QVariant(session->findPassword (QString(key)));
+                g_free (key);
                 break;
+            }
             case SendServerRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("server");
+                result = transportCamelUrl->host;
                 break;
             case SendPortRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("port");
+                result = transportCamelUrl->port;
                 break;
-            case SendAuthRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("authentication");
+            case SendAuthRole: {
+                QString sendAuth = camel_url_get_param(transportCamelUrl, "auth");
+                if (sendAuth == "LOGIN")
+                    result = 1;
+                else if (sendAuth == "PLAIN")
+                    result = 2;
+                else if (sendAuth == "CRAM-MD5")
+                    result = 3;
+                else
+                    result = 0;
                 break;
-            case SendSecurityRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("encryption");
+            }
+            case SendSecurityRole: {
+                QString recvSecurity = camel_url_get_param(transportCamelUrl, "use_ssl");
+                if (recvSecurity == "never")
+                    result = 0;
+                else if (recvSecurity == "always")
+                    result = 1;
+                else if (recvSecurity == "whenever-possible")
+                    result = 2;
                 break;
+            }
             case SendUsernameRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return svccfg.value("smtpusername");
+                result = transportCamelUrl->user;
                 break;
-            case SendPasswordRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                return QMailDecoder::decode(svccfg.value("smtppassword"));
+            case SendPasswordRole: {
+                char *key = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+                result = QVariant(session->findPassword (QString(key)));
+                g_free (key);
                 break;
+            }
             case PresetRole:
-                return mAccounts[index.row()].customField("preset");
+                // FIXME is it better to rely on CamelUrl->host?
+                QString domain = e_account_get_string(acc, E_ACCOUNT_ID_ADDRESS);
+                domain.remove(QRegExp("^.*@"));
+                if (domain == "me.com")
+                    result = 1;
+                else if (domain == "gmail.com" || domain == "googlemail.com")
+                    result = 2;
+                else if (domain == "yahoo.com")
+                    result = 3;
+                else if (domain == "aol.com")
+                    result = 4;
+                else if (domain == "live.com")
+                    result = 5;
+                else
+                    result = 0;
                 break;
-            default:
-                return QVariant();
         }
+        camel_url_free(transportCamelUrl);
+        camel_url_free(sourceCamelUrl);
     }
-    return QVariant();
+
+    return result;
 }
 
 bool EmailAccountSettingsModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (index.isValid() && index.row() < mAccounts.size()) {
-        QMailAccountConfiguration::ServiceConfiguration svccfg;
-        QStringList services;
-        QString recvsvc;
-        QString newrecvsvc;
-        //determine receiving protocol
-        services = mAccountConfigs[index.row()].services();
-        if (services.contains("imap4")) {
-            recvsvc = "imap4";
-        } else if (services.contains("pop3")) {
-            recvsvc = "pop3";
+    bool modified = false;
+    bool result = false;
+    if (index.isValid() && index.row() < rowCount()) {
+        EAccount *acc = getAccountByIndex(index.row());
+        QString sourceUrl = e_account_get_string(acc, E_ACCOUNT_SOURCE_URL);
+        CamelURL *sourceCamelUrl = camel_url_new(sourceUrl.toUtf8(), NULL);
+        int recvType;
+        QString protocol = sourceCamelUrl->protocol;
+        if (protocol == "pop") {
+            recvType = 0;
+        } else if (protocol == "imapx") {
+            recvType = 1;
         } else {
-            qWarning("EmailAccountSettingsModel::setData: No IMAP or POP service found for account");
-            return false;
+            qWarning("EmailAccountSettingsModel::data: No IMAP or POP service found for account");
+            camel_url_free(sourceCamelUrl);
+            return result;
         }
+
+        QString transportUrl = e_account_get_string(acc, E_ACCOUNT_TRANSPORT_URL);
+        CamelURL *transportCamelUrl = camel_url_new(transportUrl.toUtf8(), NULL);
+
         switch (role) {
-            case DescriptionRole:
-                mAccounts[index.row()].setName(value.toString());
-                return true;
+            case DescriptionRole: {
+                QString descr = e_account_get_string(acc, E_ACCOUNT_NAME);
+                QString newDescr = value.toString();
+                if (descr != newDescr) {
+                    e_account_set_string(acc, E_ACCOUNT_NAME, newDescr.toUtf8());
+                    modified = true;
+                }
+                result = true;
                 break;
+            }
             case EnabledRole:
-                mAccounts[index.row()].setStatus(QMailAccount::Enabled, value.toBool());
-                return true;
+                if (acc->enabled != value.toBool()) {
+                    acc->enabled = value.toBool();
+                    modified = true;
+                }
+                result = true;
                 break;
-            case NameRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("username", value.toString());
-                return true;
+            case NameRole: {
+                QString name = e_account_get_string(acc, E_ACCOUNT_ID_NAME);
+                QString newName = value.toString();
+                if (name != newName) {
+                    e_account_set_string(acc, E_ACCOUNT_ID_NAME, newName.toUtf8());
+                    modified = true;
+                }
+                result = true;
                 break;
-            case AddressRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("address", value.toString());
-                return true;
+            }
+            case AddressRole: {
+                QString address = e_account_get_string(acc, E_ACCOUNT_ID_ADDRESS);
+                QString newAddress = value.toString();
+                if (address != newAddress) {
+                    e_account_set_string(acc, E_ACCOUNT_ID_ADDRESS, newAddress.toAscii());
+                    modified = true;
+                }
+                result = true;
                 break;
+            }
             case PasswordRole:
                 if (!value.toString().isEmpty()) {
-                    svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                    svccfg.setValue("password", QMailDecoder::encode(value.toString()));
-                    svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                    svccfg.setValue("smtppassword", QMailDecoder::encode(value.toString()));
+                    // FIXME check if passsword changed
+                    char *skey = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+                    char *tkey = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+
+                    QString recvpass = session->findPassword (QString(skey));
+                    QString sendpass = session->findPassword (QString(tkey));
+
+                    if (recvpass != value.toString())
+			session->addPassword (skey, value.toString(), TRUE);
+                    if (sendpass != value.toString())
+			session->addPassword (tkey, value.toString(), TRUE);
+
+                    g_free (skey);
+                    g_free (tkey);
+
                 }
-                return true;
+                result = true;
                 break;
-            case RecvTypeRole:
-                // prevent bug where recv type gets reset
-                // when loading the first time
-                if (value.toString() == "0") {
-                    newrecvsvc = "pop3";
-                } else if (value.toString() == "1") {
-                    newrecvsvc = "imap4";
+            case RecvTypeRole: {
+                int newRecvType = value.toInt();
+                if (newRecvType != 0 && newRecvType != 1) {
+                    result = false;
+                } else if (newRecvType == recvType) {
+                    result = true;
                 } else {
-                    return false;
-                }
-                if (newrecvsvc == recvsvc) {
-                    return true;
-                } else {
-                    mAccountConfigs[index.row()].removeServiceConfiguration(recvsvc);
-                    mAccountConfigs[index.row()].addServiceConfiguration(newrecvsvc);
-                    getRecvCfg(mAccountConfigs[index.row()])->setValue("encryption", "1"); // SSL
-                    getRecvCfg(mAccountConfigs[index.row()])->setValue("servicetype", "source");
-                    getRecvCfg(mAccountConfigs[index.row()])->setValue("version", "100");
+                    camel_url_set_protocol(sourceCamelUrl, newRecvType == 0 ? "pop" : "imapx");
+                    // FIXME what about 'keep_on_server', 'disable_autofetch', 'fetch-order'?
                     // automatically clear the recv fields in the UI
                     emit dataChanged(index, index);
-                    return true;
+                    result = true;
                 }
                 break;
-            case RecvServerRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                svccfg.setValue("server", value.toString());
-                return true;
-                break;
+            }
+            case RecvServerRole: {
+                QString name = sourceCamelUrl->host;
+                if (name != value.toString()) {
+                    camel_url_set_host(sourceCamelUrl, value.toString().toUtf8());
+                    result = true;
+                    modified = true;
+                }
+                break;}
             case RecvPortRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                svccfg.setValue("port", value.toString());
-                return true;
+                if (value.toInt() != sourceCamelUrl->port) {
+                    camel_url_set_port(sourceCamelUrl, value.toInt());
+                    result = true;
+                    modified = true;
+                }
                 break;
-            case RecvSecurityRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                svccfg.setValue("encryption", value.toString());
-                return true;
+            case RecvSecurityRole: {
+                QString encryption;
+                switch (value.toInt()) {
+                    case 0: encryption = "never";
+                    case 1: encryption = "always";
+                    case 2: encryption = "whenever-possible";
+                }
+                QString name = camel_url_get_param (sourceCamelUrl, "use_ssl");
+                if (name != encryption) {
+                    camel_url_set_param(sourceCamelUrl, "use_ssl", encryption.toUtf8());
+                    result = true;
+                    modified = true;
+                }
                 break;
-            case RecvUsernameRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                svccfg.setValue("username", value.toString());
-                return true;
+            }
+            case RecvUsernameRole: {
+                QString name = sourceCamelUrl->user;
+                if (name != value.toString()) {
+                    camel_url_set_user(sourceCamelUrl, value.toString().toUtf8());
+                    result = true;
+                    modified = true;
+                }
                 break;
-            case RecvPasswordRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration(recvsvc);
-                svccfg.setValue("password", QMailDecoder::encode(value.toString()));
-                return true;
+            }
+            case RecvPasswordRole: {
+                char *skey = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+                QString recvpass = session->findPassword (QString(skey));
+
+                if (recvpass != value.toString())
+                    session->addPassword (skey, value.toString(), TRUE);
+                g_free (skey);
+
+                result = true;
                 break;
-            case SendServerRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("server", value.toString());
-                return true;
+            }
+            case SendServerRole: {
+                QString name = transportCamelUrl->host;
+                if (name != value.toString()) {
+                    camel_url_set_host(transportCamelUrl, value.toString().toUtf8());
+                    result = true;
+                    modified = true;
+                }
                 break;
+            }
             case SendPortRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("port", value.toString());
-                return true;
+                if (transportCamelUrl->port != value.toInt()) {
+                    camel_url_set_port(transportCamelUrl, value.toInt());
+                    result = true;
+                    modified = true;
+                }
                 break;
-            case SendAuthRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("authentication", value.toString());
-                return true;
+            case SendAuthRole: {
+                QString authentication;
+                switch (value.toInt()) {
+                    case 0: authentication = "NONE";
+                    case 1: authentication = "LOGIN";
+                    case 2: authentication = "PLAIN";
+                    case 3: authentication = "CRAM-MD5";
+                }
+                QString name = camel_url_get_param(transportCamelUrl, "auth");
+                if (name != authentication) {
+                    camel_url_set_param(transportCamelUrl, "auth", authentication.toUtf8());
+                    result = true;
+                    modified = true;
+                }
                 break;
-            case SendSecurityRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("encryption", value.toString());
-                return true;
+            }
+            case SendSecurityRole: {
+                QString encryption;
+                switch (value.toInt()) {
+                    case 0: encryption = "never";
+                    case 1: encryption = "always";
+                    case 2: encryption = "whenever-possible";
+                }
+                QString name = camel_url_get_param(transportCamelUrl, "use_ssl");
+                if (name != encryption) {
+                    camel_url_set_param(transportCamelUrl, "use_ssl", encryption.toUtf8());
+                    result = true;
+                    modified = true;
+                }
                 break;
-            case SendUsernameRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("smtpusername", value.toString());
-                return true;
+            }
+            case SendUsernameRole:{
+                QString name = transportCamelUrl->user;
+                if (name != value.toString()) {
+                    camel_url_set_user(transportCamelUrl, value.toString().toUtf8());
+                    result = true;
+                    modified = true;
+                }       
                 break;
-            case SendPasswordRole:
-                svccfg = mAccountConfigs[index.row()].serviceConfiguration("smtp");
-                svccfg.setValue("smtppassword", QMailDecoder::encode(value.toString()));
-                return true;
+            }
+            case SendPasswordRole: {
+                char *tkey = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
+
+                QString sendpass = session->findPassword (QString(tkey));
+
+                if (sendpass != value.toString())
+                    session->addPassword (tkey, value.toString(), TRUE);
+
+                g_free (tkey);
+
+                result = true;
                 break;
+            }
             case PresetRole:
                 // setting preset not implemented here
             default:
-                return false;
+                result = false;
         }
+        QString newSourseUrl = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD);
+        if (newSourseUrl != sourceUrl && modified) {
+            e_account_set_string(acc, E_ACCOUNT_SOURCE_URL, newSourseUrl.toUtf8());
+            modified = true;
+        }
+
+        QString newTransportUrl = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD);
+        if (transportUrl != newTransportUrl && modified ) {
+            e_account_set_string(acc, E_ACCOUNT_TRANSPORT_URL, newTransportUrl.toUtf8());
+            modified = true;
+        }
+
+        if (modified) {
+            EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
+            while (e_iterator_is_valid(iter)) {
+                EAccount *acc2 = (EAccount *)e_iterator_get(iter);
+                if (strcmp(acc->uid, acc2->uid) == 0) {
+                    if (acc != acc2)
+                        e_account_import(acc2, acc);
+                    e_account_list_change(mAccountList, acc2);
+                    if (modified)
+                        e_account_list_save(mAccountList);
+                    break;
+                }
+                e_iterator_next(iter);
+            }
+            g_object_unref(iter);
+        }
+
+        camel_url_free(transportCamelUrl);
+        camel_url_free(sourceCamelUrl);
     }
 
-    return false;
+    return result;
 }
 
 QVariant EmailAccountSettingsModel::dataWrapper(int row, int role)
@@ -395,28 +585,63 @@ void EmailAccountSettingsModel::setConfirmDeleteMail(bool val)
 
 void EmailAccountSettingsModel::saveChanges()
 {
-    int i;
-    QMailStore *mailstore = QMailStore::instance();
+    int i, len = rowCount();
+    bool modified = false;
+    bool save = false;
     mUpdateIntervalConf->set(mUpdateInterval);
     mSignatureConf->set(mSignature);
     mNewMailNotificationConf->set(mNewMailNotification);
     mConfirmDeleteMailConf->set(mConfirmDeleteMail);
-    for (i = 0; i < mAccounts.size(); i++) {
-        //set update interval and signature globally
-        mAccounts[i].setSignature(mSignature);
-        mAccounts[i].setStatus(QMailAccount::AppendSignature, !mSignature.isEmpty());
-        getRecvCfg(mAccountConfigs[i])->setValue("checkInterval", QString("%1").arg(mUpdateInterval));
-        mailstore->updateAccount(&mAccounts[i], &mAccountConfigs[i]);
-    }
+
+        EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
+        while (e_iterator_is_valid(iter) && modified) {
+            EAccount *acc = (EAccount *)e_iterator_get(iter);
+            QString sig = e_account_get_string(acc, E_ACCOUNT_ID_SIGNATURE);
+            QString newSig = mSignatureConf->value().toString();
+            modified = false;
+            if (sig != newSig) {
+                e_account_set_string(acc, E_ACCOUNT_ID_SIGNATURE, newSig.toUtf8());
+                modified = true;
+            }
+
+            int update = e_account_get_int(acc, E_ACCOUNT_SOURCE_AUTO_CHECK_TIME);
+            int newUpdate = mUpdateIntervalConf->value().toInt();
+            if (update != newUpdate) {
+                e_account_set_int(acc, E_ACCOUNT_SOURCE_AUTO_CHECK_TIME, newUpdate);
+                modified = true;
+            }
+	    if (modified) {
+	        e_account_list_change(mAccountList, acc);
+                save = true;
+                modified = false;
+            }
+            e_iterator_next(iter);
+        }
+        g_object_unref(iter);
+
+    if (save)
+        e_account_list_save(mAccountList);
 }
 
 void EmailAccountSettingsModel::deleteRow(int row)
 {
     // deletes a row immediately, rather than when saveChanges is called
-    if (row >= 0 && row < mAccounts.size()) {
+    if (row >= 0 && row < rowCount()) {
         beginResetModel();
-        QMailStore *mailstore = QMailStore::instance();
-        mailstore->removeAccount(mAccounts[row].id());
+	EAccount *account = getAccountByIndex(row);
+
+        EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
+        while (e_iterator_is_valid(iter)) {
+            EAccount *acc = (EAccount *)e_iterator_get(iter);
+            if (strcmp(account->uid, acc->uid) == 0) {
+                e_account_list_remove(mAccountList, acc);
+                e_account_list_save(mAccountList);
+                break;
+            }
+            e_iterator_next(iter);
+        }
+        g_object_unref(iter);
+
         init();
         endResetModel();
     }
