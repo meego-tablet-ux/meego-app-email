@@ -334,14 +334,11 @@ void EmailAccountListModel::onAccountsAdded(const QString &uid)
 
 void EmailAccountListModel::onAccountsRemoved(const QString &uid)
 {
-    int idx;
-    char *cid = g_strdup((char *)uid.toLocal8Bit().constData());
-
-    idx = getIndexById (cid);
-    qDebug() << uid + ": Account removed";
-    beginRemoveRows (QModelIndex(), idx, idx);
+    beginRemoveRows (QModelIndex(), 0, rowCount());
     endRemoveRows ();
-    g_free (cid);
+    beginInsertRows (QModelIndex(), 0, rowCount() -1);
+    endInsertRows();
+
     emit accountRemoved(QVariant(uid));
 }
 
