@@ -12,6 +12,7 @@
 #include <camel/camel-multipart.h>
 #include <camel/camel-medium.h>
 #include <camel/camel-data-wrapper.h>
+#include <camel/camel-url.h>
 #include "emailmessagelistmodel.h"
 #include <QMailMessage>
 #include <QMailMessageKey>
@@ -717,6 +718,8 @@ void EmailMessageListModel::cancelOperations()
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
     int count=0;
+    bool not_found = true;
+
     if (m_current_folder == id.toString()) {
 	return;
     }
@@ -730,13 +733,28 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     
     qDebug() << "Set folder key: " << m_current_folder;
     foreach (CamelFolderInfoVariant info, m_folders) {
-	if (m_current_folder == info.uri)
+	if (m_current_folder == info.uri) {
 		c_info = info;	
+		not_found = false;
+	}
+    }
+    if (not_found) {
+	CamelURL *curl = camel_url_new (id.toString().toUtf8(), NULL);
+	c_info.full_name = QString(curl->path);
+	qDebug() << "Path " + c_info.full_name;
+	if (c_info.full_name.startsWith("/"))
+		c_info.full_name.remove (0, 1);
+	qDebug() << "newPath " + c_info.full_name;
+	camel_url_free (curl);
     }
 
     if (m_store_proxy && m_store_proxy->isValid()) {
 	QDBusPendingReply<QDBusObjectPath> reply = m_store_proxy->getFolder (QString(c_info.full_name));
 	reply.waitForFinished();
+	if (reply.isError()) {
+		qDebug()<< "Failed to fetch folder: " + id.toString();
+		return;
+	}
 	m_folder_proxy_id = reply.value ();
     }
     messages_present = true;
@@ -1158,6 +1176,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
+		m_folders.removeLast();
 
         }
 

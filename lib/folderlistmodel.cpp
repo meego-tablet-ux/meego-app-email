@@ -134,7 +134,8 @@ int FolderListModel::getFolderMailCount()
 	QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(pop_foldername ? pop_foldername : ""), 
 								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 	reply.waitForFinished();
-	m_folderlist = reply.value ();	
+	m_folderlist = reply.value ();
+	m_folderlist.removeLast();
 	
 	if (m_folderlist.count() == old) {
 		QModelIndex s_idx = createIndex (0, 0);
@@ -226,6 +227,12 @@ void FolderListModel::setAccountKey(QVariant id)
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
+		printf("Got %s: %d\n", url, m_folderlist.length());
+		if (strncmp (url, "pop:", 4) != 0) {
+			m_folderlist.removeLast();
+		}
+		foreach (CamelFolderInfoVariant fInfo, m_folderlist)
+			qDebug () << fInfo.full_name;
 	}
 
 	if (!m_outbox_proxy) {
@@ -279,7 +286,7 @@ QStringList FolderListModel::folderNames()
         }
 	
         folderNames << displayName;
-	g_print("FOLDER: %s\n", (char *)displayName.toLocal8Bit().constData());
+	g_print("FOLDER: |-%s-|\n", (char *)displayName.toLocal8Bit().constData());
     }
     return folderNames;
 }
@@ -976,7 +983,7 @@ void FolderListModel::createFolder(const QString &name, QVariant parentFolderId)
 	newlist.removeLast();
 
 	/* Add the new folder to the folder list. */
-    	beginInsertRows(QModelIndex(), rowCount(), rowCount()+newlist.length()-1);
+    	beginInsertRows(QModelIndex(), rowCount()-1, rowCount()+newlist.length()-2);
 	m_folderlist.append (newlist);
     	endInsertRows();
 }
