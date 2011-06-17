@@ -17,7 +17,6 @@
 #endif
 
 #include <QAbstractListModel>
-#include <QMailAccount>
 #include "e-gdbus-emailsession-proxy.h"
 
 #include <libedataserver/e-account-list.h>

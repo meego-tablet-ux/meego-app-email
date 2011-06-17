@@ -6,9 +6,6 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-
-#include <QMailStore>
-#include <qmailnamespace.h>
 #include <glib.h>
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-list.h>
@@ -256,9 +253,10 @@ int EmailAccountListModel::getIndexById(char *id)
 
 int EmailAccountListModel::rowCount(const QModelIndex &parent) const
 {
+    Q_UNUSED(parent);
+
     EIterator *iter;
     int i=0;
-    EAccount *account = NULL;
 
     iter = e_list_get_iterator (E_LIST (account_list));
     while (e_iterator_is_valid (iter)) {

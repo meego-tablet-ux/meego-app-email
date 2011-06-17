@@ -17,10 +17,6 @@
 #endif
 
 #include <QAbstractListModel>
-#include <QMailMessage>
-#include <QMailMessageListModel>
-#include <QMailServiceAction>
-#include <QMailAccount>
 #include <QProcess>
 #include <libedataserver/e-account.h>
 #include "dbustypes.h"
@@ -139,7 +135,7 @@ public slots:
 
 
 private slots:
-    void downloadActivityChanged(QMailServiceAction::Activity);
+    //ckw void downloadActivityChanged(QMailServiceAction::Activity);
     void myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
     void updateSearch ();
     void onSendReceiveComplete ();
@@ -171,15 +167,10 @@ private:
     OrgGnomeEvolutionDataserverMailFolderInterface *m_folder_proxy;
   
     QProcess m_msgAccount;
-    QMailFolderId m_currentFolderId;
     QProcess m_messageServerProcess;
-    QMailAccountIdList m_mailAccountIds;
-    QMailRetrievalAction *m_retrievalAction;
-    QMailStorageAction *m_storageAction;
     QString m_search;
     EmailMessageListModel::SortBy m_sortById;
     int m_sortKey;
-    QMailMessageKey m_key;                  // key set externally other than search
     QList<QString> m_selectedMsgIds;
 };
 

@@ -2,12 +2,9 @@ include(../common.pri)
 TARGET = meegoemail
 TEMPLATE = lib
 
-CONFIG += link_pkgconfig \
-    mobility
+CONFIG += link_pkgconfig
 
-PKGCONFIG += qmfmessageserver \
-    qmfclient	\
-    libedataserver-1.2	\
+PKGCONFIG += libedataserver-1.2	\
     camel-1.2 \
     gconf-2.0
 

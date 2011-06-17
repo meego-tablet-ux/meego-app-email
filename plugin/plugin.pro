@@ -5,12 +5,9 @@ TARGET = Email
 QT += declarative webkit
 CONFIG += qt \
     plugin \
-    link_pkgconfig \
-    mobility
+    link_pkgconfig
 
-PKGCONFIG += qmfmessageserver\
-    qmfclient \
-    mlite       \
+PKGCONFIG += mlite       \
     libedataserver-1.2
 
 INCLUDEPATH += ../lib

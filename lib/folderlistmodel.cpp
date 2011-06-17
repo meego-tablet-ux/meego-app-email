@@ -22,15 +22,9 @@
 #include <camel/camel-stream-filter.h>
 
 #include "folderlistmodel.h"
-#include <QMailAccount>
-#include <QMailFolder>
-#include <QMailMessage>
-#include <QMailMessageKey>
-#include <QMailStore>
 #include <QDateTime>
 #include <QTimer>
 #include <QProcess>
-#include <qmailnamespace.h>
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-data-server-util.h>
 #include <libedataserver/e-list.h>
@@ -412,7 +406,7 @@ text_requires_quoted_printable (const gchar *text, gsize len)
 	if (!text)
 		return FALSE;
 
-	if (len == -1)
+	if (len == (gsize) -1)
 		len = strlen (text);
 
 	if (len >= 5 && strncmp (text, "From ", 5) == 0)
@@ -451,10 +445,10 @@ best_encoding (const char *buf, int buflen, const gchar *charset)
 			if ((guchar) *ch > 127)
 				count++;
 		}
-	} while (status == (gsize) -1 && errno == E2BIG);
+	} while (status == -1 && errno == E2BIG);
 	camel_iconv_close (cd);
 
-	if (status == (gsize) -1 || status > 0)
+	if (status == -1 || status > 0)
 		return (CamelTransferEncoding)-1;
 
 	if ((count == 0) && (buflen < LINE_LEN) &&
@@ -990,13 +984,8 @@ void FolderListModel::createFolder(const QString &name, QVariant parentFolderId)
 
 void FolderListModel::deleteFolder(QVariant folderId)
 {
-
-
 }
 
 void FolderListModel::renameFolder(QVariant folderId, const QString &name)
 {
 }
-
-
-

@@ -19,8 +19,6 @@
 
 #include "dbustypes.h"
 #include <QAbstractListModel>
-#include <QMailFolder>
-#include <QMailAccount>
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-account.h>
 #include <gconf/gconf-client.h>

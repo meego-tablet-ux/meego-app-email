@@ -151,7 +151,7 @@ Window {
     EmailAgent {
         id: emailAgent;
 
-        onSyncBegin: {
+        /*onSyncBegin: {
             window.refreshInProgress = true;
         }
 
@@ -166,7 +166,7 @@ Window {
                 errMsg = msg;
                 confirmDialog.show();
             }
-        }
+        }*/
     }
 
     EmailMessageListModel {

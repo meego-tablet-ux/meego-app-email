@@ -9,8 +9,6 @@
 #ifndef EMAILMESSAGE_H
 #define EMAILMESSAGE_H
 
-#include <QMailAccount>
-#include <QMailStore>
 #include <QDeclarativeItem>
 
 class EmailMessage : public QDeclarativeItem
@@ -35,17 +33,9 @@ public:
     Q_INVOKABLE void send();
     Q_INVOKABLE void saveDraft();
 
-signals:
-    void sendCompleted();
-
-private slots:
-    void onSendCompleted();
-
 private:
     void processAttachments();
 
-    QMailMessage m_msg;
-    QMailAccount m_account;
     QString m_bodyText;
     QStringList m_attachments;
 };

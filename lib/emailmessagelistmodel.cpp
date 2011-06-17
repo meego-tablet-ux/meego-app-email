@@ -14,14 +14,9 @@
 #include <camel/camel-data-wrapper.h>
 #include <camel/camel-url.h>
 #include "emailmessagelistmodel.h"
-#include <QMailMessage>
-#include <QMailMessageKey>
-#include <QMailStore>
-#include <QMailServiceAction>
 #include <QDateTime>
 #include <QTimer>
 #include <QProcess>
-#include <qmailnamespace.h>
 #include <glib.h>
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-data-server-util.h>
@@ -1626,10 +1621,10 @@ int EmailMessageListModel::columnCount(const QModelIndex &idx) const
 }
 
 
+#if 0
 void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity activity)
 {
-	Q_UNUSED (activity)
-#if 0
+    Q_UNUSED (activity)
     if (QMailServiceAction *action = static_cast<QMailServiceAction*>(sender()))
     {
         if (activity == QMailServiceAction::Successful)
@@ -1645,8 +1640,8 @@ void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity
             emit messageDownloadCompleted();
         }
     }
-#endif
 }
+#endif
 
 void saveMimePart (QString uri, CamelMimePart *part, bool tmp)
 {

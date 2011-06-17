@@ -19,7 +19,8 @@
 static void
 account_changed (EAccountList *eal, EAccount *ea, gpointer dummy)
 {
-    printf("Accouint changed\n");
+    // TODO: need to find out what this routine suppose to do
+    Q_UNUSED(dummy);
     EIterator *iter = e_list_get_iterator(E_LIST(eal));
     while (e_iterator_is_valid(iter)) {
         EAccount *acc = (EAccount *)e_iterator_get(iter);
@@ -135,6 +136,7 @@ void EmailAccountSettingsModel::reload()
 
 int EmailAccountSettingsModel::rowCount(const QModelIndex &parent) const
 {
+    Q_UNUSED(parent);
     return mLength;
 }
 
@@ -585,7 +587,6 @@ void EmailAccountSettingsModel::setConfirmDeleteMail(bool val)
 
 void EmailAccountSettingsModel::saveChanges()
 {
-    int i, len = rowCount();
     bool modified = false;
     bool save = false;
     mUpdateIntervalConf->set(mUpdateInterval);
