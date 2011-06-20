@@ -14,10 +14,11 @@ import Qt.labs.gestures 2.0
 
 Item {
     id: container
-    width: parent.width
-    parent: readingView
     anchors.fill: parent
     
+    property string progressBarText: ""
+    property bool progressBarVisible: false
+    property real progressBarPercentage: 0
     property string uri;
     property bool downloadInProgress: false
     property bool openFlag: false
@@ -26,7 +27,19 @@ Item {
     property string musicLabel: qsTr("Music")
     property string videoLabel: qsTr("Video")
     property string pictureLabel: qsTr("Picture")
+
+    // @todo Remove if these are no longer relevant.
     property string attachmentSavedLabel: qsTr("Attachment saved.")
+    property string downloadingAttachmentLabel: qsTr("Downloading Attachment...")
+    property string downloadingContentLabel: qsTr("Downloading Content...")
+
+    // Placeholder strings for I18n purposes.
+
+    //: Message displayed when downloading an attachment.  Arg 1 is the name of the attachment.
+    property string savingAttachmentLabel: qsTr("Saving %1")
+
+    //: Attachment has been saved message, where arg 1 is the name of the attachment.
+    property string attachmentHasBeenSavedLabel: qsTr("%1 saved")
 
     Connections {
         target: messageListModel
@@ -191,7 +204,7 @@ Item {
             }
             Text {
                 width: subjectRect.width - subjectLabel.width - 10
-                font.pixelSize: theme.fontPixelSizeLarge
+                font.pixelSize: theme.fontPixelSizeNormal
                 text: window.mailSubject
                 anchors.verticalCenter: parent.verticalCenter
                 elide: Text.ElideRight
@@ -221,13 +234,13 @@ Item {
             }
         }
     }
+
     Rectangle {
         id: bodyTextArea
         anchors.top: (window.numberOfMailAttachments > 0) ? attachmentRect.bottom : subjectRect.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: downloadInProgress ? progressBarRect.top : previousNextEmailRect.top
-        width: parent.width
+        anchors.bottom: parent.bottom
         border.width: 1
         border.color: "black"
         color: "white"
@@ -319,10 +332,25 @@ Item {
                 contentsScale: 1
                 focus: true
                 clip: true
+                font.pixelSize: theme.fontPixelSizeLarge
                 visible: (window.mailHtmlBody != "")
                 onLinkClicked: {
                     emailAgent.openBrowser(url);
                 }
+
+                onLoadStarted: {
+                    progressBarText = downloadingContentLabel;
+                    progressBarVisible = true;
+                }
+
+                onLoadFinished: {
+                    progressBarVisible = false;
+                }
+
+                onLoadProgress: {
+                    progressBarPercentage=progress;
+                }
+
             }
 
             TextEdit {
@@ -344,134 +372,5 @@ Item {
         }
     }
 
-    BorderImage {
-        id: progressBarRect
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: previousNextEmailRect.top
-        opacity: downloadInProgress ? 1 : 0
-        height: 45
-        source: "image://theme/navigationBar_l"
 
-        Item {
-            anchors.left: parent.left
-            anchors.leftMargin: 20
-            anchors.right: downloadLabel.left
-            anchors.bottom: parent.bottom
-            height:parent.height
-            Image {
-                id: progressBar
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.rightMargin: 20
-                anchors.verticalCenter:parent.verticalCenter
-                fillMode: Image.Stretch
-                source: "image://theme/playhead_bg"
-            }
-            Image {
-                id: progressBarSlider
-                anchors.verticalCenter:progressBar.verticalCenter
-                source:"image://theme/scrub_head_sm"
-                x: -width/2
-                z:10
-            }
-            Image {
-                id: elapsedHead
-                source: "image://theme/media/progress_fill_1"
-                anchors.left: progressBar.left
-                anchors.verticalCenter:progressBar.verticalCenter
-                z:1
-            }
-            BorderImage {
-                id: elapsedBody
-                source: "image://theme/media/progress_fill_2"
-                anchors.left: elapsedHead.right
-                anchors.right: elapsedTail.left
-                anchors.verticalCenter:progressBar.verticalCenter
-                border.left: 1; border.top: 1
-                border.right: 1; border.bottom: 1
-                z:1
-            }
-            Image {
-                id: elapsedTail
-                source: "image://theme/media/progress_fill_3"
-                anchors.right: progressBarSlider.right
-                anchors.rightMargin: progressBarSlider.width/2
-                anchors.verticalCenter:progressBar.verticalCenter
-                z:1
-            }
-            Connections {
-                id: progressBarConnection
-                target: emailAgent
-                onProgressUpdate: {
-                    progressBarSlider.x = percent * (progressBar.width - progressBarSlider.width) / 100 - progressBarSlider.width/2;
-                }
-            }
-        }
-        Text {
-            id: downloadLabel
-            anchors.right: parent.right
-            anchors.rightMargin: 10
-            anchors.bottom: parent.bottom
-            anchors.top: parent.top
-            horizontalAlignment: Text.AlignLeft
-            verticalAlignment:Text.AlignVCenter
-            font.pixelSize: theme.fontPixelSizeLarge
-            color: theme.fontColorMediaHighlight
-            text: qsTr("Downloading...")
-        }
-    }
-    Item {
-        id: previousNextEmailRect
-        anchors.bottom: readingViewToolbar.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        width: parent.width
-        height: previousEmailButton.height
-        //color: "#0d0303"
-    BorderImage {
-        id: navigationBar
-        width: parent.width
-        source: "image://themedimage/widgets/common/action-bar/action-bar-background"
-    }
-
-        ToolbarButton  {
-            id: previousEmailButton
-            anchors.left: parent.left
-            anchors.top: parent.top
-            visible: window.currentMessageIndex > 0 ? true : false
-            iconName: "mail-message-previous" 
-            onClicked: {
-                if (window.currentMessageIndex > 0)
-                {
-                    window.currentMessageIndex = window.currentMessageIndex - 1;
-                    window.updateReadingView(window.currentMessageIndex);
-                }
-            }
-        }
-
-        ToolbarButton {
-            id: nextEmailButton
-
-            anchors.right: parent.right
-            anchors.top: parent.top
-            visible: (window.currentMessageIndex + 1) < messageListModel.messagesCount() ? true : false
-            iconName: "mail-message-next" 
-
-            onClicked: {
-                if (window.currentMessageIndex < messageListModel.messagesCount())
-                {
-                    window.currentMessageIndex = window.currentMessageIndex + 1;
-                    window.updateReadingView(window.currentMessageIndex);
-                }
-            }
-        }
-    } 
-    ReadingViewToolbar {
-        id: readingViewToolbar
-        anchors.right: parent.right
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        width: parent.width
-    }
 }

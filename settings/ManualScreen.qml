@@ -20,6 +20,7 @@ Item {
         color: "#eaf6fb"
     }
     Flickable {
+        id: manualFlick
         clip: true
         anchors.top: parent.top
         anchors.left: parent.left
@@ -138,7 +139,14 @@ Item {
                 }
             }
         }
+
+        Component.onCompleted: {
+            if(manualSaveRestoreState.restoreRequired) {
+                manualFlick.contentY = manualSaveRestoreState.value("email-manual-manualFlick-contentY");
+            }
+        }
     }
+
     ModalMessageBox {
         id: verifyCancel
         acceptButtonText: qsTr ("Yes")
@@ -234,6 +242,44 @@ Item {
             onClicked: {
                 verifyCancel.show();
             }
+        }
+    }
+
+    SaveRestoreState {
+        id: manualSaveRestoreState
+        onSaveRequired: {
+            //flickable
+            setValue("email-manual-manualFlick-contentY",manualFlick.contentY);
+
+            //form data
+            setValue("email-manual-recvServerField-errorText",recvServerField.errorText);
+            setValue("email-manual-recvPortField-errorText",recvPortField.errorText);
+            setValue("email-manual-recvUsernameField-errorText",recvUsernameField.errorText);
+            setValue("email-manual-recvPasswordField-errorText",recvPasswordField.errorText);
+            setValue("email-manual-sendServerField-errorText",sendServerField.errorText);
+            setValue("email-manual-sendPortField-errorText",sendPortField.errorText);
+            setValue("email-manual-sendUsernameField-errorText",sendUsernameField.errorText);
+            setValue("email-manual-sendPasswordField-errorText",sendPasswordField.errorText);
+
+            //dialogs
+            setValue("email-manual-verifyCancel-verify",verifyCancel.visible);
+
+            sync();
+        }
+
+    }
+
+    Component.onCompleted: {
+        if((manualSaveRestoreState.restoreRequired) &&
+                (mainSaveRestoreState.value("email-PageState") == "ManualScreen") ){
+            recvServerField.errorText = manualSaveRestoreState.value("email-manual-recvServerField-errorText");
+            recvPortField.errorText = manualSaveRestoreState.value("email-manual-recvPortField-errorText");
+            recvUsernameField.errorText = manualSaveRestoreState.value("email-manual-recvUsernameField-errorText");
+            recvPasswordField.errorText = manualSaveRestoreState.value("email-manual-recvPasswordField-errorText");
+            sendServerField.errorText = manualSaveRestoreState.value("email-manual-sendServerField-errorText");
+            sendPortField.errorText = manualSaveRestoreState.value("email-manual-sendPortField-errorText");
+            sendUsernameField.errorText = manualSaveRestoreState.value("email-manual-sendUsernameField-errorText");
+            sendPasswordField.errorText = manualSaveRestoreState.value("email-manual-sendPasswordField-errorText");
         }
     }
 }

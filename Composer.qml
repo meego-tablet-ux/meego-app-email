@@ -11,8 +11,9 @@ import MeeGo.Components 0.1
 import MeeGo.App.Email 0.1
 
 
-Item {
+FocusScope {
     id: composer
+    focus:  true
 
     property string quotedBody: "";
 
@@ -28,6 +29,8 @@ Item {
     property alias fromEmail: header.fromEmail
     property alias header: header
 
+    property string replyElementId: "replyElement"
+
 
     function completeEmailAddresses () {
         header.completeEmailAddresses ();
@@ -35,10 +38,21 @@ Item {
 
     function setQuotedHtmlBody(header,quotedHtml) {
         var newBody;
-        newBody = "<DIV style=\"background-color:#ffffff\"><DIV CONTENTEDITABLE=\"true\"></DIV>" + header + "</DIV>";
+        newBody = "<DIV style=\"background-color:#ffffff\"><DIV id=\"" + replyElementId + "\"CONTENTEDITABLE=\"true\"></DIV>" + header + "</DIV>";
         newBody += "<blockquote style=\"margin: 0pt 0pt 0pt 0.8ex; border-left: 1px solid rgb(204, 204, 204); padding-left: 1ex;\">\n";
         newBody += quotedHtml + "\n</blockquote>\n";
         quotedBody = newBody;
+    }
+
+    function setReplyFocus() {
+        focus = true;
+        if (window.composeInTextMode) {
+            focus = true;
+            textEditPane.focus = true;
+            return textEditPane.focus;
+        } else {
+            return htmlEditPane.setFocusElement(replyElementId)
+        }
     }
 
     EmailHeader {
@@ -61,6 +75,9 @@ Item {
         HtmlField {
             id: htmlEditPane
             anchors.fill: parent
+            anchors.bottomMargin: 5
+            focus: true
+            font.pixelSize: theme.fontPixelSizeLarge
             visible: window.composeInTextMode ? false : true
             html : {
                 var sig = emailAgent.getSignatureForAccount(window.currentMailAccountId);
@@ -84,10 +101,7 @@ Item {
             }
 
             anchors.fill: parent
-
-            onFocusChanged: {
-                console.log ("Focus changed " + focus);
-            }
+            anchors.bottomMargin: 5
         }
     }
 }

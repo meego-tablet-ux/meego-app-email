@@ -9,21 +9,15 @@
 import QtQuick 1.0
 import MeeGo.Components 0.1
 
-BorderImage {
+Item {
     id: attachmentPickerButton
 
     property Component pickerComponent
     property alias pickerLabel: thePickerLabel.text
     property string pickerImage
 
-    source: "image://theme/settings/btn_settingentry_up"
-    border.left:   5
-    border.right:  5
-    border.top:    5
-    border.bottom: 5
-
     width:  parent.width
-    height: Math.max(pickerIcon.height, pickerLabel.height, arrowRight.height)
+    height: 108
 
     MouseArea {
         anchors.fill: parent

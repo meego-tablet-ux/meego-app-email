@@ -6,13 +6,16 @@ SUBDIRS += lib plugin content
 qmlfiles.files += *.qml settings/
 qmlfiles.path += $$INSTALL_ROOT/usr/share/$$TARGET
 
-desktop.files += email-settings.desktop
-desktop.path += $$INSTALL_ROOT/usr/share/meego-ux-settings/apps/
+desktop.files += meego-app-email.desktop
+desktop.path += $$INSTALL_ROOT/usr/share/applications/
+
+setting_desktop.files += email-settings.desktop
+setting_desktop.path += $$INSTALL_ROOT/usr/share/meego-ux-settings/apps/
 
 schemas.files += meego-app-email.schemas
 schemas.path +=$$INSTALL_ROOT/etc/gconf/schemas/
 
-INSTALLS += qmlfiles desktop schemas
+INSTALLS += qmlfiles desktop setting_desktop schemas
 
 TRANSLATIONS += *.qml settings/*.qml settings/*.js
 PROJECT_NAME = meego-app-email

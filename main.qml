@@ -25,6 +25,7 @@ Window {
     property variant currentMailAccountId: 0;   // holds the actual QMailAccountId object
     property int currentMailAccountIndex: -1;    // holds the current account index to account list model
     property variant currentFolderId: 0;
+    property string currentFolderName
     property string currentAccountDisplayName;
 
     property string subjectLabel: qsTr("Subject:")
@@ -94,8 +95,7 @@ Window {
             }
             onAccepted: {}
         }
-
-        ModalDialog {
+       ModalDialog {
             id:passwordDialog
             property alias dlgText: prompt.text
             property alias dlgKey: key.text
@@ -144,38 +144,20 @@ Window {
                 mailAccountListModel.addPassword (dlgKey, entry.text);
             }
         }
-
     }
 
 
     EmailAgent {
         id: emailAgent;
-
-        /*onSyncBegin: {
-            window.refreshInProgress = true;
-        }
-
-        onSyncCompleted: {
-            window.refreshInProgress = false;
-        }
-
-        onError: {
-            window.refreshInProgress = false;
-            if (code != 1040)
-            {
-                errMsg = msg;
-                confirmDialog.show();
-            }
-        }*/
     }
 
     EmailMessageListModel {
         id: messageListModel
-	onFolderChanged: {
-		var count;
-		count = mailFolderListModel.getFolderMailCount();
-		mailAccountListModel.setUnreadCount (window.currentMailAccountId, count);
-	}
+        onFolderChanged: {
+            var count;
+            count = mailFolderListModel.getFolderMailCount();
+            mailAccountListModel.setUnreadCount (window.currentMailAccountId, count);
+        }
     }
 
     FolderListModel {
@@ -462,6 +444,7 @@ Window {
             window.folderListViewTitle = currentAccountDisplayName + " " + mailFolderListModel.inboxFolderName();
             window.folderListViewClickCount = 0;
             window.currentFolderId = mailFolderListModel.inboxFolderId();
+            window.currentFolderName = mailFolderListModel.inboxFolderName();
             window.switchBook(folderList);
         }
     }
@@ -531,7 +514,26 @@ Window {
                     }
                 }
             }
-            FolderListView {}
+            PageBackground {
+                contents: FolderListView {
+                    id: folderListContainer
+                }
+                toolbar: FolderListViewToolbar {
+                    id: folderListViewToolbar
+                    folderListContainer: folderListContainer
+
+                    onEditModeBegin: {
+                        messageListModel.deSelectAllMessages();
+                        folderListContainer.inSelectMode = true;
+                        folderListContainer.numOfSelectedMessages = 0;
+                    }
+
+                    onEditModeEnd: {
+                        messageListModel.deSelectAllMessages();
+                        folderListContainer.inSelectMode = false;
+                    }
+                }
+            }
         }
     }
 
@@ -548,7 +550,10 @@ Window {
                 accountList.push(qsTr("Account switcher"));
                 window.accountFilterModel = accountList;
             }
-            AccountPage {}
+            PageBackground {
+                contents: AccountPage {}
+                toolbar: AccountViewToolbar {}
+            }
         }
     }
 
@@ -560,9 +565,10 @@ Window {
             TopItem { id: composerTopItem }
 
             Component.onCompleted: {
+
                 if (window.editableDraft)
-                {
-                    composerView.composer.body= window.mailBody
+                {                    
+                    composerView.composer.textBody= window.mailBody
                     composerView.composer.subject= window.mailSubject
 
                     var idx;
@@ -581,7 +587,6 @@ Window {
                     composerView.composer.attachmentsModel.clear();
                     for (idx = 0; idx < window.mailAttachments.length; idx ++)
                         composerView.composer.attachmentsModel.append({"uri": window.mailAttachments[idx]});
-
                 }
 
                 window.editableDraft= false
@@ -595,8 +600,12 @@ Window {
             property alias composer: composerView.composer
             anchors.fill: parent
             pageTitle: qsTr("Composer")
-            ComposerView {
-                id: composerView
+            PageBackground {
+                contents: ComposerView {
+                    id: composerView
+                }
+                toolbar: ComposerViewToolbar {
+                }
             }
         }
     }
@@ -657,8 +666,15 @@ Window {
                     }
                 }
             }
-
-            ReadingView {
+            PageBackground {
+                contents: ReadingView {
+                    id: reading
+                }
+                toolbar: ReadingViewBottomBar {
+                    progressBarText: reading.progressBarText
+                    progressBarVisible: reading.progressBarVisible
+                    progressBarPercentage: reading.progressBarPercentage
+                }
             }
         }
     }

@@ -4,7 +4,7 @@ TEMPLATE = lib
 
 CONFIG += plugin link_pkgconfig
 
-PKGCONFIG += meego-ux-content qmfclient libedataserver-1.2
+PKGCONFIG += meego-ux-content libedataserver-1.2
 
 # use pkg-config paths for include in both g++ and moc
 INCLUDEPATH += $$system(pkg-config --cflags meego-ux-content \

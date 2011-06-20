@@ -147,11 +147,10 @@ Item {
                 iconName: "mail-reply"
                 onClicked: {
                     var newPage;
-
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
                     setMessageDetails (newPage.composer, window.currentMessageIndex, false);
-
+                    newPage.composer.setReplyFocus();
 		}
 	    }
         }
@@ -171,10 +170,10 @@ Item {
                 iconName: "mail-reply-all"
                 onClicked: {
                     var newPage;
-
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
                     setMessageDetails (newPage.composer, window.currentMessageIndex, true);
+                    newPage.composer.setReplyFocus();
                 }
             }
         }
@@ -194,7 +193,6 @@ Item {
                 iconName: "mail-forward"
                 onClicked: {
                     var newPage;
-
                     window.addPage (composer);
                     newPage = window.pageStack.currentPage;
 
@@ -213,6 +211,7 @@ Item {
                     newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
                     messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
                     newPage.composer.attachmentsModel = mailAttachmentModel;
+                    newPage.composer.setReplyFocus();
                 }
             }
         }

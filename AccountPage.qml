@@ -13,8 +13,6 @@ import MeeGo.App.Email 0.1
 
 Item {
     id: container
-    width: window.width
-    parent: accountListView
     anchors.fill: parent
 
     property int topicHeight: 58
@@ -39,21 +37,20 @@ Item {
 
     ListView {
         id: listView
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: accountListViewToolbar.top
-        width: parent.width
+        anchors.fill: parent
         clip: true
         model: mailAccountListModel
         spacing: 1
 
         onCurrentIndexChanged: container.topicTriggered(currentIndex)
 
-        delegate: Rectangle {
+        delegate: Item {
             id: accountItem
-            width: container.width
+            width: parent.width
             height: theme.listBackgroundPixelHeightTwo
+
+            //: Label that displays the number of unread e-mail messages.  Note plural handling.
+            property string unreadMessagesLabel: qsTr("%n unread message(s)", "", unreadCount)
 
             property string accountDisplayName;
             accountDisplayName: {
@@ -63,9 +60,9 @@ Item {
                     window.currentMailAccountId = mailAccountId;
             }
 
-            Image {
-                anchors.fill: parent
-                source: "image://theme/email/bg_email details_p"
+            ListSeparator {
+                id: separator
+                visible: index > 0
             }
 
             property string accountImage
@@ -111,17 +108,20 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 100
                 verticalAlignment: Text.AlignVCenter
-                text: qsTr("%1 - %2").arg(emailAddress).arg(displayName)
+                text: emailAddress + " - " + displayName  //i18n ok
             }
 
-            Image {
+            BorderImage {
                 id: unreadImage
                 anchors.right: goToFolderListIcon.left 
                 anchors.rightMargin:10 
                 anchors.verticalCenter: parent.verticalCenter
-                width: 50
-                fillMode: Image.Stretch
-                source: "image://themedimage/widgets/apps/email/accounts-unread"
+                width: text.paintedWidth + 20
+                source: unreadCount > 0 ? "image://themedimage/widgets/apps/email/accounts-unread" : "image://themedimage/widgets/apps/email/accounts-empty"
+                border.top: 5
+                border.bottom: 5
+                border.left: 5
+                border.right: 5
 
                 Text {
                     id: text
@@ -129,8 +129,8 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     verticalAlignment: Text.AlignVCenter
                     text: unreadCount
-                    font.pixelSize: theme.fontPixelSizeMedium
-                    color: theme.fontColorNormal
+                    font.pixelSize: theme.fontPixelSizeLarge
+                    color: theme.buttonFontColor
                 }
             }
 
@@ -155,20 +155,12 @@ Item {
                         mailFolderListModel.setAccountKey(mailAccountId);
                         window.folderListViewTitle = window.currentAccountDisplayName + " " + mailFolderListModel.inboxFolderName();
                         window.currentFolderId = mailFolderListModel.inboxFolderId();
+                        window.currentFolderName = mailFolderListModel.inboxFolderName();
                         window.switchBook (folderList);
                     }
                     window.accountPageClickCount++;
                 }
             }
         }
-    }
-    Item {
-        id: accountListViewToolbar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        width: window.width
-        height: 120
-        AccountViewToolbar {}
     }
 }

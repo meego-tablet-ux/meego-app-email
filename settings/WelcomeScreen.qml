@@ -10,6 +10,7 @@ import QtQuick 1.0
 import MeeGo.Components 0.1
 
 Flickable {
+    id: welcomeFlick
     clip: true
     anchors.fill: parent
     contentWidth: content.width
@@ -18,6 +19,14 @@ Flickable {
 
     Theme {
         id: theme
+    }
+
+    SaveRestoreState {
+        id: welcomeSaveRestoreState
+        onSaveRequired: {
+            setValue("email-WelcomeScroll",welcomeFlick.contentY);
+            sync();
+        }
     }
 
     Column {
@@ -38,5 +47,11 @@ Flickable {
             text: qsTr("Set up your accounts")
         }
         WelcomeButtons {}
+    }
+
+    Component.onCompleted: {
+        if(welcomeSaveRestoreState.restoreRequired) {
+            welcomeFlick.contentY = welcomeSaveRestoreState.value("email-WelcomeScroll");
+        }
     }
 }

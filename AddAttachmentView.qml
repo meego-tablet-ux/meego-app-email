@@ -12,7 +12,6 @@ import MeeGo.Components 0.1
 Item {
     id: addAttachmentPageContainer
 
-    parent: addAttachmentPage
     width: parent.width
     height: parent.height
 
@@ -46,49 +45,34 @@ Item {
         picker.rejected.connect (pickerCancelled);
     }
 
-    Rectangle {
+    Column {
         width: parent.width
-        anchors.top: parent.top
-        anchors.bottom: toolbar.top
-        color: "lightgrey"
 
-        Column {
-            spacing: 5
-            width: parent.width
+//        AttachmentPicker {
+//            pickerComponent: documentPicker
+//            pickerLabel: qsTr("Documents")
+//            pickerImage: "image://theme/panels/pnl_icn_documents"
+//        }
+//        ListSeparator {}
 
-//            AttachmentPicker {
-//                pickerComponent: documentPicker
-//                pickerLabel: qsTr("Documents")
-//                pickerImage: "image://theme/panels/pnl_icn_documents"
-//            }
-
-            AttachmentPicker {
-                pickerComponent: photoPicker
-                pickerLabel: qsTr("Photos")
-                pickerImage: "image://theme/panels/pnl_icn_photos"
-            }
-
-            AttachmentPicker {
-                pickerComponent: moviePicker
-                pickerLabel: qsTr("Movies")
-                pickerImage: "image://theme/panels/pnl_icn_video"
-            }
-
-            AttachmentPicker {
-                pickerComponent: musicPicker
-                pickerLabel: qsTr("Music")
-                pickerImage: "image://theme/panels/pnl_icn_music"
-            }
+        AttachmentPicker {
+            pickerComponent: photoPicker
+            pickerLabel: qsTr("Photos")
+            pickerImage: "image://theme/panels/pnl_icn_photos"
         }
-    }
+        ListSeparator {}
 
-    AddAttachmentToolbar {
-        id: toolbar
-        width: parent.width
-        anchors.bottom: parent.bottom
+        AttachmentPicker {
+            pickerComponent: moviePicker
+            pickerLabel: qsTr("Movies")
+            pickerImage: "image://theme/panels/pnl_icn_video"
+        }
+        ListSeparator {}
 
-        onOkay: {
-            window.popPage ();
+        AttachmentPicker {
+            pickerComponent: musicPicker
+            pickerLabel: qsTr("Music")
+            pickerImage: "image://theme/panels/pnl_icn_music"
         }
     }
 

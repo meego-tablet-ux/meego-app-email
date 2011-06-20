@@ -13,6 +13,7 @@ BorderImage {
     id: addAttachmentToolbar
 
     width: parent.width
+    height: addAttachmentButton.height
     verticalTileMode: BorderImage.Stretch
     source: "image://theme/navigationBar_l"
 
@@ -23,7 +24,6 @@ BorderImage {
         anchors.left: parent.left
         anchors.leftMargin: 10
         anchors.top: parent.top
-        height: parent.height
         width: 90
         iconName: "mail-compose"
         onClicked: {

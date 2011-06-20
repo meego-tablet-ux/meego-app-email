@@ -18,6 +18,7 @@ Item {
     }
 
     Flickable {
+        id: confirmFlick
         clip: true
         anchors.fill: parent
         contentWidth: content.width
@@ -48,7 +49,6 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.horizontalCenter: parent.horizontalCenter
                     height: 45
-                    width: 300
                     //font: "Droid Sans"
                     //color: "white"
                     text: qsTr("Done")
@@ -67,6 +67,19 @@ Item {
                 }
                 WelcomeButtons {}
             }
+        }
+        Component.onCompleted: {
+            if(confirmScreenSaveRestore.restoreRequired) {
+                confirmFlick.contentY = confirmScreenSaveRestore.value("email-confirm-confirmFlick-contentY");
+            }
+        }
+    }
+
+    SaveRestoreState {
+        id: confirmScreenSaveRestore
+        onSaveRequired: {
+            setValue("email-confirm-confirmFlick-contentY", confirmFlick.contentY);
+            sync();
         }
     }
 }

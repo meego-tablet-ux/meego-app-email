@@ -7,6 +7,7 @@
  */
 
 import QtQuick 1.0
+import MeeGo.Components 0.1
 
 Column {
     anchors.left: parent.left
@@ -21,6 +22,7 @@ Column {
             emailAccount.clear();
             emailAccount.preset = 4; // AOL
             emailAccount.description = qsTr("AOL");
+            savePreset();
             settingsPage.state = "RegisterScreen";
         }
     }
@@ -31,6 +33,7 @@ Column {
             emailAccount.clear();
             emailAccount.preset = 2; // Gmail
             emailAccount.description = qsTr("Gmail");
+            savePreset();
             settingsPage.state = "RegisterScreen";
         }
     }
@@ -41,6 +44,7 @@ Column {
             emailAccount.clear();
             emailAccount.preset = 5; // Microsoft Live
             emailAccount.description = qsTr("Microsoft Live Hotmail");
+            savePreset();
             settingsPage.state = "RegisterScreen";
         }
     }
@@ -52,6 +56,7 @@ Column {
             emailAccount.clear();
             emailAccount.preset = 1; // Mobile Me
             emailAccount.description = qsTr("MobileMe");
+            savePreset();
             settingsPage.state = "RegisterScreen";
         }
     }
@@ -63,6 +68,7 @@ Column {
             emailAccount.clear();
             emailAccount.preset = 3; // Yahoo
             emailAccount.description = qsTr("Yahoo!");
+            savePreset();
             settingsPage.state = "RegisterScreen";
         }
     }
@@ -74,7 +80,30 @@ Column {
             emailAccount.recvSecurity = "0"; // None
             emailAccount.sendAuth = "0";     // None
             emailAccount.sendSecurity = "0"; // None
+            saveZero();
             settingsPage.state = "RegisterScreen";
         }
     }
+
+    SaveRestoreState {
+        id: welcomeButtonsSave
+        onSaveRequired: {
+            sync();
+        }
+    }
+
+    function savePreset() { //Called by other items' signal
+        welcomeButtonsSave.setValue("email-account-preset",emailAccount.preset);
+        welcomeButtonsSave.setValue("email-account-description",emailAccount.description);
+        welcomeButtonsSave.sync();
+    }
+
+    function saveZero() { //Called by other items' signal
+        welcomeButtonsSave.setValue("email-account-preset","-1");
+        welcomeButtonsSave.setValue("email-account-recvSecurity",emailAccount.recvSecurity);
+        welcomeButtonsSave.setValue("email-account-sendAuth",emailAccount.sendAuth);
+        welcomeButtonsSave.setValue("email-account-sendSecurity",emailAccount.sendSecurity);
+        welcomeButtonsSave.sync();
+    }
+
 }

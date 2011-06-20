@@ -22,7 +22,8 @@ BorderImage {
     border.right: 10
 
     height: flickable.height + 20
-    source: "image://theme/email/frm_textfield_l"
+    source:input.focus? "image://themedimage/widgets/common/text-area/text-area-background-active"
+                       : "image://theme/email/frm_textfield_l"
 
     function complete () {
         if (text != "") {
@@ -76,7 +77,8 @@ BorderImage {
 
                 onClicked: {
                     input.visible = true;
-                    input.forceActiveFocus ();
+                    input.forceActiveFocus();
+                    input.width =input.font.pixelSize
                 }
             }
 
@@ -92,7 +94,6 @@ BorderImage {
                     EmailAddress {
                         emailAddress: email
                         givenName: name
-
                         onClicked: {
                             var i;
 
@@ -113,7 +114,7 @@ BorderImage {
                     width: input.width
                     height: 35
 
-                    TextEntry {
+                    TextInput {
                         id: input
                         visible: false
 
@@ -151,6 +152,7 @@ BorderImage {
                                 addEmailAddress ();
                                 event.accepted = true;
                             }
+                            width= text.length * font.pixelSize
                             flickable.ensureVisible (parent.y, parent.height);
                         }
                     }
@@ -159,3 +161,4 @@ BorderImage {
         }
     }
 }
+

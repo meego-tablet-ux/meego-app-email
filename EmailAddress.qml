@@ -37,6 +37,7 @@ Item {
         Text {
             id: content
             anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: theme.fontPixelSizeNormal
             text: {
                 if (known) {
                     return givenName;
