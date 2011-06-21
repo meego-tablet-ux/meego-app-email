@@ -984,8 +984,33 @@ void FolderListModel::createFolder(const QString &name, QVariant parentFolderId)
 
 void FolderListModel::deleteFolder(QVariant folderId)
 {
+    for (int i = 0; i < m_folderlist.size(); i++)
+    {
+        CamelFolderInfoVariant folder(m_folderlist[i]);
+
+	if (folder.uri == folderId.toString()) {
+		/*This is the folder to delete */
+		QDBusPendingReply<bool> reply = m_store_proxy->deleteFolder(folder.full_name);
+		reply.waitForFinished();
+		/* check the bool return to see if it succeeded deleting. */
+		break;
+	}
+    }
+	
 }
 
 void FolderListModel::renameFolder(QVariant folderId, const QString &name)
 {
+    for (int i = 0; i < m_folderlist.size(); i++)
+    {
+        CamelFolderInfoVariant folder(m_folderlist[i]);
+
+	if (folder.uri == folderId.toString()) {
+		/*This is the folder to rename */
+		QDBusPendingReply<bool> reply = m_store_proxy->renameFolder(folder.full_name, name);
+		reply.waitForFinished();
+		/* check the bool return to see if it succeeded renaming. */
+		break;
+	}
+    }	
 }
