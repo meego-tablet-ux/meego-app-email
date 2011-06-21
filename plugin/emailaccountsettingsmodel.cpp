@@ -204,7 +204,7 @@ QVariant EmailAccountSettingsModel::data(const QModelIndex &index, int role) con
                     result = 0;
                 else if (recvSecurity == "always")
                     result = 1;
-                else if (recvSecurity == "whenever-possible")
+                else if (recvSecurity == "when-possible")
                     result = 2;
                 break;
             }
@@ -241,7 +241,7 @@ QVariant EmailAccountSettingsModel::data(const QModelIndex &index, int role) con
                     result = 0;
                 else if (recvSecurity == "always")
                     result = 1;
-                else if (recvSecurity == "whenever-possible")
+                else if (recvSecurity == "when-possible")
                     result = 2;
                 break;
             }
@@ -395,7 +395,7 @@ bool EmailAccountSettingsModel::setData(const QModelIndex &index, const QVariant
                 switch (value.toInt()) {
                     case 0: encryption = "never";
                     case 1: encryption = "always";
-                    case 2: encryption = "whenever-possible";
+                    case 2: encryption = "when-possible";
                 }
                 QString name = camel_url_get_param (sourceCamelUrl, "use_ssl");
                 if (name != encryption) {
@@ -462,7 +462,7 @@ bool EmailAccountSettingsModel::setData(const QModelIndex &index, const QVariant
                 switch (value.toInt()) {
                     case 0: encryption = "never";
                     case 1: encryption = "always";
-                    case 2: encryption = "whenever-possible";
+                    case 2: encryption = "when-possible";
                 }
                 QString name = camel_url_get_param(transportCamelUrl, "use_ssl");
                 if (name != encryption) {

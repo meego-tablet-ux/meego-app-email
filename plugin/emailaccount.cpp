@@ -108,7 +108,7 @@ bool EmailAccount::save()
     switch (recvSecurity().toInt()) {
         case 0: recvSecurStr = "never"; break;
         case 1: recvSecurStr = "always"; break;
-        case 2: recvSecurStr = "whenever-possible";
+        case 2: recvSecurStr = "when-possible";
     }
 
     QString sourceUrl;
@@ -158,7 +158,7 @@ bool EmailAccount::save()
     switch (sendSecurity().toInt()) {
         case 0: sendSecurStr = "never"; break;
         case 1: sendSecurStr = "always"; break;
-        case 2: sendSecurStr = "whenever-possible";
+        case 2: sendSecurStr = "when-possible";
     }
     QString transportUrl = "smtp://" + sendUsername().replace("@", "%40") + ";";
     if (sendAuth() != 0) {
