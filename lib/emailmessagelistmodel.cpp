@@ -1171,7 +1171,16 @@ void EmailMessageListModel::setAccountKey (QVariant id)
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
-		m_folders.removeLast();
+		if (m_folders.length() == 0 && strncmp (url, "pop:", 4) == 0) {
+			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
+			/* Create folder first*/
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			m_folders = reply2.value ();
+			m_folders.removeLast();	
+		}
+		if (!reply.isError())
+			m_folders.removeLast();
 
         }
 
@@ -1624,7 +1633,7 @@ int EmailMessageListModel::columnCount(const QModelIndex &idx) const
 #if 0
 void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity activity)
 {
-    Q_UNUSED (activity)
+	Q_UNUSED (activity)
     if (QMailServiceAction *action = static_cast<QMailServiceAction*>(sender()))
     {
         if (activity == QMailServiceAction::Successful)

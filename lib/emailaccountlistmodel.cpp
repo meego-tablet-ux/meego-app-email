@@ -98,6 +98,7 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 		reply2 = proxy->createFolder ("", folder_name);
 		reply2.waitForFinished();
 		folderlist = reply2.value ();	
+		folderlist.removeLast();
 	}
 
     	foreach (CamelFolderInfoVariant fInfo, folderlist)
@@ -147,6 +148,9 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
              SLOT(onAccountsRemoved(const QString &)));
     connect (session_instance, SIGNAL(AccountChanged (const QString &)), this,
              SLOT(onAccountsUpdated(const QString &)));
+
+    /* Do a dummy call to wake up the daemon. Solves a whole bunch of issues. */
+    session_instance->findPassword (QString("test"));
 /*
     QMailAccountListModel::setSynchronizeEnabled(true);
     QMailAccountListModel::setKey(QMailAccountKey::messageType(QMailMessage::Email));

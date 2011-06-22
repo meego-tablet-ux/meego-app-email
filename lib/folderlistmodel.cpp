@@ -221,6 +221,16 @@ void FolderListModel::setAccountKey(QVariant id)
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
+		if (reply.isError() && strncmp (url, "pop:", 4) == 0) {
+			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
+
+			/* Create folder first*/
+			reply2 = m_store_proxy->createFolder ("", pop_foldername);
+			reply2.waitForFinished();
+			m_folderlist = reply2.value ();	
+			m_folderlist.removeLast();
+		}
+
 		printf("Got %s: %d\n", url, m_folderlist.length());
 		if (strncmp (url, "pop:", 4) != 0) {
 			m_folderlist.removeLast();
