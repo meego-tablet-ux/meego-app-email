@@ -126,6 +126,9 @@ bool EmailAccount::save()
             e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, newSent.toUtf8());
             mModified = true;
         }
+	
+	if (mModified)
+	        e_account_set_bool(mAccount, E_ACCOUNT_SOURCE_KEEP_ON_SERVER, TRUE);
 
         sourceUrl = "pop://" + recvUsername().replace("@", "%40") + "@" + recvServer() + ":" + recvPort() + "/;" +
                     "keep_on_server=true;mobile;disable_autofetch;" +
