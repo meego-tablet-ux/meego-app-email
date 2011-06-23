@@ -600,7 +600,7 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 
 	if (html) {
 		/* possible that we have non-utf8. lets filter that out first */
-		static char *gcharset = NULL;
+		static const char *gcharset = NULL;
 		CamelStream *filter_stream = NULL;
 		CamelStream *newstream;
 		CamelMimeFilter *charenc = NULL;
@@ -611,7 +611,9 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 			if (!gcharset || !*gcharset) {
 				gcharset = gconf_client_get_string (gconf, "/apps/evolution/mail/composer/charset",NULL);
 				if (!gcharset || !*gcharset) {
-					gcharset = g_strdup ("us-ascii");
+					bool ret = g_get_charset (&gcharset);
+					if (!ret || !gcharset || !*gcharset)
+						gcharset = g_strdup ("us-ascii");
 				}
 			}
 
