@@ -22,6 +22,10 @@
 #include <libedataserver/e-data-server-util.h>
 #include <gconf/gconf-client.h>
 
+#include "meegolocale.h"
+
+using namespace meego;
+
 #define WINDOW_LIMIT 20
 
 typedef enum _CamelMessageFlags {
@@ -1236,10 +1240,12 @@ bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageI
 {
   	bool ret;
 
+        meego::Locale locale;
+
 	if (id == EmailMessageListModel::SortSender) {
-		ret = info1.from < info2.from;
+                ret = locale.lessThan(info1.from, info2.from);
 	} else if (id == EmailMessageListModel::SortSubject) {
-		ret = info1.subject < info2.subject;
+                ret = locale.lessThan(info1.subject, info2.subject);
         } else if (id == EmailMessageListModel::SortDate) {
 		ret = info1.date_received < info2.date_received;
         } else {
