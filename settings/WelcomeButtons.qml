@@ -61,6 +61,8 @@ Column {
         }
     }
     */
+    // disabled till we get the license agreement from yahoo
+    /*
     WelcomeButton {
         title: qsTr("Yahoo!")
         icon: "image://themedimage/icons/services/yahoo"
@@ -71,7 +73,7 @@ Column {
             savePreset();
             settingsPage.state = "RegisterScreen";
         }
-    }
+    }*/
     WelcomeButton {
         title: qsTr("Other")
         icon: "image://themedimage/icons/services/generic"

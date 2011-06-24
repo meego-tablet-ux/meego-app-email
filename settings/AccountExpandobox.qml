@@ -36,18 +36,16 @@ Expandobox {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.margins: 20
                 source: { switch (model.preset) {
-                    case "4":
+                    case 4:
                         return "image://themedimage/icons/services/aim";
-                    case "2":
-                        return "image://themedimage/icons/services/gmail"
-                    case "5":
-                        return "image://themedimage/icons/services/msmail"
-                    case "1":
-                        return "image://themedimage/icons/services/generic"
-                    case "3":
-                        return "image://themedimage/icons/services/yahoo"
+                    case 2:
+                        return "image://themedimage/icons/services/gmail";
+                    case 5:
+                        return "image://themedimage/icons/services/msmail";
+                    case 1:
+                        return "image://themedimage/icons/services/generic";
                     default:
-                        return "image://themedimage/icons/services/generic"
+                        return "image://themedimage/icons/services/generic";
                     }
                 }
             }
