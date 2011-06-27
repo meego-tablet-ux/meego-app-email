@@ -25,9 +25,12 @@ Item {
         //Unfortunately item heights have been hard-coded. In this situation,
         //this is the appropriate fix for bug https://bugs.meego.com/show_bug.cgi?id=19151
         //var maxHeight = 50 * (5 + mailFolderListModel.totalNumberOfFolders());
-        var maxHeight = sort.height + sortFilter.height
-        + createFolder.height + renameFolder.height + deleteFolder.height +
+       
+        var maxHeight = sort.height + sortFilter.height +
         goToFolder.height + (50 * mailFolderListModel.totalNumberOfFolders())
+
+        if (mailFolderListModel.canModifyFolders()) 
+            maxHeight += createFolder.height + renameFolder.height + deleteFolder.height;
 
         if (maxHeight > (realHeight - 170))
         {
@@ -106,6 +109,7 @@ Item {
     Item {
         id: createFolder
         height: 50
+        visible: mailFolderListModel.canModifyFolders() ? true : false
 
         property string createNewFolder: qsTr("Create new folder")
 
@@ -176,6 +180,7 @@ Item {
 
     Text {
         id: renameFolder
+        visible: mailFolderListModel.canModifyFolders() ? true : false
 
         property string label: qsTr("Rename folder")
 
@@ -233,6 +238,7 @@ Item {
 
     Text {
         id: deleteFolder
+        visible: mailFolderListModel.canModifyFolders() ? true : false
 
         property string label: qsTr("Delete folder")
 
@@ -289,6 +295,7 @@ Item {
 
     Image {
         id: deleteFolderDivider
+        visible: mailFolderListModel.canModifyFolders() ? true : false
         anchors.top: deleteFolder.bottom
         width: parent.width
         source: "image://theme/email/divider_l"
@@ -298,7 +305,7 @@ Item {
         id: goToFolder
         height: 50
         anchors.left: parent.left
-        anchors.top: deleteFolderDivider.bottom
+        anchors.top: mailFolderListModel.canModifyFolders() ? deleteFolderDivider.bottom : sortDivider.bottom
         Text {
             id: goToFolderTitle
             text: window.goToFolderLabel

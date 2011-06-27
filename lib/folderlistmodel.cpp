@@ -1026,3 +1026,12 @@ void FolderListModel::renameFolder(QVariant folderId, const QString &name)
 	}
     }	
 }
+
+bool FolderListModel::canModifyFolders ()
+{
+    const char *url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
+    if (strncmp (url, "pop:", 4) == 0)
+        return false;
+
+    return true;
+}
