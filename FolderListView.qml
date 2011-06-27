@@ -105,14 +105,12 @@ Item {
         return folderListView.pageTitle.indexOf( qsTr("Drafts") ) != -1 ;
     }
 
-    ModalDialog {
+    ModalMessageBox {
         id: verifyDelete
         acceptButtonText: qsTr ("Yes")
         cancelButtonText: qsTr ("Cancel")
         title: qsTr ("Delete Email")
-        content: Text {
-            text: qsTr ("Are you sure you want to delete this email?")
-        }
+        text: qsTr ("Are you sure you want to delete this email?")
 
         onAccepted: { messageListModel.deleteMessage (window.mailId) }
     }

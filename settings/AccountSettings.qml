@@ -131,9 +131,8 @@ Item {
                             font.pixelSize: theme.fontPixelSizeMedium
                             color: "#2fa7d4"
                             elide: Text.ElideRight
-                            text: (accountSettingsModel.signature()=="") ? 
-                                          qsTr("Enter your signature."): 
-                                          ('"' + accountSettingsModel.signature() + '"') //i18n ok
+                            //: %1 is the email signature, a block of text appended to the end of an e-mail message.
+                            text: (accountSettingsModel.signature()=="")? qsTr("Enter your signature."): qsTr("\"%1\"").arg(accountSettingsModel.signature())
                         }
                     }
                 }

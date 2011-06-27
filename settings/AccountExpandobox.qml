@@ -73,7 +73,8 @@ Expandobox {
                     if (unique(model.description)) {
                         return model.description;
                     } else {
-                        return model.address + " - " + model.description;   //i18n ok
+                        //: %1 is email address, %2 is display name
+                        return qsTr("%1 - %2").arg(model.address).arg(model.description);
                     }
                 }
             }
