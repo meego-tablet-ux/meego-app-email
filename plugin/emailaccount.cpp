@@ -463,7 +463,7 @@ void EmailAccount::setEnabled(bool val)
 
 QString EmailAccount::name() const
 {
-    return e_account_get_string(mAccount, E_ACCOUNT_ID_NAME);
+    return QString::fromUtf8(e_account_get_string(mAccount, E_ACCOUNT_ID_NAME));
 }
 
 void EmailAccount::setName(QString val)
