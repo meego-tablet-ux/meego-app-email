@@ -349,7 +349,8 @@ Item {
             Text {
                 height: 50
                 font.pixelSize: theme.fontPixelSizeLarge
-                text: "(" + folderUnreadCount + ")"  //i18 ok
+                //: %1 is the number of unread emails
+                text: qsTr("(%1)").arg(folderUnreadCount)
                 anchors.left: folderLabel.right
                 anchors.leftMargin: 10
                 color:theme.fontColorNormal

@@ -108,7 +108,8 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 100
                 verticalAlignment: Text.AlignVCenter
-                text: emailAddress + " - " + displayName  //i18n ok
+                //: %1 is email address, %2 is display name
+                text: qsTr("%1 - %2").arg(emailAddress).arg(displayName)
             }
 
             BorderImage {
