@@ -151,6 +151,52 @@ Window {
         id: emailAgent;
     }
 
+    SaveRestoreState {
+        id: saveRestore
+
+        onSaveRequired: internal.save()
+
+        Component.onCompleted: {
+            if (!restoreRequired)
+                return;
+            internal.restore();
+        }
+    }
+
+    QtObject {
+        id: internal
+
+        property string currentPage: "currentPage"
+
+        function save()
+        {
+            saveRestore.setValue(currentPage, window.pageStack.currentPage.objectName);
+            window.pageStack.currentPage.save(saveRestore);
+            saveRestore.sync();
+        }
+
+        function restore()
+        {
+            restoreCurrentPage();
+        }
+
+        function restoreCurrentPage()
+        {
+            var cp = saveRestore.value(internal.currentPage);
+            if (cp == "folderListView") {
+                window.addPage(folderList);
+            } else if (cp == "accountListView") {
+                window.addPage(mailAccount);
+            } else if (cp == "composerPage") {
+                window.addPage(composer);
+            } else if (cp == "readingView") {
+                window.addPage(reading);
+            }
+            window.pageStack.currentPage.restore(saveRestore);
+        }
+    }
+
+
     EmailMessageListModel {
         id: messageListModel
         onFolderChanged: {
@@ -461,6 +507,7 @@ Window {
             anchors.fill: parent
             pageTitle: window.folderListViewTitle
             enableCustomActionMenu: true
+            objectName: "folderListView"
 
             property bool folderListPageHasFocus: true
 
@@ -469,6 +516,16 @@ Window {
             function closeMenu()
             {
                 contextActionMenu.hide();
+            }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
             }
 
             Component.onCompleted: {
@@ -543,6 +600,8 @@ Window {
             id: accountListView
             anchors.fill: parent
             pageTitle: qsTr("Account list")
+            objectName: "accountListView"
+
             property int idx: 0
             Component.onCompleted: {
                 var accountList = new Array();
@@ -554,6 +613,16 @@ Window {
                 contents: AccountPage {}
                 toolbar: AccountViewToolbar {}
             }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
+            }
         }
     }
 
@@ -561,8 +630,19 @@ Window {
         id: composer
         AppPage {
             id: composerPage
+            objectName: "composerPage"
 
             TopItem { id: composerTopItem }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
+            }
 
             Component.onCompleted: {
 
@@ -641,12 +721,23 @@ Window {
             id: readingView
             anchors.fill: parent
             pageTitle: window.mailSubject
+            objectName: "readingView"
 
             TopItem { id: readingViewTopItem }
 
             Component.onDestruction: {
                 window.accountPageClickCount = 0;
                 window.folderListViewClickCount = 0;
+            }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
             }
 
             actionMenuModel : window.mailReadFlag ? [qsTr("Mark as unread")] : [qsTr("Mark as read")]
