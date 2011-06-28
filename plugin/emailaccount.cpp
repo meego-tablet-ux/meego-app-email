@@ -113,15 +113,16 @@ bool EmailAccount::save()
 
     QString sourceUrl;
     if (recvType() == "0") {
+	//Pop
         QString draft = e_account_get_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI);
-        QString newDraft = "mbox:/home/meego/.local/share/evolution/mail/local#Drafts";
+        QString newDraft = QString("mbox:/home/meego/.local/share/evolution/mail/local#") + QString(e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS)) + QString("/Drafts");
         if (draft != newDraft) {
             e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, newDraft.toUtf8());
             mModified = true;
         }
 
         QString sent = e_account_get_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI);
-        QString newSent = "mbox:/home/meego/.local/share/evolution/mail/local#Sent";
+        QString newSent = QString("mbox:/home/meego/.local/share/evolution/mail/local#")+ QString(e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS)) +QString("/Sent");
         if (sent != newSent) {
             e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, newSent.toUtf8());
             mModified = true;
@@ -294,7 +295,7 @@ void EmailAccount::testConfiguration()
             e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, draftUri.toUtf8());
         }
     } else {
-        QString draftUriAlt = "mbox:/home/meego/.local/share/evolution/mail/local#Drafts";
+        QString draftUriAlt = QString("mbox:/home/meego/.local/share/evolution/mail/local#") + QString(e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS)) +QString("/Drafts");
         if (draftUriOld != draftUriAlt) {
             mModified = true;
             e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, draftUriAlt.toUtf8());
@@ -308,7 +309,7 @@ void EmailAccount::testConfiguration()
             e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, sentUri.toUtf8());
         }
     } else {
-        QString sentUriAlt = "mbox:/home/meego/.local/share/evolution/mail/local#Sent";
+        QString sentUriAlt = QString("mbox:/home/meego/.local/share/evolution/mail/local#") + QString(e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS)) +QString("/Sent");
         if (sentUriOld != sentUriAlt) {
             mModified = true;
             e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, sentUriAlt.toUtf8());

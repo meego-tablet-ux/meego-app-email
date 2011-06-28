@@ -1163,6 +1163,8 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
     if (instance && instance->isValid() && url && *url) {
         QDBusPendingReply<QDBusObjectPath> reply ;
+	const char *email = NULL;
+
 	if (strncmp (url, "pop:", 4) == 0)
 		reply = instance->getLocalStore();
 	else 
@@ -1171,10 +1173,8 @@ void EmailMessageListModel::setAccountKey (QVariant id)
         m_store_proxy_id = reply.value();
 
 	if (strncmp (url, "pop:", 4) == 0) {
-		const char *email;
 
 		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
-		folder_name = g_strdup_printf ("%s/Inbox", email);
 	}
 
         m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
@@ -1182,14 +1182,31 @@ void EmailMessageListModel::setAccountKey (QVariant id)
                                                                         QDBusConnection::sessionBus(), this);
 
         if (m_store_proxy && m_store_proxy->isValid()) {
-                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(folder_name ? folder_name : ""),
+                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(email ? email : ""),
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
 		if (m_folders.length() == 0 && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
-			/* Create folder first*/
+
+			/* Create base first*/
+			folder_name = g_strdup_printf ("%s/Inbox", email);
 			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			g_free (folder_name);		
+			folder_name = g_strdup_printf ("%s/Drafts", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+	
+			g_free (folder_name);		
+			folder_name = g_strdup_printf ("%s/Sent", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			g_free (folder_name);
+
+			reply2 = m_store_proxy->getFolderInfo (QString(email), 
+							CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+
 			reply2.waitForFinished();
 			m_folders = reply2.value ();
 			m_folders.removeLast();	
@@ -1199,7 +1216,6 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 
         }
 
-	g_free (folder_name);
     }
 
     
