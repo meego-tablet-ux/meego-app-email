@@ -792,6 +792,10 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 		folder_uids = reply.value ();
 		g_print("Fetched %d uids\n", folder_uids.length());
 	}
+
+	if (folder_uids.length() < WINDOW_LIMIT)
+		messages_present = false;
+
 	beginInsertRows(QModelIndex(), 0, WINDOW_LIMIT-1);
 	foreach (QString uid, folder_uids) {
 		QDBusError error;
