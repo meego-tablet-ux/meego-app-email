@@ -51,6 +51,7 @@ public slots:
     Q_INVOKABLE QVariant getAllEmailAddresses();
     Q_INVOKABLE QVariant getAllDisplayNames();
     Q_INVOKABLE QVariant getAccountIdByIndex(int idx);
+    Q_INVOKABLE QVariant getSignatureForAccount (QString id);
     Q_INVOKABLE void addPassword(QString key, QString password);
     Q_INVOKABLE void sendReceive();
     Q_INVOKABLE void cancelOperations();

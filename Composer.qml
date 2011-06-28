@@ -80,7 +80,7 @@ FocusScope {
             font.pixelSize: theme.fontPixelSizeLarge
             visible: window.composeInTextMode ? false : true
             html : {
-                var sig = emailAgent.getSignatureForAccount(window.currentMailAccountId);
+                var sig = accountsModel.getSignatureForAccount(window.currentMailAccountId);
                 if (sig == "")
                     return composer.quotedBody;
                 else
@@ -93,7 +93,7 @@ FocusScope {
             visible: window.composeInTextMode
             font.pixelSize: theme.fontPixelSizeLarge
             text : {
-                var sig = emailAgent.getSignatureForAccount(window.currentMailAccountId);
+                var sig = accountsModel.getSignatureForAccount(window.currentMailAccountId);
                 if (sig == "")
                     return composer.quotedBody;
                 else

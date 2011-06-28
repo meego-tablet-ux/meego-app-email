@@ -410,6 +410,14 @@ QVariant EmailAccountListModel::getAccountIdByIndex(int idx)
     return data(index(idx), EmailAccountListModel::MailAccountId);
 }
 
+QVariant EmailAccountListModel::getSignatureForAccount (QString id)
+{
+    EAccount *account = getAccountById ((char *)id.toLocal8Bit().constData());
+
+
+    return QVariant (e_account_get_string(account, E_ACCOUNT_ID_SIGNATURE));
+}
+
 void EmailAccountListModel::addPassword(QString key, QString password)
 {
 	char *skey, *spass;
