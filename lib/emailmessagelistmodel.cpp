@@ -21,10 +21,10 @@
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-data-server-util.h>
 #include <gconf/gconf-client.h>
-
 #include "meegolocale.h"
 
 using namespace meego;
+static const Locale g_locale;
 
 #define WINDOW_LIMIT 20
 
@@ -1240,12 +1240,10 @@ bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageI
 {
   	bool ret;
 
-        meego::Locale locale;
-
 	if (id == EmailMessageListModel::SortSender) {
-                ret = locale.lessThan(info1.from, info2.from);
+                ret = g_locale.lessThan(info1.from, info2.from);
 	} else if (id == EmailMessageListModel::SortSubject) {
-                ret = locale.lessThan(info1.subject, info2.subject);
+                ret = g_locale.lessThan(info1.subject, info2.subject);
         } else if (id == EmailMessageListModel::SortDate) {
 		ret = info1.date_received < info2.date_received;
         } else {
