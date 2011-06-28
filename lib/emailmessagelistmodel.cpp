@@ -148,17 +148,12 @@ void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 	GByteArray *ba;
 	CamelStream *filter_stream = NULL;
 	CamelMimeFilter *charenc = NULL;
-	static const char *lcharset = NULL;
 	const char *charset;
  
-	if (!lcharset)  {
-		g_get_charset (&lcharset);
-	}
-
 	stream = camel_stream_mem_new ();
 	filter_stream = camel_stream_filter_new (stream);
 	charset = camel_content_type_param (((CamelDataWrapper *) part)->mime_type, "charset");
-	charenc = camel_mime_filter_charset_new (charset, lcharset);
+	charenc = camel_mime_filter_charset_new (charset, "UTF-8");
 	camel_stream_filter_add (CAMEL_STREAM_FILTER (filter_stream), charenc);
 	g_object_unref (charenc);
 	g_object_unref (stream);
@@ -230,7 +225,7 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 
 	parseMultipartBody (reparray, (CamelMimePart *)message, plain);
  	
-	return QString (reparray);
+	return QString::fromUtf8(reparray);
 #if 0
     QMailMessagePartContainer *container = (QMailMessagePartContainer *)&mailMsg;
     QMailMessageContentType contentType = container->contentType();
@@ -548,7 +543,6 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageHtmlBodyRole)
     {
         QString uid = shown_uids[row];
-        //QMailMessage message (idFromIndex(index));
         return bodyText (uid, FALSE);
     }
     else if (role == MessageQuotedBodyRole)
