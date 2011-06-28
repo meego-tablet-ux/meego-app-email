@@ -595,7 +595,7 @@ void EmailAccountSettingsModel::saveChanges()
     mConfirmDeleteMailConf->set(mConfirmDeleteMail);
 
         EIterator *iter = e_list_get_iterator(E_LIST(mAccountList));
-        while (e_iterator_is_valid(iter) && modified) {
+        while (e_iterator_is_valid(iter)) {
             EAccount *acc = (EAccount *)e_iterator_get(iter);
             QString sig = e_account_get_string(acc, E_ACCOUNT_ID_SIGNATURE);
             QString newSig = mSignatureConf->value().toString();
@@ -609,6 +609,7 @@ void EmailAccountSettingsModel::saveChanges()
             int newUpdate = mUpdateIntervalConf->value().toInt();
             if (update != newUpdate) {
                 e_account_set_int(acc, E_ACCOUNT_SOURCE_AUTO_CHECK_TIME, newUpdate);
+                e_account_set_bool (acc, E_ACCOUNT_SOURCE_AUTO_CHECK, newUpdate != 0);
                 modified = true;
             }
 	    if (modified) {
