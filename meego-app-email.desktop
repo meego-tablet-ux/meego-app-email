@@ -25,7 +25,7 @@ Name[de]=E-Mail
 Name[da]=E-mail
 Name[cs]=E-mail
 Icon=meego-app-email
-Exec=meego-qml-launcher --opengl --fullscreen --app meego-app-email
+Exec=invoker --type=l meego-qml-launcher --opengl --fullscreen --app meego-app-email
 X-MEEGO-CORE-UX=true
 X-MEEGO-APP-HOME-ROW=0
 X-MEEGO-APP-HOME-COLUMN=2
