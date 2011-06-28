@@ -13,6 +13,8 @@
 #include <camel/camel-medium.h>
 #include <camel/camel-data-wrapper.h>
 #include <camel/camel-url.h>
+#include <camel/camel-stream-filter.h>
+#include <camel/camel-mime-filter-charset.h>
 #include "emailmessagelistmodel.h"
 #include <QDateTime>
 #include <QTimer>
@@ -144,10 +146,25 @@ void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 {
 	CamelStream *stream;
 	GByteArray *ba;
+	CamelStream *filter_stream = NULL;
+	CamelMimeFilter *charenc = NULL;
+	static const char *lcharset = NULL;
+	const char *charset;
+ 
+	if (!lcharset)  {
+		g_get_charset (&lcharset);
+	}
 
 	stream = camel_stream_mem_new ();
-	camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)part, stream, NULL);
-	camel_stream_close(stream, NULL);
+	filter_stream = camel_stream_filter_new (stream);
+	charset = camel_content_type_param (((CamelDataWrapper *) part)->mime_type, "charset");
+	charenc = camel_mime_filter_charset_new (charset, lcharset);
+	camel_stream_filter_add (CAMEL_STREAM_FILTER (filter_stream), charenc);
+	g_object_unref (charenc);
+	g_object_unref (stream);
+
+	camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)part, filter_stream, NULL);
+	camel_stream_close(filter_stream, NULL);
 	
 	ba = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
 	str.append ((const char *)ba->data, ba->len);
