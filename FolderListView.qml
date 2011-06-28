@@ -36,6 +36,7 @@ Item {
         target: messageListModel
         onMessageRetrievalCompleted: {
             gettingMoreMessages = false;
+            window.refreshInProgress = false;
         }
     }
 
@@ -238,6 +239,7 @@ Item {
                 }
                 onClicked: {
                     gettingMoreMessages = true;
+                    window.refreshInProgress = true;
                     messageListModel.getMoreMessages(window.currentFolderId);
                 }
             }
