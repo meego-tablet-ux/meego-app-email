@@ -167,19 +167,18 @@ Window {
     EmailAccountListModel {
         id: mailAccountListModel
 
-        onAccountAdded: {
+        function updateAccountList() {
             var accountList = new Array();
             accountList = mailAccountListModel.getAllDisplayNames();
             accountList.push(qsTr("Account switcher"));
             window.accountFilterModel = accountList;
         }
 
-        onAccountRemoved: {
-            var accountList = new Array();
-            accountList = mailAccountListModel.getAllDisplayNames();
-            accountList.push(qsTr("Account switcher"));
-            window.accountFilterModel = accountList;
-        }
+        onAccountAdded: { updateAccountList(); }
+
+        onAccountRemoved: { updateAccountList(); }
+
+        onDataChanged: { updateAccountList(); }
     }
 
     ListModel {
