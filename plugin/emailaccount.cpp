@@ -146,10 +146,6 @@ bool EmailAccount::save()
         mModified = true;
     }
 
-    // FIXME check if passsword changed
-    e_account_set_string(mAccount, E_ACCOUNT_SOURCE_SAVE_PASSWD, sendPassword().toUtf8());
-    mModified = true;
-
     CamelURL *sourceCamelUrl = camel_url_new(sourceUrl.toUtf8(), NULL);
     char *sourceKey = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
 
@@ -180,10 +176,6 @@ bool EmailAccount::save()
         e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_URL, transportUrl.toUtf8());
         mModified = true;
     }
-
-    // FIXME check if passsword changed
-    e_account_set_string(mAccount, E_ACCOUNT_TRANSPORT_SAVE_PASSWD, recvPassword().toUtf8());
-    mModified = true;
 
     CamelURL *transportCamelUrl = camel_url_new(transportUrl.toUtf8(), NULL);
     char *transportKey = camel_url_to_string(transportCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
