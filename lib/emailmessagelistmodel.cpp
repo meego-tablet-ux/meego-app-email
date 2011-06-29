@@ -344,6 +344,9 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
 
     m_folder_proxy = NULL;
     m_account = NULL;
+    m_store_proxy = NULL;
+    m_lstore_proxy = NULL;
+
     m_sortById = EmailMessageListModel::SortDate;
     m_sortKey = 1;
     m_messages = new QHash <QString, QString>;

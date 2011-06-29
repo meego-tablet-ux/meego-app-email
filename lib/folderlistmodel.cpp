@@ -41,6 +41,9 @@ FolderListModel::FolderListModel(QObject *parent) :
     roles.insert(FolderUnreadCount, "folderUnreadCount");
     roles.insert(FolderServerCount, "folderServerCount");
     setRoleNames(roles);
+    m_account = NULL;
+    m_store_proxy = NULL;
+    m_lstore_proxy = NULL;
     m_outbox_proxy = NULL;
     m_sent_proxy = NULL;
     m_drafts_proxy = NULL;
