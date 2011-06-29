@@ -9,49 +9,30 @@
 import QtQuick 1.0
 import MeeGo.Components 0.1
 
-Flickable {
-    id: welcomeFlick
-    clip: true
-    anchors.fill: parent
-    contentWidth: content.width
-    contentHeight: content.height
-    flickableDirection: Flickable.VerticalFlick
-
+Column {
     Theme {
         id: theme
     }
+    id: content
+    width: settingsPage.width
+    spacing: 20
 
-    SaveRestoreState {
-        id: welcomeSaveRestoreState
-        onSaveRequired: {
-            setValue("email-WelcomeScroll",welcomeFlick.contentY);
-            sync();
-        }
+    onHeightChanged: {
+        settingsPage.height = height;
     }
 
-    Column {
-        id: content
-        width: settingsPage.width
-        spacing: 20
-        Item { width: 1; height: 20; }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: theme.fontPixelSizeMedium
-            //color: "white"
-            text: qsTr("Welcome to your email.")
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: theme.fontPixelSizeLarge
-            //color: "white"
-            text: qsTr("Set up your accounts")
-        }
-        WelcomeButtons {}
+    Item { width: 1; height: 20; }
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        font.pixelSize: theme.fontPixelSizeMedium
+        //color: "white"
+        text: qsTr("Welcome to your email.")
     }
-
-    Component.onCompleted: {
-        if(welcomeSaveRestoreState.restoreRequired) {
-            welcomeFlick.contentY = welcomeSaveRestoreState.value("email-WelcomeScroll");
-        }
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        font.pixelSize: theme.fontPixelSizeLarge
+        //color: "white"
+        text: qsTr("Set up your accounts")
     }
+    WelcomeButtons {}
 }
