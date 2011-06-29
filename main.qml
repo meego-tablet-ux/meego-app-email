@@ -171,12 +171,27 @@ Window {
         function save()
         {
             saveRestore.setValue(currentPage, window.pageStack.currentPage.objectName);
+
+            saveRestore.setValue("window.currentMailAccountId", window.currentMailAccountId);
+            saveRestore.setValue("window.currentMailAccountIndex", window.currentMailAccountIndex);
+            saveRestore.setValue("window.currentFolderId", window.currentFolderId);
+            saveRestore.setValue("window.currentFolderName", window.currentFolderName);
+            saveRestore.setValue("window.currentAccountDisplayName", window.currentAccountDisplayName);
+            saveRestore.setValue("window.currentMessageIndex", window.currentMessageIndex);
+
             window.pageStack.currentPage.save(saveRestore);
             saveRestore.sync();
         }
 
         function restore()
         {
+            window.currentMailAccountId = saveRestore.value("window.currentMailAccountId");
+            window.currentMailAccountIndex = saveRestore.value("window.currentMailAccountIndex");
+            window.currentFolderId = saveRestore.value("window.currentFolderId");
+            window.currentFolderName = saveRestore.value("window.currentFolderName");
+            window.currentAccountDisplayName = saveRestore.value("window.currentAccountDisplayName");
+            window.currentMessageIndex = saveRestore.value("window.currentMessageIndex");
+
             restoreCurrentPage();
         }
 
@@ -527,6 +542,7 @@ Window {
             function restore(saveRestore)
             {
                 //TODO: implement me
+                window.folderListViewClickCount = 0;
                 folderListContainer.restore(saveRestore);
             }
 
@@ -639,11 +655,13 @@ Window {
             function save(saveRestore)
             {
                 //TODO: implement me
+                composerView.save(saveRestore);
             }
 
             function restore(saveRestore)
             {
                 //TODO: implement me
+                composerView.restore(saveRestore);
             }
 
             Component.onCompleted: {
@@ -735,11 +753,34 @@ Window {
             function save(saveRestore)
             {
                 //TODO: implement me
+                reading.save(saveRestore)
             }
 
             function restore(saveRestore)
             {
                 //TODO: implement me
+                var msgid = window.currentMessageIndex;
+
+                window.mailId = messageListModel.messageId(msgid);
+                window.mailSubject = messageListModel.subject(msgid);
+                window.mailSender = messageListModel.mailSender(msgid);
+                window.mailTimeStamp = messageListModel.timeStamp(msgid);
+                window.mailBody = messageListModel.body(msgid);
+                window.mailHtmlBody = messageListModel.htmlBody(msgid);
+                window.mailQuotedBody = messageListModel.quotedBody(msgid);
+                window.mailAttachments = messageListModel.attachments(msgid);
+                window.numberOfMailAttachments = messageListModel.numberOfAttachments(msgid);
+                window.mailRecipients = messageListModel.toList(msgid);
+                toListModel.init();
+                window.mailCc = messageListModel.ccList(msgid);
+                ccListModel.init();
+                window.mailBcc = messageListModel.ccList(msgid);
+                bccListModel.init();
+                mailAttachmentModel.init();
+                window.currentMessageIndex = msgid;
+                messageListModel.markMessageAsRead (window.mailId);
+
+                reading.restore(saveRestore)
             }
 
             actionMenuModel : window.mailReadFlag ? [qsTr("Mark as unread")] : [qsTr("Mark as read")]

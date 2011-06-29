@@ -48,6 +48,16 @@ Item {
         }
     }
 
+    function save(saveRestore)
+    {
+        //TODO: implement me
+    }
+
+    function restore(saveRestore)
+    {
+        //TODO: implement me
+    }
+
     TopItem { id: topItem }
 
     ModalDialog {
