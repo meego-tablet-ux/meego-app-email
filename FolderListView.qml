@@ -22,23 +22,41 @@ Item {
     property int folderServerCount: 0
     property string selectedMessages
 
-    SaveRestoreState {
-        id: folderListViewState
-        onSaveRequired: {
-            //Determine which section of the listView we are looking at
-            setValue( "messageListView.contentY", messageListView.contentY)
+    function save(saveRestore)
+    {
+        //Determine which section of the listView we are looking at
+        saveRestore.setValue( "messageListView.contentY", messageListView.contentY)
 
-            //Determine if in select mode
-            setValue("folderListContainer.inSelectMode", folderListContainer.inSelectMode )
+        //Determine if in select mode
+        saveRestore.setValue("folderListContainer.inSelectMode", folderListContainer.inSelectMode)
 
-            //Determine which messages have been selected
-            folderListContainer.selectedMessages = folderListContainer.selectedMessages .substring(1)
-            setValue("folderListContainer.selectedMessages", folderListContainer.selectedMessages )
-
-            sync();
-        }
+        //Determine which messages have been selected
+        folderListContainer.selectedMessages = folderListContainer.selectedMessages.substring(1)
+        saveRestore.setValue("folderListContainer.selectedMessages", folderListContainer.selectedMessages)
     }
 
+    function restore(saveRestore)
+    {
+        messageListView.contentY= saveRestore.value("messageListView.contentY")
+
+        //SaveRestore API does not know how to save boolean values
+        if ( saveRestore.value("folderListContainer.inSelectMode") =="true" )
+            folderListContainer.inSelectMode=true
+        else
+            folderListContainer.inSelectMode=false
+
+
+        folderListContainer.selectedMessages= saveRestore.value("folderListContainer.selectedMessages")
+        var mySelectedMessages= folderListContainer.selectedMessages.split(",")
+        var i;
+        folderListContainer.inSelectMode= true
+        for(  i=0; i< mySelectedMessages.length; i++ )
+        {
+            var indice= mySelectedMessages[i]
+            messageListModel.selectMessage(indice);
+            numOfSelectedMessages++
+        }
+    }
 
     Component.onCompleted: { 
         messageListModel.setAccountKey (window.currentMailAccountId);
@@ -49,38 +67,6 @@ Item {
 
         window.folderListViewClickCount = 0;
         gettingMoreMessages = false;
-
-
-        //SAVE RESTORE
-        if (folderListViewState.restoreRequired)
-        {
-
-            messageListView.contentY= folderListViewState.value("messageListView.contentY")
-
-            //SaveRestore API does not know how to save boolean values
-            if ( folderListViewState.value("folderListContainer.inSelectMode") =="true" )
-                folderListContainer.inSelectMode=true
-            else
-                folderListContainer.inSelectMode=false
-
-
-            folderListContainer.selectedMessages= folderListViewState.value("folderListContainer.selectedMessages")
-            var mySelectedMessages= folderListContainer.selectedMessages.split(",")
-            var i;
-            folderListContainer.inSelectMode= true
-            for(  i=0; i< mySelectedMessages.length; i++ )
-            {
-                var indice= mySelectedMessages[i]
-                messageListModel.selectMessage(indice);
-                numOfSelectedMessages++
-            }
-
-
-        }
-        else
-            console.log( "NOT WORKING")
-
-
     }
 
     Connections {

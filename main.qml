@@ -190,7 +190,7 @@ Window {
             } else if (cp == "composerPage") {
                 window.addPage(composer);
             } else if (cp == "readingView") {
-                window.addPage(reading);
+                window.addPage(reader);
             }
             window.pageStack.currentPage.restore(saveRestore);
         }
@@ -521,11 +521,13 @@ Window {
             function save(saveRestore)
             {
                 //TODO: implement me
+                folderListContainer.save(saveRestore);
             }
 
             function restore(saveRestore)
             {
                 //TODO: implement me
+                folderListContainer.restore(saveRestore);
             }
 
             Component.onCompleted: {
