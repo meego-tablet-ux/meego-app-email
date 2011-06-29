@@ -47,6 +47,13 @@ EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent):
 EmailFeedModel::~EmailFeedModel()
 {
     delete m_source;
+    delete m_actions;
+    int count = m_messages.count();
+    for (int i = 0; i < count; i++)
+    {
+        delete m_messages.at(0);
+        m_messages.removeAt(0);
+    }
 }
 
 //
