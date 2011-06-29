@@ -162,7 +162,9 @@ private:
     QHash<QString ,QString> *m_messages;
     EAccount *m_account;
     QDBusObjectPath m_store_proxy_id;
+    QDBusObjectPath m_lstore_proxy_id;
     OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
+    OrgGnomeEvolutionDataserverMailStoreInterface *m_lstore_proxy;
     QDBusObjectPath m_folder_proxy_id;
     OrgGnomeEvolutionDataserverMailFolderInterface *m_folder_proxy;
   

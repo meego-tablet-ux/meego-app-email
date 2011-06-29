@@ -61,7 +61,8 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 	int count=0;
 	const char *url;
 	char *folder_name = NULL;
-
+	const char *email = NULL;
+	
 	url = e_account_get_string (account, E_ACCOUNT_SOURCE_URL);
 	if (!url || !*url)
 		return;
@@ -77,26 +78,38 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
         store_id = reply.value();
 	
 	if (strncmp (url, "pop:", 4) == 0) {
-		const char *email;
-
 		email = e_account_get_string(account, E_ACCOUNT_ID_ADDRESS);
-		folder_name = g_strdup_printf ("%s/Inbox", email);
 	}
 
         proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
 									store_id.path(),
 									QDBusConnection::sessionBus(), this);
 	
-	QDBusPendingReply<CamelFolderInfoArrayVariant> reply1 = proxy->getFolderInfo (QString(folder_name ? folder_name : ""), 
+	QDBusPendingReply<CamelFolderInfoArrayVariant> reply1 = proxy->getFolderInfo (QString(email ? email: ""), 
 								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 	reply1.waitForFinished();
 	folderlist = reply1.value ();	
 	/* For POP3, create the folder if itsn't available */
 	if (folderlist.length() == 0 && strncmp (url, "pop:", 4) == 0) {
 		QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
-		/* Create folder first*/
+
+		/* Create base first*/
+		folder_name = g_strdup_printf ("%s/Inbox", email);
 		reply2 = proxy->createFolder ("", folder_name);
 		reply2.waitForFinished();
+		g_free (folder_name);		
+		folder_name = g_strdup_printf ("%s/Drafts", email);
+		reply2 = proxy->createFolder ("", folder_name);
+		reply2.waitForFinished();
+
+		g_free (folder_name);		
+		folder_name = g_strdup_printf ("%s/Sent", email);
+		reply2 = proxy->createFolder ("", folder_name);
+		reply2.waitForFinished();
+		g_free (folder_name);
+
+		reply2 = proxy->getFolderInfo (QString(email), 
+						CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		folderlist = reply2.value ();	
 		folderlist.removeLast();
 	}
@@ -107,7 +120,6 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 			count+= fInfo.unread_count;
 	}
 
-	g_free (folder_name);		
 	delete proxy;
 	acc_unread.insert (QString(account->uid), count);
 }

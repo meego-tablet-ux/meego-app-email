@@ -13,6 +13,8 @@
 #include <camel/camel-medium.h>
 #include <camel/camel-data-wrapper.h>
 #include <camel/camel-url.h>
+#include <camel/camel-stream-filter.h>
+#include <camel/camel-mime-filter-charset.h>
 #include "emailmessagelistmodel.h"
 #include <QDateTime>
 #include <QTimer>
@@ -144,10 +146,20 @@ void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 {
 	CamelStream *stream;
 	GByteArray *ba;
-
+	CamelStream *filter_stream = NULL;
+	CamelMimeFilter *charenc = NULL;
+	const char *charset;
+ 
 	stream = camel_stream_mem_new ();
-	camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)part, stream, NULL);
-	camel_stream_close(stream, NULL);
+	filter_stream = camel_stream_filter_new (stream);
+	charset = camel_content_type_param (((CamelDataWrapper *) part)->mime_type, "charset");
+	charenc = camel_mime_filter_charset_new (charset, "UTF-8");
+	camel_stream_filter_add (CAMEL_STREAM_FILTER (filter_stream), charenc);
+	g_object_unref (charenc);
+	g_object_unref (stream);
+
+	camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)part, filter_stream, NULL);
+	camel_stream_close(filter_stream, NULL);
 	
 	ba = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
 	str.append ((const char *)ba->data, ba->len);
@@ -213,7 +225,7 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 
 	parseMultipartBody (reparray, (CamelMimePart *)message, plain);
  	
-	return QString (reparray);
+	return QString::fromUtf8(reparray);
 #if 0
     QMailMessagePartContainer *container = (QMailMessagePartContainer *)&mailMsg;
     QMailMessageContentType contentType = container->contentType();
@@ -531,7 +543,6 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageHtmlBodyRole)
     {
         QString uid = shown_uids[row];
-        //QMailMessage message (idFromIndex(index));
         return bodyText (uid, FALSE);
     }
     else if (role == MessageQuotedBodyRole)
@@ -691,7 +702,9 @@ void EmailMessageListModel::sendReceive()
 	const char *url;
 
 	url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-	if  (strncmp (url, "pop:", 4) == 0) {
+	if (m_current_folder.endsWith ("Outbox", Qt::CaseInsensitive)) {
+		instance->sendReceive();
+	} else if  (strncmp (url, "pop:", 4) == 0) {
 		/* Fetch entire account for POP */
 		instance->fetchAccount (m_account->uid);
 	} else {
@@ -743,7 +756,16 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 	camel_url_free (curl);
     }
 
-    if (m_store_proxy && m_store_proxy->isValid()) {
+    if (m_current_folder.endsWith ("Outbox", Qt::CaseInsensitive)) {
+	QDBusPendingReply<QDBusObjectPath> reply = m_lstore_proxy->getFolder (QString(c_info.full_name));
+	reply.waitForFinished();
+	if (reply.isError()) {
+		qDebug()<< "Failed to fetch folder: " + id.toString();
+		return;
+	}
+	m_folder_proxy_id = reply.value ();
+
+    } else if (m_store_proxy && m_store_proxy->isValid()) {
 	QDBusPendingReply<QDBusObjectPath> reply = m_store_proxy->getFolder (QString(c_info.full_name));
 	reply.waitForFinished();
 	if (reply.isError()) {
@@ -1150,8 +1172,22 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
     OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+
+    if (!m_lstore_proxy) {
+	QDBusPendingReply<QDBusObjectPath> reply;
+	reply = instance->getLocalStore();
+        m_lstore_proxy_id = reply.value();
+
+        m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									m_lstore_proxy_id.path(),
+									QDBusConnection::sessionBus(), this);
+    }
+
+
     if (instance && instance->isValid() && url && *url) {
         QDBusPendingReply<QDBusObjectPath> reply ;
+	const char *email = NULL;
+
 	if (strncmp (url, "pop:", 4) == 0)
 		reply = instance->getLocalStore();
 	else 
@@ -1160,10 +1196,8 @@ void EmailMessageListModel::setAccountKey (QVariant id)
         m_store_proxy_id = reply.value();
 
 	if (strncmp (url, "pop:", 4) == 0) {
-		const char *email;
 
 		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
-		folder_name = g_strdup_printf ("%s/Inbox", email);
 	}
 
         m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
@@ -1171,14 +1205,31 @@ void EmailMessageListModel::setAccountKey (QVariant id)
                                                                         QDBusConnection::sessionBus(), this);
 
         if (m_store_proxy && m_store_proxy->isValid()) {
-                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(folder_name ? folder_name : ""),
+                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(email ? email : ""),
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
 		if (m_folders.length() == 0 && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
-			/* Create folder first*/
+
+			/* Create base first*/
+			folder_name = g_strdup_printf ("%s/Inbox", email);
 			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			g_free (folder_name);		
+			folder_name = g_strdup_printf ("%s/Drafts", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+	
+			g_free (folder_name);		
+			folder_name = g_strdup_printf ("%s/Sent", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			g_free (folder_name);
+
+			reply2 = m_store_proxy->getFolderInfo (QString(email), 
+							CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+
 			reply2.waitForFinished();
 			m_folders = reply2.value ();
 			m_folders.removeLast();	
@@ -1186,9 +1237,15 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 		if (!reply.isError())
 			m_folders.removeLast();
 
+		CamelFolderInfoArrayVariant ouboxlist;
+		reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
+		reply.waitForFinished();
+		ouboxlist = reply.value();
+		ouboxlist.removeLast();
+		m_folders.append (ouboxlist);
+
         }
 
-	g_free (folder_name);
     }
 
     

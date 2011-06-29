@@ -75,7 +75,11 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
                 displayName = QString ("Trash");
         else {
 		const char *url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-                displayName = QString (folder.full_name);
+		if (strncmp(url, "pop:", 4) == 0)
+	                displayName = QString (folder.folder_name);
+		else
+	                displayName = QString (folder.full_name);
+
 
 		if (strncmp(url, "pop:", 4) == 0 &&
 			displayName.endsWith ("INBOX", Qt::CaseInsensitive))
@@ -193,10 +197,24 @@ void FolderListModel::setAccountKey(QVariant id)
     g_object_unref (account_list);
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
 
-    g_print ("fetching store: %s\n", url);
     OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+
+    if (!m_lstore_proxy) {
+	QDBusPendingReply<QDBusObjectPath> reply;
+	reply = instance->getLocalStore();
+        m_lstore_proxy_id = reply.value();
+
+        m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									m_lstore_proxy_id.path(),
+									QDBusConnection::sessionBus(), this);
+
+    }
+
+    g_print ("fetching store: %s\n", url);
     if (instance && instance->isValid()) {
 	QDBusPendingReply<QDBusObjectPath> reply;
+	const char *email = NULL;
+
 	if (strncmp (url, "pop:", 4) == 0)
 		reply = instance->getLocalStore();
 	else 
@@ -205,10 +223,9 @@ void FolderListModel::setAccountKey(QVariant id)
         m_store_proxy_id = reply.value();
 
 	if (strncmp (url, "pop:", 4) == 0) {
-		const char *email;
 
 		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
-		pop_foldername = g_strdup_printf ("%s/Inbox", email);
+		pop_foldername = g_strdup(email);
 	}
 
 	g_print ("Store PATH: %s\n", (char *) m_store_proxy_id.path().toLocal8Bit().constData());
@@ -223,18 +240,48 @@ void FolderListModel::setAccountKey(QVariant id)
 		m_folderlist = reply.value ();	
 		if (reply.isError() && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
+			char *folder_name;
 
-			/* Create folder first*/
-			reply2 = m_store_proxy->createFolder ("", pop_foldername);
+			folder_name = g_strdup_printf ("%s/Inbox", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			g_free (folder_name);		
+			folder_name = g_strdup_printf ("%s/Drafts", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+	
+			g_free (folder_name);		
+			folder_name = g_strdup_printf ("%s/Sent", email);
+			reply2 = m_store_proxy->createFolder ("", folder_name);
+			reply2.waitForFinished();
+			g_free (folder_name);
+
+			reply2 = m_store_proxy->getFolderInfo (QString(email), 
+							CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
+
 			reply2.waitForFinished();
 			m_folderlist = reply2.value ();	
+			m_folderlist.removeFirst();
 			m_folderlist.removeLast();
+		} else {
+
+			printf("Got %s: %d\n", url, m_folderlist.length());
+			if (strncmp (url, "pop:", 4) == 0) {
+				m_folderlist.removeFirst();
+				m_folderlist.removeLast();
+			}  else {
+				m_folderlist.removeLast();
+			}
 		}
 
-		printf("Got %s: %d\n", url, m_folderlist.length());
-		if (strncmp (url, "pop:", 4) != 0) {
-			m_folderlist.removeLast();
-		}
+		CamelFolderInfoArrayVariant ouboxlist;
+		reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
+		reply.waitForFinished();
+		ouboxlist = reply.value();
+		ouboxlist.removeLast();
+		m_folderlist.append (ouboxlist);
+		qDebug() << "Appending Outbox";
+
 		foreach (CamelFolderInfoVariant fInfo, m_folderlist)
 			qDebug () << fInfo.full_name;
 	}
