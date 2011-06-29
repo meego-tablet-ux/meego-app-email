@@ -71,7 +71,9 @@ private:
     EAccount * getAccountById(EAccountList *account_list, char *id);
     EAccount *m_account;
     QDBusObjectPath m_store_proxy_id;
+    QDBusObjectPath m_lstore_proxy_id;
     OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
+    OrgGnomeEvolutionDataserverMailStoreInterface *m_lstore_proxy;
     
     QDBusObjectPath m_outbox_proxy_id;
     OrgGnomeEvolutionDataserverMailFolderInterface *m_outbox_proxy;

@@ -197,8 +197,20 @@ void FolderListModel::setAccountKey(QVariant id)
     g_object_unref (account_list);
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
 
-    g_print ("fetching store: %s\n", url);
     OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+
+    if (!m_lstore_proxy) {
+	QDBusPendingReply<QDBusObjectPath> reply;
+	reply = instance->getLocalStore();
+        m_lstore_proxy_id = reply.value();
+
+        m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									m_lstore_proxy_id.path(),
+									QDBusConnection::sessionBus(), this);
+
+    }
+
+    g_print ("fetching store: %s\n", url);
     if (instance && instance->isValid()) {
 	QDBusPendingReply<QDBusObjectPath> reply;
 	const char *email = NULL;
@@ -261,6 +273,15 @@ void FolderListModel::setAccountKey(QVariant id)
 				m_folderlist.removeLast();
 			}
 		}
+
+		CamelFolderInfoArrayVariant ouboxlist;
+		reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
+		reply.waitForFinished();
+		ouboxlist = reply.value();
+		ouboxlist.removeLast();
+		m_folderlist.append (ouboxlist);
+		qDebug() << "Appending Outbox";
+
 		foreach (CamelFolderInfoVariant fInfo, m_folderlist)
 			qDebug () << fInfo.full_name;
 	}

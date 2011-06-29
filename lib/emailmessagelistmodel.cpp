@@ -702,7 +702,9 @@ void EmailMessageListModel::sendReceive()
 	const char *url;
 
 	url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-	if  (strncmp (url, "pop:", 4) == 0) {
+	if (m_current_folder.endsWith ("Outbox", Qt::CaseInsensitive)) {
+		instance->sendReceive();
+	} else if  (strncmp (url, "pop:", 4) == 0) {
 		/* Fetch entire account for POP */
 		instance->fetchAccount (m_account->uid);
 	} else {
@@ -754,7 +756,16 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 	camel_url_free (curl);
     }
 
-    if (m_store_proxy && m_store_proxy->isValid()) {
+    if (m_current_folder.endsWith ("Outbox", Qt::CaseInsensitive)) {
+	QDBusPendingReply<QDBusObjectPath> reply = m_lstore_proxy->getFolder (QString(c_info.full_name));
+	reply.waitForFinished();
+	if (reply.isError()) {
+		qDebug()<< "Failed to fetch folder: " + id.toString();
+		return;
+	}
+	m_folder_proxy_id = reply.value ();
+
+    } else if (m_store_proxy && m_store_proxy->isValid()) {
 	QDBusPendingReply<QDBusObjectPath> reply = m_store_proxy->getFolder (QString(c_info.full_name));
 	reply.waitForFinished();
 	if (reply.isError()) {
@@ -1161,6 +1172,18 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
     OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+
+    if (!m_lstore_proxy) {
+	QDBusPendingReply<QDBusObjectPath> reply;
+	reply = instance->getLocalStore();
+        m_lstore_proxy_id = reply.value();
+
+        m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+									m_lstore_proxy_id.path(),
+									QDBusConnection::sessionBus(), this);
+    }
+
+
     if (instance && instance->isValid() && url && *url) {
         QDBusPendingReply<QDBusObjectPath> reply ;
 	const char *email = NULL;
@@ -1213,6 +1236,13 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 		}
 		if (!reply.isError())
 			m_folders.removeLast();
+
+		CamelFolderInfoArrayVariant ouboxlist;
+		reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
+		reply.waitForFinished();
+		ouboxlist = reply.value();
+		ouboxlist.removeLast();
+		m_folders.append (ouboxlist);
 
         }
 
