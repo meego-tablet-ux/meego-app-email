@@ -25,6 +25,11 @@ AppPage {
         var cmd = "/usr/bin/meego-qml-launcher --app meego-app-email --opengl --fullscreen"; //i18n ok
         appModel.launch(cmd);
     }
+
+    onHeightChanged: {
+        console.debug("Tesssssssssssttttttttt:          + " + settingsPage.height);
+    }
+
     Loader {
         id: loader
         anchors.fill: parent

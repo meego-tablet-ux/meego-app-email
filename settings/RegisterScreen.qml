@@ -12,13 +12,19 @@ import MeeGo.Settings 0.1
 import MeeGo.App.Email 0.1
 
 Item {
-    anchors.fill: parent
     Rectangle {
         anchors.fill: parent
         color: "#eaf6fb"
     }
 
-    Item {
+    height: contentCol.height
+
+    onHeightChanged: {
+        settingsPage.height = height;
+    }
+
+    Column {
+        id: contentCol
         width: settingsPage.width
         ControlGroup {
             id: content
@@ -61,6 +67,69 @@ Item {
                 Item { width: 1; height: 40; }
             ]
         }
+        BottomToolBar {
+            width: settingsPage.width
+            content: BottomToolBarRow {
+                leftContent: Button {
+                    text: qsTr("Next")
+                    function validate() {
+                        var errors = 0;
+                        if (nameField.text.length === 0) {
+                            nameField.errorText = qsTr("This field is required");
+                            errors++;
+                        } else {
+                            nameField.errorText = "";
+                        }
+                        if (addressField.text.length === 0) {
+                            addressField.errorText = qsTr("This field is required");
+                            errors++;
+                        } else {
+                            addressField.errorText = "";
+                        }
+                        if (passwordField.text.length === 0) {
+                            passwordField.errorText = qsTr("This field is required");
+                            errors++;
+                        } else {
+                            passwordField.errorText = "";
+                        }
+
+                        // Added By Daewon.Park
+                        var accountList = accountListModel.getAllEmailAddresses();
+                        for(var i = 0; i < accountList.length; i++) {
+                            console.log("Account : " + addressField.text + " : " + accountList[i]);
+                            if(addressField.text === accountList[i]) {
+                                addressField.errorText = qsTr("Same account is already registered");
+                                errors++;
+                                break;
+                            }
+                        }
+
+                        return errors === 0;
+                    }
+                    onClicked: {
+                        if (validate()) {
+                            emailAccount.applyPreset();
+                            if (emailAccount.preset != 0) {
+                                settingsPage.state = "DetailsScreen";
+                            } else {
+                                settingsPage.state = "ManualScreen";
+                                loader.item.message = qsTr("Please fill in account details:");
+                            }
+                        }
+                    }
+                }
+                rightContent:  Button {
+                    text: qsTr("Cancel")
+                    onClicked: {
+                        verifyCancel.show();
+                    }
+                }
+            }
+
+            Component.onCompleted: {
+                show();
+            }
+        }
     }
 
     ModalMessageBox {
@@ -78,72 +147,6 @@ Item {
         id : accountListModel
     }
 
-    BottomToolBar {
-        anchors.bottom: parent.bottom
-        width: parent.width
-        content: BottomToolBarRow {
-            leftContent: Button {
-                text: qsTr("Next")
-                function validate() {
-                    var errors = 0;
-                    if (nameField.text.length === 0) {
-                        nameField.errorText = qsTr("This field is required");
-                        errors++;
-                    } else {
-                        nameField.errorText = "";
-                    }
-                    if (addressField.text.length === 0) {
-                        addressField.errorText = qsTr("This field is required");
-                        errors++;
-                    } else {
-                        addressField.errorText = "";
-                    }
-                    if (passwordField.text.length === 0) {
-                        passwordField.errorText = qsTr("This field is required");
-                        errors++;
-                    } else {
-                        passwordField.errorText = "";
-                    }
-
-                    // Added By Daewon.Park
-                    var accountList = accountListModel.getAllEmailAddresses();
-                    for(var i = 0; i < accountList.length; i++) {
-                        console.log("Account : " + addressField.text + " : " + accountList[i]);
-                        if(addressField.text === accountList[i]) {
-                            addressField.errorText = qsTr("Same account is already registered");
-                            errors++;
-                            break;
-                        }
-                    }
-
-                    return errors === 0;
-                }
-                onClicked: {
-                    if (validate()) {
-                        emailAccount.applyPreset();
-                        if (emailAccount.preset != 0) {
-                            settingsPage.state = "DetailsScreen";
-                        } else {
-                            settingsPage.state = "ManualScreen";
-                            loader.item.message = qsTr("Please fill in account details:");
-                        }
-                    }
-                }
-            }
-            rightContent:  Button {
-                anchors.margins: 10
-                //color: "white"
-                text: qsTr("Cancel")
-                onClicked: {
-                    verifyCancel.show();
-                }
-            }
-        }
-
-        Component.onCompleted: {
-            show();
-        }
-    }
 
     SaveRestoreState {
         id: registerSaveRestoreState
@@ -154,4 +157,5 @@ Item {
             sync();
         }
     }
+
 }

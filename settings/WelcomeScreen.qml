@@ -16,6 +16,11 @@ Column {
     id: content
     width: settingsPage.width
     spacing: 20
+
+    onHeightChanged: {
+        settingsPage.height = height;
+    }
+
     Item { width: 1; height: 20; }
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
