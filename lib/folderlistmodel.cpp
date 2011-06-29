@@ -134,6 +134,13 @@ int FolderListModel::getFolderMailCount()
 	reply.waitForFinished();
 	m_folderlist = reply.value ();
 	m_folderlist.removeLast();
+
+	CamelFolderInfoArrayVariant ouboxlist;
+	reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
+	reply.waitForFinished();
+	ouboxlist = reply.value();
+	ouboxlist.removeLast();
+	m_folderlist.append (ouboxlist);
 	
 	if (m_folderlist.count() == old) {
 		QModelIndex s_idx = createIndex (0, 0);
