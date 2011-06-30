@@ -1046,6 +1046,8 @@ void EmailMessageListModel::getMoreMessages ()
 
 void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent)
 {
+	bool firstLoad = shown_uids.length() == 0;
+	
 	qDebug () << "Folder changed event: " << added.length() << " " << removed.length() << " " << changed.length() << " " << recent.length();
         beginInsertRows(QModelIndex(), shown_uids.length(), shown_uids.length()+added.length()-1);
 	foreach (QString uid, added) {
@@ -1070,7 +1072,12 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
                 m_infos.insert (uid, info);
 
 	}
+	if (firstLoad) {
+		if (added.length() >=  WINDOW_LIMIT)
+			messages_present = true;
+	}
         endInsertRows();
+
 
 	foreach (QString uid, removed) {
 		/* Removed uid */
