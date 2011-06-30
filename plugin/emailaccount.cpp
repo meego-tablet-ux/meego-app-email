@@ -299,7 +299,7 @@ void EmailAccount::testConfiguration()
             e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, draftUri.toUtf8());
         }
     } else {
-        QString draftUriAlt = QString("mbox:/home/meego/.local/share/evolution/mail/local#") + QString(e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS)) +QString("/Drafts");
+        QString draftUriAlt = QString("mbox:/home/meego/.local/share/evolution/mail/local#Drafts");
         if (draftUriOld != draftUriAlt) {
             mModified = true;
             e_account_set_string(mAccount, E_ACCOUNT_DRAFTS_FOLDER_URI, draftUriAlt.toUtf8());
@@ -313,7 +313,7 @@ void EmailAccount::testConfiguration()
             e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, sentUri.toUtf8());
         }
     } else {
-        QString sentUriAlt = QString("mbox:/home/meego/.local/share/evolution/mail/local#") + QString(e_account_get_string(mAccount, E_ACCOUNT_ID_ADDRESS)) +QString("/Sent");
+        QString sentUriAlt = QString("mbox:/home/meego/.local/share/evolution/mail/local#Sent");
         if (sentUriOld != sentUriAlt) {
             mModified = true;
             e_account_set_string(mAccount, E_ACCOUNT_SENT_FOLDER_URI, sentUriAlt.toUtf8());
