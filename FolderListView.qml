@@ -48,8 +48,7 @@ Item {
 
         folderListContainer.selectedMessages= saveRestore.value("folderListContainer.selectedMessages")
         var mySelectedMessages= folderListContainer.selectedMessages.split(",")
-        var i;
-        folderListContainer.inSelectMode= true
+        var i;       
         for(  i=0; i< mySelectedMessages.length; i++ )
         {
             var indice= mySelectedMessages[i]
