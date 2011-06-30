@@ -93,6 +93,7 @@ Item {
                             passwordField.errorText = "";
                         }
 
+/*
                         // Added By Daewon.Park
                         var accountList = accountListModel.getAllEmailAddresses();
                         for(var i = 0; i < accountList.length; i++) {
@@ -103,6 +104,7 @@ Item {
                                 break;
                             }
                         }
+*/
 
                         return errors === 0;
                     }
@@ -143,9 +145,9 @@ Item {
         }
     }
     // Added By Daewon.Park
-    EmailAccountListModel {
+    /*EmailAccountListModel {
         id : accountListModel
-    }
+    }*/
 
 
     SaveRestoreState {
