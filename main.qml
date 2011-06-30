@@ -197,25 +197,26 @@ Window {
             window.folderListViewTitle = window.currentAccountDisplayName + " " + mailFolderListModel.inboxFolderName();
             window.folderListViewClickCount = 0;
 
-            var msgid = window.currentMessageIndex;
-            window.mailId = messageListModel.messageId(msgid);
-            window.mailSubject = messageListModel.subject(msgid);
-            window.mailSender = messageListModel.mailSender(msgid);
-            window.mailTimeStamp = messageListModel.timeStamp(msgid);
-            window.mailBody = messageListModel.body(msgid);
-            window.mailHtmlBody = messageListModel.htmlBody(msgid);
-            window.mailQuotedBody = messageListModel.quotedBody(msgid);
-            window.mailAttachments = messageListModel.attachments(msgid);
-            window.numberOfMailAttachments = messageListModel.numberOfAttachments(msgid);
-            window.mailRecipients = messageListModel.toList(msgid);
-            toListModel.init();
-            window.mailCc = messageListModel.ccList(msgid);
-            ccListModel.init();
-            window.mailBcc = messageListModel.ccList(msgid);
-            bccListModel.init();
-            mailAttachmentModel.init();
-            window.currentMessageIndex = msgid;
-            messageListModel.markMessageAsRead (window.mailId);
+//            NOTE TO KIRILL: IT CRASHES HERE
+//            var msgid = window.currentMessageIndex;
+//            window.mailId = messageListModel.messageId(msgid);
+//            window.mailSubject = messageListModel.subject(msgid);
+//            window.mailSender = messageListModel.mailSender(msgid);
+//            window.mailTimeStamp = messageListModel.timeStamp(msgid);
+//            window.mailBody = messageListModel.body(msgid);
+//            window.mailHtmlBody = messageListModel.htmlBody(msgid);
+//            window.mailQuotedBody = messageListModel.quotedBody(msgid);
+//            window.mailAttachments = messageListModel.attachments(msgid);
+//            window.numberOfMailAttachments = messageListModel.numberOfAttachments(msgid);
+//            window.mailRecipients = messageListModel.toList(msgid);
+//            toListModel.init();
+//            window.mailCc = messageListModel.ccList(msgid);
+//            ccListModel.init();
+//            window.mailBcc = messageListModel.ccList(msgid);
+//            bccListModel.init();
+//            mailAttachmentModel.init();
+//            window.currentMessageIndex = msgid;
+//            messageListModel.markMessageAsRead (window.mailId);
 
             restoreCurrentPage();
         }
@@ -223,11 +224,11 @@ Window {
         function restoreCurrentPage()
         {
             var cp = saveRestore.value(internal.currentPage);
-            if (cp == "folderListView") {
+            if (cp == "folderListView") {             
                 window.addPage(folderList);
             } else if (cp == "accountListView") {
                 window.addPage(mailAccount);
-            } else if (cp == "composerPage") {
+            } else if (cp == "composerPage") {              
                 window.addPage(composer);
             } else if (cp == "readingView") {
                 window.addPage(reader);

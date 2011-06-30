@@ -50,12 +50,25 @@ Item {
 
     function save(saveRestore)
     {
-        //TODO: implement me
+        //save the body of the mail
+        //saveRestore.setValue("window.currentMessageIndex", window.currentMessageIndex)
+        saveRestore.setValue("window.mailHtmlBody", window.mailHtmlBody)
+        saveRestore.setValue("window.mailSender",   window.mailSender)
+        saveRestore.setValue( "window.mailBody", window.mailBody )
+        saveRestore.setValue("window.mailSubject", window.mailSubject )
+        saveRestore.setValue("toEmailAddress.emailAddress", toEmailAddress.emailAddress )
     }
 
     function restore(saveRestore)
     {
         //TODO: implement me
+        //window.currentMessageIndex= saveRestore.value("window.currentMessageIndex")
+        window.mailHtmlBody = saveRestore.value("window.mailHtmlBody")
+        window.mailSender   = saveRestore.value("window.mailSender")
+        window.mailBody     = saveRestore.value("window.mailBody")
+        window.mailSubject  = saveRestore.value("window.mailSubject")
+        toEmailAddress.emailAddress= saveRestore.value("toEmailAddress.emailAddress")
+
     }
 
     TopItem { id: topItem }
@@ -181,7 +194,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             EmailAddress {
-                //FIX ME: There is more then one mail Recipient
+                id:toEmailAddress
+                //FIX ME: There is more then one mail Recipient                
                 anchors.verticalCenter: parent.verticalCenter
                 emailAddress: mailRecipients[0]
             }
