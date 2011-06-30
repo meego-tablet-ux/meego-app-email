@@ -45,7 +45,7 @@ Item {
                     onTextChanged: emailAccount.name = text
                     //KNOWN BUG: if you get an error, and then switch to a new langauge in the middle of setup (can you?), the error text does not update
                     errorText: registerSaveRestoreState.restoreRequired ?
-                                   registerSaveRestoreState.value("email-register-nameField-errorText") : ""
+                                   registerSaveRestoreState.restoreOnceAndRemove("email-register-nameField-errorText","") : ""
                 },
                 TextControl {
                     id: addressField
@@ -54,7 +54,7 @@ Item {
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhEmailCharactersOnly
                     onTextChanged: emailAccount.address = text
                     errorText: registerSaveRestoreState.restoreRequired ?
-                                   registerSaveRestoreState.value("email-register-addressField-errorText") : ""
+                                   registerSaveRestoreState.restoreOnceAndRemove("email-register-addressField-errorText","") : ""
                 },
                 PasswordControl {
                     id: passwordField

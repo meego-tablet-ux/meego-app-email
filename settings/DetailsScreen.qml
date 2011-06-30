@@ -167,11 +167,10 @@ Item {
     }
 
     Component.onCompleted: {
-
         if(detailsSaveRestoreState.restoreRequired) {
-            if(detailsSaveRestoreState.value("email-details-verifyCancel-visible") == "true") {
+            if(detailsSaveRestoreState.restoreOnceAndRemove("email-details-verifyCancel-visible","false") == "true") {
                 verifyCancel.show();
-            } else if(detailsSaveRestoreState.value("email-details-errorDialog-visible") == "true") {
+            } else if(detailsSaveRestoreState.value("email-details-errorDialog-visible","false") == "true") {
                 errorDialog.show();
             }
         }

@@ -36,8 +36,8 @@ Column {
     }
     DropDown {
         id: dropdown
-        width: 400
-        minWidth: 400
+        width: 200
+        minWidth: 200
         maxWidth: 500
         titleColor: "black"
         replaceDropDownTitle: true

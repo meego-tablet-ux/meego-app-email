@@ -24,7 +24,7 @@ Expandobox {
         listIndex = index ;
         if(accExpandoSaveRestore.restoreRequired) {
             rootExpando.expanded =
-                    accExpandoSaveRestore.value("email-AccoutSettingsPage-accExpandoSaveRestore-" +listIndex+"-expanded");
+                    accExpandoSaveRestore.restoreOnceAndRemove("email-AccoutSettingsPage-accExpandoSaveRestore-" +listIndex+"-expanded",false);
         }
     }
 

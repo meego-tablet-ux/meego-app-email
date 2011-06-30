@@ -25,6 +25,10 @@ Item {
         settingsPage.height = height;
     }
 
+    Theme {
+        id: theme
+    }
+
     Column {
         id: content
         anchors.left: parent.left
@@ -257,14 +261,14 @@ Item {
     Component.onCompleted: {
         if((manualSaveRestoreState.restoreRequired) &&
                 (mainSaveRestoreState.value("email-PageState") == "ManualScreen") ){
-            recvServerField.errorText = manualSaveRestoreState.value("email-manual-recvServerField-errorText");
-            recvPortField.errorText = manualSaveRestoreState.value("email-manual-recvPortField-errorText");
-            recvUsernameField.errorText = manualSaveRestoreState.value("email-manual-recvUsernameField-errorText");
-            recvPasswordField.errorText = manualSaveRestoreState.value("email-manual-recvPasswordField-errorText");
-            sendServerField.errorText = manualSaveRestoreState.value("email-manual-sendServerField-errorText");
-            sendPortField.errorText = manualSaveRestoreState.value("email-manual-sendPortField-errorText");
-            sendUsernameField.errorText = manualSaveRestoreState.value("email-manual-sendUsernameField-errorText");
-            sendPasswordField.errorText = manualSaveRestoreState.value("email-manual-sendPasswordField-errorText");
+            recvServerField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-recvServerField-errorText","");
+            recvPortField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-recvPortField-errorText","");
+            recvUsernameField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-recvUsernameField-errorText","");
+            recvPasswordField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-recvPasswordField-errorText","");
+            sendServerField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-sendServerField-errorText","");
+            sendPortField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-sendPortField-errorText","");
+            sendUsernameField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-sendUsernameField-errorText","");
+            sendPasswordField.errorText = manualSaveRestoreState.restoreOnceAndRemove("email-manual-sendPasswordField-errorText","");
         }
     }
 }

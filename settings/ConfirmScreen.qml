@@ -17,69 +17,55 @@ Item {
         id: theme
     }
 
-    Flickable {
-        id: confirmFlick
-        clip: true
-        anchors.fill: parent
-        contentWidth: content.width
-        contentHeight: content.height
-        flickableDirection: Flickable.VerticalFlick
-        Column {
-            id: content
-            width: settingsPage.width
-            spacing: 2
-            Text {
-                font.pixelSize: theme.fontPixelSizeLarge
-                font.weight: Font.Bold
+    height: content.height
+
+    onHeightChanged: {
+        settingsPage.height = height;
+    }
+
+    Column {
+        id: content
+        width: settingsPage.width
+        spacing: 2
+        Text {
+            font.pixelSize: theme.fontPixelSizeLarge
+            font.weight: Font.Bold
+            //color: "white"
+            text: qsTr("Account set up successfully!")
+        }
+        Subheader { text: qsTr("Accounts") }
+        Repeater {
+            model: accountSettingsModel
+            delegate: AccountExpandobox {}
+            Component.onCompleted: accountSettingsModel.reload();
+        }
+        Image {
+            source: "image://theme/pulldown_box"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 77
+            Button {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: 45
+                //font: "Droid Sans"
                 //color: "white"
-                text: qsTr("Account set up successfully!")
-            }
-            Subheader { text: qsTr("Accounts") }
-            Repeater {
-                model: accountSettingsModel
-                delegate: AccountExpandobox {}
-                Component.onCompleted: accountSettingsModel.reload();
-            }
-            Image {
-                source: "image://theme/pulldown_box"
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 77
-                Button {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    height: 45
-                    //font: "Droid Sans"
-                    //color: "white"
-                    text: qsTr("Done")
-                    onClicked: settingsPage.returnToEmail()
-                }
-            }
-            Column {
-                spacing: 10
-                width: parent.width
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: theme.  fontPixelSizeMedium
-                    font.weight: Font.Bold
-                    //color: "white"
-                    text: qsTr("Set up another account?")
-                }
-                WelcomeButtons {}
+                text: qsTr("Done")
+                onClicked: settingsPage.returnToEmail()
             }
         }
-        Component.onCompleted: {
-            if(confirmScreenSaveRestore.restoreRequired) {
-                confirmFlick.contentY = confirmScreenSaveRestore.value("email-confirm-confirmFlick-contentY");
+        Column {
+            spacing: 10
+            width: parent.width
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.pixelSize: theme.  fontPixelSizeMedium
+                font.weight: Font.Bold
+                //color: "white"
+                text: qsTr("Set up another account?")
             }
+            WelcomeButtons {}
         }
     }
 
-    SaveRestoreState {
-        id: confirmScreenSaveRestore
-        onSaveRequired: {
-            setValue("email-confirm-confirmFlick-contentY", confirmFlick.contentY);
-            sync();
-        }
-    }
 }

@@ -26,10 +26,6 @@ AppPage {
         appModel.launch(cmd);
     }
 
-    onHeightChanged: {
-        console.debug("Tesssssssssssttttttttt:          + " + settingsPage.height);
-    }
-
     Loader {
         id: loader
         anchors.fill: parent
@@ -38,36 +34,41 @@ AppPage {
         if(mainSaveRestoreState.restoreRequired) {
             emailAccount.clear();
             if(mainSaveRestoreState.value("email-account-preset") == "-1") {
-                emailAccount.recvSecurity = mainSaveRestoreState.value("email-account-recvSecurity");
-                emailAccount.sendAuth =  mainSaveRestoreState.value("email-account-sendAuth");
-                emailAccount.sendSecurity =  mainSaveRestoreState.value("email-account-sendSecurity");
+                emailAccount.recvSecurity = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvSecurity");
+                emailAccount.sendAuth =  mainSaveRestoreState.restoreOnceAndRemove("email-account-sendAuth");
+                emailAccount.sendSecurity =  mainSaveRestoreState.restoreOnceAndRemove("email-account-sendSecurity");
             } else {
-                emailAccount.preset = mainSaveRestoreState.value("email-account-preset");
-                emailAccount.description= mainSaveRestoreState.value("email-account-description");
+                emailAccount.preset = mainSaveRestoreState.restoreOnceAndRemove("email-account-preset");
+                emailAccount.description= mainSaveRestoreState.restoreOnceAndRemove("email-account-description");
             }
 
-            emailAccount.name = mainSaveRestoreState.value("email-account-name");
-            emailAccount.address = mainSaveRestoreState.value("email-account-address");
-            emailAccount.password = mainSaveRestoreState.value("email-account-password");
-            emailAccount.recvType = mainSaveRestoreState.value("email-account-recvType");
-            emailAccount.recvServer = mainSaveRestoreState.value("email-account-recvServer");
-            emailAccount.recvPort = mainSaveRestoreState.value("email-account-recvPort");
-            emailAccount.recvSecurity = mainSaveRestoreState.value("email-account-recvSecurity");
-            emailAccount.recvUsername = mainSaveRestoreState.value("email-account-recvUsername");
-            emailAccount.recvPassword = mainSaveRestoreState.value("email-account-recvPassword");
-            emailAccount.sendServer = mainSaveRestoreState.value("email-account-sendServer");
-            emailAccount.sendPort = mainSaveRestoreState.value("email-account-sendPort");
-            emailAccount.sendAuth = mainSaveRestoreState.value("email-account-sendAuth");
-            emailAccount.sendSecurity = mainSaveRestoreState.value("email-account-sendSecurity");
-            emailAccount.sendUsername = mainSaveRestoreState.value("email-account-sendUsername");
-            emailAccount.sendPassword = mainSaveRestoreState.value("email-account-sendPassword");
+            emailAccount.name = mainSaveRestoreState.restoreOnceAndRemove("email-account-name","");
+            emailAccount.address = mainSaveRestoreState.restoreOnceAndRemove("email-account-address","");
+            emailAccount.password = mainSaveRestoreState.restoreOnceAndRemove("email-account-password","");
+            emailAccount.recvType = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvType","");
+            emailAccount.recvServer = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvServer","");
+            emailAccount.recvPort = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvPort","");
+            emailAccount.recvSecurity = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvSecurity","");
+            emailAccount.recvUsername = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvUsername","");
+            emailAccount.recvPassword = mainSaveRestoreState.restoreOnceAndRemove("email-account-recvPassword","");
+            emailAccount.sendServer = mainSaveRestoreState.restoreOnceAndRemove("email-account-sendServer","");
+            emailAccount.sendPort = mainSaveRestoreState.restoreOnceAndRemove("email-account-sendPort","");
+            emailAccount.sendAuth = mainSaveRestoreState.restoreOnceAndRemove("email-account-sendAuth","");
+            emailAccount.sendSecurity = mainSaveRestoreState.restoreOnceAndRemove("email-account-sendSecurity","");
+            emailAccount.sendUsername = mainSaveRestoreState.restoreOnceAndRemove("email-account-sendUsername","");
+            emailAccount.sendPassword = mainSaveRestoreState.restoreOnceAndRemove("email-account-sendPassword","");
 
-            for(var row=0;row<100;row++) { //TODO: Use a keys() function when available; yes, this will break if the user has over 100 email accounts
-                for(var role=0;role<100;role++) { //I can't believe I am writing this :(
-                    var data = mainSaveRestoreState.value("email-accounts-" + row + "-" + role);
-                    if(data != undefined) {
-                         accountSettingsModel.setDataWrapper(row, data, role);
-                    }
+
+            var keys = mainSaveRestoreState.allKeys();
+
+            for(var i=0;i<keys.length;i++) {
+                var key = keys[i];
+                if(key.indexOf("email-accounts-") != -1) {
+                    var data = mainSaveRestoreState.restoreOnceAndRemove(key,"");
+                    var parts = key.split("-");
+                    var role = parts[parts.length - 1];
+                    var row = parts[parts.length - 2];
+                    accountSettingsModel.setDataWrapper(row, data, role);
                 }
             }
 
