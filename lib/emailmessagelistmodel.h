@@ -167,6 +167,7 @@ private:
     OrgGnomeEvolutionDataserverMailStoreInterface *m_lstore_proxy;
     QDBusObjectPath m_folder_proxy_id;
     OrgGnomeEvolutionDataserverMailFolderInterface *m_folder_proxy;
+    OrgGnomeEvolutionDataserverMailSessionInterface *session_instance;
   
     QProcess m_msgAccount;
     QProcess m_messageServerProcess;

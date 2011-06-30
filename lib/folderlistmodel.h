@@ -74,6 +74,7 @@ private:
     QDBusObjectPath m_lstore_proxy_id;
     OrgGnomeEvolutionDataserverMailStoreInterface *m_store_proxy;
     OrgGnomeEvolutionDataserverMailStoreInterface *m_lstore_proxy;
+    OrgGnomeEvolutionDataserverMailSessionInterface *session_instance;
     
     QDBusObjectPath m_outbox_proxy_id;
     OrgGnomeEvolutionDataserverMailFolderInterface *m_outbox_proxy;

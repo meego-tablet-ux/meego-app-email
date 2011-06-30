@@ -110,6 +110,19 @@ Item {
                     }
                     onClicked: {
                         if (validate()) {
+
+                            var emailAddress = addressField.text;
+                            if (emailAddress.search(/yahoo.com/i) > 0)
+                            {
+                                emailAccount.preset = 3;
+                                emailAccount.description = qsTr("Yahoo!");
+                            }
+                            else if ((emailAddress.search(/aim.com/i) > 0) || (emailAddress.search(/aol.com/i) > 0))
+                            {
+                                emailAccount.preset = 4; // AOL
+                                emailAccount.description = qsTr("AOL");
+                            }
+
                             emailAccount.applyPreset();
                             if (emailAccount.preset != 0) {
                                 settingsPage.state = "DetailsScreen";

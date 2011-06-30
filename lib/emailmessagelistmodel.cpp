@@ -354,8 +354,11 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     search_str = QString();
     connect(timer, SIGNAL(timeout()), this, SLOT(updateSearch()));
 
-    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-    QObject::connect (instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
+    session_instance = new OrgGnomeEvolutionDataserverMailSessionInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                               QString ("/org/gnome/evolution/dataserver/Mail/Session"),
+                                                               QDBusConnection::sessionBus(), parent);
+
+    QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
 
     initMailServer();
 /*
@@ -374,6 +377,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
 
 EmailMessageListModel::~EmailMessageListModel()
 {
+    delete session_instance;
 }
 
 int EmailMessageListModel::rowCount(const QModelIndex & parent) const {
@@ -702,15 +706,14 @@ void EmailMessageListModel::onSendReceiveComplete()
 
 void EmailMessageListModel::sendReceive()
 {
-	OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
 	const char *url;
 
 	url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
 	if (m_current_folder.endsWith ("Outbox", Qt::CaseInsensitive)) {
-		instance->sendReceive();
+		session_instance->sendReceive();
 	} else if  (strncmp (url, "pop:", 4) == 0) {
 		/* Fetch entire account for POP */
-		instance->fetchAccount (m_account->uid);
+		session_instance->fetchAccount (m_account->uid);
 	} else {
 		/* For rest just do refreshInfo */
 		m_folder_proxy->refreshInfo();
@@ -720,11 +723,9 @@ void EmailMessageListModel::sendReceive()
 }
 
 void EmailMessageListModel::cancelOperations()
-{
-	OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-	
+{	
 	emit sendReceiveCompleted();
-	instance->cancelOperations();
+	session_instance->cancelOperations();
 }
 
 void EmailMessageListModel::setFolderKey (QVariant id)
@@ -1003,17 +1004,15 @@ void EmailMessageListModel::getMoreMessages ()
 			qDebug()<< "Disconnected..................";
 
 			m_folder_proxy->blockSignals(true);
-			OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-			 //= instance->fetchMoreMessages (QString(m_account->uid));
 			
 			/* Fetch another 40 more mails */
-			QDBusMessage msg = QDBusMessage::createMethodCall(instance->service(), instance->path(), instance->interface(), QString("fetchOldMessages"));
+			QDBusMessage msg = QDBusMessage::createMethodCall(session_instance->service(), session_instance->path(), session_instance->interface(), QString("fetchOldMessages"));
 		        QList<QVariant> argumentList;
 		        argumentList << qVariantFromValue(QString(m_account->uid)) << qVariantFromValue(40);
 
     			msg.setArguments(argumentList);
 			/* Make this a async call with 10min timeout. At times it takes that time to download messages */
-			QDBusPendingCall reply = instance->connection().asyncCall (msg, 10 * 60 * 1000);
+			QDBusPendingCall reply = session_instance->connection().asyncCall (msg, 10 * 60 * 1000);
 
 			QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
 	                //reply.waitForFinished();
@@ -1026,7 +1025,6 @@ void EmailMessageListModel::getMoreMessages ()
 			qDebug()<< "Disconnected..................";
 
 			m_folder_proxy->blockSignals(true);
-			 //= instance->fetchMoreMessages (QString(m_account->uid));
 			
 			/* Fetch another 40 more mails */
 			QDBusMessage msg = QDBusMessage::createMethodCall(m_folder_proxy->service(), m_folder_proxy->path(), m_folder_proxy->interface(), QString("fetchOldMessages"));
@@ -1175,11 +1173,10 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     const char *url;
 
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
 
     if (!m_lstore_proxy) {
 	QDBusPendingReply<QDBusObjectPath> reply;
-	reply = instance->getLocalStore();
+	reply = session_instance->getLocalStore();
         m_lstore_proxy_id = reply.value();
 
         m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
@@ -1188,14 +1185,14 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     }
 
 
-    if (instance && instance->isValid() && url && *url) {
+    if (session_instance && session_instance->isValid() && url && *url) {
         QDBusPendingReply<QDBusObjectPath> reply ;
 	const char *email = NULL;
 
 	if (strncmp (url, "pop:", 4) == 0)
-		reply = instance->getLocalStore();
+		reply = session_instance->getLocalStore();
 	else 
-		reply = instance->getStore (QString(url));
+		reply = session_instance->getStore (QString(url));
         reply.waitForFinished();
         m_store_proxy_id = reply.value();
 
@@ -1606,8 +1603,7 @@ void EmailMessageListModel::moveSelectedMessageIds(QVariant vFolderId)
    QDBusPendingReply<QDBusObjectPath> reply ;
    QDBusObjectPath dest_folder_path;
 
-    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-    reply = instance->getFolderFromUri (vFolderId.toString());
+    reply = session_instance->getFolderFromUri (vFolderId.toString());
     reply.waitForFinished();
 
     dest_folder_path = reply.value();

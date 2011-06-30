@@ -15,6 +15,8 @@ Column {
 
     spacing: 1
 
+    // disabled till we get the license agreement from AOL
+    /*
     WelcomeButton {
         title: qsTr("AOL")
         icon: "image://themedimage/icons/services/aim"
@@ -26,6 +28,7 @@ Column {
             settingsPage.state = "RegisterScreen";
         }
     }
+    */
     WelcomeButton {
         title: qsTr("Gmail")
         icon: "image://themedimage/icons/services/gmail"
@@ -79,6 +82,7 @@ Column {
         icon: "image://themedimage/icons/services/generic"
         onClicked: {
             emailAccount.clear();
+            emailAccount.description = qsTr("");
             emailAccount.recvSecurity = "0"; // None
             emailAccount.sendAuth = "0";     // None
             emailAccount.sendSecurity = "0"; // None

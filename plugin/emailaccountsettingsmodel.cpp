@@ -61,6 +61,9 @@ EmailAccountSettingsModel::EmailAccountSettingsModel(QObject *parent)
     mNewMailNotificationConf = new MGConfItem("/apps/meego-app-email/newmailnotifications");
     mConfirmDeleteMailConf = new MGConfItem("/apps/meego-app-email/confirmdeletemail");
 
+    /* Init the Glib system */
+    g_type_init ();
+
     GConfClient *client = gconf_client_get_default();
     mAccountList = e_account_list_new(client);
     g_signal_connect (mAccountList, "account-changed", G_CALLBACK(account_changed), mAccountList);

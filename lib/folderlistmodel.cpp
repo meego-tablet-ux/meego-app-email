@@ -48,11 +48,15 @@ FolderListModel::FolderListModel(QObject *parent) :
     m_sent_proxy = NULL;
     m_drafts_proxy = NULL;
     pop_foldername = NULL;
+    session_instance = new OrgGnomeEvolutionDataserverMailSessionInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                               QString ("/org/gnome/evolution/dataserver/Mail/Session"),
+                                                               QDBusConnection::sessionBus(), parent);
 
 }
 
 FolderListModel::~FolderListModel()
 {
+    delete session_instance;
 }
 
 int FolderListModel::rowCount(const QModelIndex &parent) const
@@ -207,11 +211,9 @@ void FolderListModel::setAccountKey(QVariant id)
     g_object_unref (account_list);
     url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
 
-    OrgGnomeEvolutionDataserverMailSessionInterface *instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
-
     if (!m_lstore_proxy) {
 	QDBusPendingReply<QDBusObjectPath> reply;
-	reply = instance->getLocalStore();
+	reply = session_instance->getLocalStore();
         m_lstore_proxy_id = reply.value();
 
         m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
@@ -221,14 +223,14 @@ void FolderListModel::setAccountKey(QVariant id)
     }
 
     g_print ("fetching store: %s\n", url);
-    if (instance && instance->isValid()) {
+    if (session_instance && session_instance->isValid()) {
 	QDBusPendingReply<QDBusObjectPath> reply;
 	const char *email = NULL;
 
 	if (strncmp (url, "pop:", 4) == 0)
-		reply = instance->getLocalStore();
+		reply = session_instance->getLocalStore();
 	else 
-		reply = instance->getStore (QString(url));
+		reply = session_instance->getStore (QString(url));
         reply.waitForFinished();
         m_store_proxy_id = reply.value();
 
@@ -297,7 +299,7 @@ void FolderListModel::setAccountKey(QVariant id)
 	}
 
 	if (!m_outbox_proxy) {
-		reply = instance->getLocalFolder (QString("Outbox"));
+		reply = session_instance->getLocalFolder (QString("Outbox"));
 		reply.waitForFinished();
         	m_outbox_proxy_id = reply.value();
 
@@ -306,14 +308,14 @@ void FolderListModel::setAccountKey(QVariant id)
 										     QDBusConnection::sessionBus(), this);
 	}
 	
-	reply = instance->getFolderFromUri (QString(m_account->sent_folder_uri));
+	reply = session_instance->getFolderFromUri (QString(m_account->sent_folder_uri));
         reply.waitForFinished();
         m_sent_proxy_id = reply.value();
 	m_sent_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
 									     m_sent_proxy_id.path(),
 									     QDBusConnection::sessionBus(), this);
 
-	reply = instance->getFolderFromUri (QString(m_account->drafts_folder_uri));
+	reply = session_instance->getFolderFromUri (QString(m_account->drafts_folder_uri));
         reply.waitForFinished();
         m_drafts_proxy_id = reply.value();
 	m_drafts_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
