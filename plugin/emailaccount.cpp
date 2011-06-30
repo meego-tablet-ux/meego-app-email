@@ -23,6 +23,10 @@ EmailAccount::EmailAccount()
     mSignatureConf(new MGConfItem("/apps/meego-app-email/signature"))
 {
     mAccount = NULL;
+
+    /* Init the Glib system*/
+    g_type_init ();
+
     GConfClient *client = gconf_client_get_default();
     mAccountList = e_account_list_new(client);
     g_object_unref(client);

@@ -129,7 +129,12 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 {
     qDebug() << "EmailAccountListModel constructor";
     QHash<int, QByteArray> roles;
-    char *path = g_build_filename (e_get_user_cache_dir(), "tmp", NULL);
+    char *path;
+
+    /* Inits glib for Content aggregator and mail app */
+    g_type_init ();
+
+    path = g_build_filename (e_get_user_cache_dir(), "tmp", NULL);
 
     g_mkdir_with_parents (path, 0700);
     g_free (path);
@@ -150,7 +155,9 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     g_object_unref (client);
 
     /* Init here for password prompt */
-    session_instance = OrgGnomeEvolutionDataserverMailSessionInterface::instance(this);
+    session_instance = new OrgGnomeEvolutionDataserverMailSessionInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                               QString ("/org/gnome/evolution/dataserver/Mail/Session"),
+                                                               QDBusConnection::sessionBus(), parent);
     QObject::connect (session_instance, SIGNAL(GetPassword(const QString &, const QString &, const QString &)), this, SLOT(onGetPassword (const QString &, const QString &, const QString &)));
     QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
 
@@ -189,6 +196,7 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 
 EmailAccountListModel::~EmailAccountListModel()
 {
+    delete session_instance;
 }
 
 EAccount * EmailAccountListModel::getAccountByIndex(int idx) const
