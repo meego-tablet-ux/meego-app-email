@@ -26,6 +26,7 @@ EmailAccount::EmailAccount()
 
     /* Init the Glib system*/
     g_type_init ();
+    registerMyDataTypes ();
 
     GConfClient *client = gconf_client_get_default();
     mAccountList = e_account_list_new(client);
