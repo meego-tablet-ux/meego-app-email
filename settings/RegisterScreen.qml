@@ -93,6 +93,7 @@ Item {
                             passwordField.errorText = "";
                         }
 
+/*
                         // Added By Daewon.Park
                         var accountList = accountListModel.getAllEmailAddresses();
                         for(var i = 0; i < accountList.length; i++) {
@@ -103,11 +104,25 @@ Item {
                                 break;
                             }
                         }
+*/
 
                         return errors === 0;
                     }
                     onClicked: {
                         if (validate()) {
+
+                            var emailAddress = addressField.text;
+                            if (emailAddress.search(/yahoo.com/i) > 0)
+                            {
+                                emailAccount.preset = 3;
+                                emailAccount.description = qsTr("Yahoo!");
+                            }
+                            else if ((emailAddress.search(/aim.com/i) > 0) || (emailAddress.search(/aol.com/i) > 0))
+                            {
+                                emailAccount.preset = 4; // AOL
+                                emailAccount.description = qsTr("AOL");
+                            }
+
                             emailAccount.applyPreset();
                             if (emailAccount.preset != 0) {
                                 settingsPage.state = "DetailsScreen";
@@ -143,9 +158,9 @@ Item {
         }
     }
     // Added By Daewon.Park
-    EmailAccountListModel {
+    /*EmailAccountListModel {
         id : accountListModel
-    }
+    }*/
 
 
     SaveRestoreState {

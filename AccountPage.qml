@@ -80,6 +80,8 @@ Item {
                 {
                     "image://themedimage/icons/services/facebook"
                 }
+/* 
+//disabled until we get license agreement with yahoo and aol
                 else if (mailServer == "yahoo")
                 {
                     "image://themedimage/icons/services/yahoo"
@@ -88,6 +90,7 @@ Item {
                 {
                     "image://themedimage/icons/services/aim"
                 }
+*/
                 else
                 {
                     "image://themedimage/icons/services/generic"
