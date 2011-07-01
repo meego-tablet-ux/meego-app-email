@@ -397,7 +397,7 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     QString iuid;
     CamelMessageInfoVariant minfo; 
 
-    if (row  > shown_uids.length())
+    if (row  >= shown_uids.length())
         return QVariant();
 
     iuid = shown_uids[row];
