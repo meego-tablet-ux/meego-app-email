@@ -151,6 +151,93 @@ Window {
         id: emailAgent;
     }
 
+    SaveRestoreState {
+        id: saveRestore
+
+        onSaveRequired: internal.save()
+
+        Component.onCompleted: {
+            if (!restoreRequired)
+                return;
+            internal.restore();
+        }
+    }
+
+    QtObject {
+        id: internal
+
+        property string currentPage: "currentPage"
+
+        function save()
+        {
+            saveRestore.setValue(currentPage, window.pageStack.currentPage.objectName);
+
+            saveRestore.setValue("window.currentMailAccountId", window.currentMailAccountId);
+            saveRestore.setValue("window.currentMailAccountIndex", window.currentMailAccountIndex);
+            saveRestore.setValue("window.currentFolderId", window.currentFolderId);
+            saveRestore.setValue("window.currentFolderName", window.currentFolderName);
+            saveRestore.setValue("window.currentAccountDisplayName", window.currentAccountDisplayName);
+            saveRestore.setValue("window.currentMessageIndex", window.currentMessageIndex);
+
+            window.pageStack.currentPage.save(saveRestore);
+            saveRestore.sync();
+        }
+
+        function restore()
+        {
+            window.currentMailAccountId = saveRestore.value("window.currentMailAccountId");
+            window.currentMailAccountIndex = saveRestore.value("window.currentMailAccountIndex");
+            window.currentFolderId = saveRestore.value("window.currentFolderId");
+            window.currentFolderName = saveRestore.value("window.currentFolderName");
+            window.currentAccountDisplayName = saveRestore.value("window.currentAccountDisplayName");
+            window.currentMessageIndex = saveRestore.value("window.currentMessageIndex");
+
+            messageListModel.setAccountKey (window.currentMailAccountId);
+            mailFolderListModel.setAccountKey (window.currentMailAccountId);
+            window.folderListViewTitle = window.currentAccountDisplayName + " " + mailFolderListModel.inboxFolderName();
+            window.folderListViewClickCount = 0;
+
+//            NOTE TO KIRILL: IT CRASHES HERE
+//            var msgid = window.currentMessageIndex;
+//            window.mailId = messageListModel.messageId(msgid);
+//            window.mailSubject = messageListModel.subject(msgid);
+//            window.mailSender = messageListModel.mailSender(msgid);
+//            window.mailTimeStamp = messageListModel.timeStamp(msgid);
+//            window.mailBody = messageListModel.body(msgid);
+//            window.mailHtmlBody = messageListModel.htmlBody(msgid);
+//            window.mailQuotedBody = messageListModel.quotedBody(msgid);
+//            window.mailAttachments = messageListModel.attachments(msgid);
+//            window.numberOfMailAttachments = messageListModel.numberOfAttachments(msgid);
+//            window.mailRecipients = messageListModel.toList(msgid);
+//            toListModel.init();
+//            window.mailCc = messageListModel.ccList(msgid);
+//            ccListModel.init();
+//            window.mailBcc = messageListModel.ccList(msgid);
+//            bccListModel.init();
+//            mailAttachmentModel.init();
+//            window.currentMessageIndex = msgid;
+//            messageListModel.markMessageAsRead (window.mailId);
+
+            restoreCurrentPage();
+        }
+
+        function restoreCurrentPage()
+        {
+            var cp = saveRestore.value(internal.currentPage);
+            if (cp == "folderListView") {             
+                window.addPage(folderList);
+            } else if (cp == "accountListView") {
+                window.addPage(mailAccount);
+            } else if (cp == "composerPage") {              
+                window.addPage(composer);
+            } else if (cp == "readingView") {
+                window.addPage(reader);
+            }
+            window.pageStack.currentPage.restore(saveRestore);
+        }
+    }
+
+
     EmailMessageListModel {
         id: messageListModel
         onFolderChanged: {
@@ -461,6 +548,7 @@ Window {
             anchors.fill: parent
             pageTitle: window.folderListViewTitle
             enableCustomActionMenu: true
+            objectName: "folderListView"
 
             property bool folderListPageHasFocus: true
 
@@ -469,6 +557,19 @@ Window {
             function closeMenu()
             {
                 contextActionMenu.hide();
+            }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+                folderListContainer.save(saveRestore);
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
+                window.folderListViewClickCount = 0;
+                folderListContainer.restore(saveRestore);
             }
 
             Component.onCompleted: {
@@ -543,6 +644,8 @@ Window {
             id: accountListView
             anchors.fill: parent
             pageTitle: qsTr("Account list")
+            objectName: "accountListView"
+
             property int idx: 0
             Component.onCompleted: {
                 var accountList = new Array();
@@ -554,6 +657,16 @@ Window {
                 contents: AccountPage {}
                 toolbar: AccountViewToolbar {}
             }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
+            }
         }
     }
 
@@ -561,8 +674,21 @@ Window {
         id: composer
         AppPage {
             id: composerPage
+            objectName: "composerPage"
 
             TopItem { id: composerTopItem }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+                composerView.save(saveRestore);
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
+                composerView.restore(saveRestore);
+            }
 
             Component.onCompleted: {
 
@@ -641,12 +767,25 @@ Window {
             id: readingView
             anchors.fill: parent
             pageTitle: window.mailSubject
+            objectName: "readingView"
 
             TopItem { id: readingViewTopItem }
 
             Component.onDestruction: {
                 window.accountPageClickCount = 0;
                 window.folderListViewClickCount = 0;
+            }
+
+            function save(saveRestore)
+            {
+                //TODO: implement me
+                reading.save(saveRestore)
+            }
+
+            function restore(saveRestore)
+            {
+                //TODO: implement me
+                reading.restore(saveRestore)
             }
 
             actionMenuModel : window.mailReadFlag ? [qsTr("Mark as unread")] : [qsTr("Mark as read")]

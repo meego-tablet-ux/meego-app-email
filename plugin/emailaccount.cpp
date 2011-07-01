@@ -60,11 +60,7 @@ void EmailAccount::init()
     mPassword.clear();
 
     EAccount *acc = e_account_new();
-    if (mAccount) {
-        g_free (acc->uid);
-        acc->uid = g_strdup(mAccount->uid);
-        g_object_unref(mAccount);
-    }
+    g_object_unref(mAccount);
     mAccount = acc;
 
     mModified = true;

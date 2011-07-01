@@ -17,6 +17,7 @@
 #include <actions.h>
 
 #include <emailmessagelistmodel.h>
+#include <folderlistmodel.h>
 
 const int FetchBatch = 10;
 
@@ -27,9 +28,16 @@ EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent):
         McaFeedModel(parent)
 {
     // TODO: pass the account id when Carl makes that available
+
+    FolderListModel *folders = new FolderListModel(this);
+    folders->setAccountKey(account);
+
     m_source = new EmailMessageListModel(this);
     m_source->setAccountKey(account);
+    m_source->setFolderKey(folders->inboxFolderId());
     m_actions = new McaActions;
+
+    delete folders;
 
     connect(m_source, SIGNAL(rowsInserted(QModelIndex,int,int)),
             this, SLOT(sourceRowsInserted(QModelIndex,int,int)));
@@ -112,7 +120,7 @@ bool EmailFeedModel::canFetchMore(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
 
-    return (m_messages.count() < m_source->rowCount()) || m_source->canFetchMore(QModelIndex());
+    return (m_messages.count() < m_source->rowCount()) || m_source->stillMoreMessages();
 }
 
 void EmailFeedModel::fetchMore(const QModelIndex &parent)
@@ -127,8 +135,10 @@ void EmailFeedModel::fetchMore(const QModelIndex &parent)
         count = FetchBatch;
     if (count > 0)
         sourceRowsInserted(QModelIndex(), first, first + count - 1);
-    else if (m_source->canFetchMore(QModelIndex()))
-        m_source->fetchMore(QModelIndex());
+    else if (m_source->stillMoreMessages())
+        m_source->getMoreMessages();
+
+    qDebug() << m_source->rowCount();
 }
 
 

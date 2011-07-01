@@ -347,20 +347,22 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
 void EmailAccountListModel::onAccountsAdded(const QString &uid)
 {
+    // Maintain a second list and manipulate. This might represent wrong data at some instance and can crash. 
     qDebug() << uid + ": Account added";
-    emit accountAdded(QVariant(uid));
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
+    beginInsertRows(QModelIndex(), rowCount()-1, rowCount()-1);
     endInsertRows();
-
+    rowCount();
+    emit accountAdded(QVariant(uid));
 }
 
 void EmailAccountListModel::onAccountsRemoved(const QString &uid)
 {
+    // Deal with a better mapping than a hack.
+    
     beginRemoveRows (QModelIndex(), 0, rowCount());
     endRemoveRows ();
     beginInsertRows (QModelIndex(), 0, rowCount() -1);
     endInsertRows();
-
     emit accountRemoved(QVariant(uid));
 }
 

@@ -20,6 +20,42 @@ Item {
     property bool inSelectMode: false
     property int numOfSelectedMessages: 0
     property int folderServerCount: 0
+    property string selectedMessages
+
+    function save(saveRestore)
+    {
+        //Determine which section of the listView we are looking at
+        saveRestore.setValue( "messageListView.contentY", messageListView.contentY)
+
+        //Determine if in select mode
+        saveRestore.setValue("folderListContainer.inSelectMode", folderListContainer.inSelectMode)
+
+        //Determine which messages have been selected
+        folderListContainer.selectedMessages = folderListContainer.selectedMessages.substring(1)
+        saveRestore.setValue("folderListContainer.selectedMessages", folderListContainer.selectedMessages)
+    }
+
+    function restore(saveRestore)
+    {
+        messageListView.contentY= saveRestore.value("messageListView.contentY")
+
+        //SaveRestore API does not know how to save boolean values
+        if ( saveRestore.value("folderListContainer.inSelectMode") =="true" )
+            folderListContainer.inSelectMode=true
+        else
+            folderListContainer.inSelectMode=false
+
+
+        folderListContainer.selectedMessages= saveRestore.value("folderListContainer.selectedMessages")
+        var mySelectedMessages= folderListContainer.selectedMessages.split(",")
+        var i;       
+        for(  i=0; i< mySelectedMessages.length; i++ )
+        {
+            var indice= mySelectedMessages[i]
+            messageListModel.selectMessage(indice);
+            numOfSelectedMessages++
+        }
+    }
 
     Component.onCompleted: { 
         messageListModel.setAccountKey (window.currentMailAccountId);
@@ -232,10 +268,10 @@ Item {
                 height: 45
                 width: 300
                 text: {
-                     if(gettingMoreMessages)
-                         return  qsTr("Getting more messages")
-                     else
-                         return  qsTr("Get more messages")
+                    if(gettingMoreMessages)
+                        return  qsTr("Getting more messages")
+                    else
+                        return  qsTr("Get more messages")
                 }
                 onClicked: {
                     gettingMoreMessages = true;
@@ -308,7 +344,7 @@ Item {
                 }
                 a[0] == undefined ? "" : a[0];
             }
-           
+
             Item {
                 id: fromLine
                 anchors.top: parent.top
@@ -410,11 +446,22 @@ Item {
                             if (selected)
                             {
                                 messageListModel.deSelectMessage(index);
+                                folderListContainer.selectedMessages=
+                                        folderListContainer.selectedMessages.replace( "," + index ,"" )
+
+
+
                                 --folderListContainer.numOfSelectedMessages;
                             }
                             else
                             {
                                 messageListModel.selectMessage(index);
+
+                                //For the save/restore
+                                folderListContainer.selectedMessages
+                                        = folderListContainer.selectedMessages + "," + index
+
+
                                 ++folderListContainer.numOfSelectedMessages;
                             }
                         }
