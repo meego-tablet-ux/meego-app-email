@@ -66,6 +66,7 @@ signals:
 private:
     OrgGnomeEvolutionDataserverMailSessionInterface *session_instance;
     EAccountList *account_list;
+    QList<EAccount *> mAcccountList;
     QHash<QString, int> acc_unread;
     void updateUnreadCount (EAccount *account);
 

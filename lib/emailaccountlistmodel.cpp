@@ -25,26 +25,21 @@ void EmailAccountListModel::onSendReceiveComplete()
 {
    qDebug() << "Send Receive complete \n\n";
    emit sendReceiveCompleted();
+   int i=0;
+   EAccount * account;
 
-    /* Update unread count once send recv is done. */
-    EIterator *iter;
-    EAccount *account = NULL;
-
-    iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter)) {
+   /* Update unread count once send recv is done. */
+   for (i=0; i<mAcccountList.count(); i++) {
 	EAccountService *service;
 
-	account = (EAccount *) e_iterator_get (iter);
+        account = mAcccountList[i];
 	service = account->source;
 
 	if (service->url && *service->url && account->enabled) {
 		updateUnreadCount(account);
 		onAccountsUpdated (QString(account->uid));
 	}
-        e_iterator_next (iter);
     }
-
-    g_object_unref (iter);
 }
 
 void EmailAccountListModel::setUnreadCount (QVariant id, int count)
@@ -130,6 +125,9 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     qDebug() << "EmailAccountListModel constructor";
     QHash<int, QByteArray> roles;
     char *path;
+    EIterator *iter;
+    EAccount *account = NULL, *account_copy = NULL;
+    int i;
 
     /* Inits glib for Content aggregator and mail app */
     g_type_init ();
@@ -154,6 +152,20 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     account_list = e_account_list_new (client);
     g_object_unref (client);
 
+    iter = e_list_get_iterator (E_LIST (account_list));
+    while (e_iterator_is_valid (iter)) {
+	char *xml;
+	account = (EAccount *) e_iterator_get (iter);
+	xml = e_account_to_xml (account);
+	account_copy = e_account_new_from_xml (xml);
+	g_free (xml);
+	mAcccountList.append (account_copy);
+        e_iterator_next (iter);
+    }
+
+    g_object_unref (iter);
+    account = NULL;
+
     /* Init here for password prompt */
     session_instance = new OrgGnomeEvolutionDataserverMailSessionInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                QString ("/org/gnome/evolution/dataserver/Mail/Session"),
@@ -175,22 +187,16 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     QMailAccountListModel::setKey(QMailAccountKey::messageType(QMailMessage::Email));
 */
 
-    EIterator *iter;
-    EAccount *account = NULL;
 
-    iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter)) {
+    for (i=0; i<mAcccountList.count(); i++) {
 	EAccountService *service;
 
-	account = (EAccount *) e_iterator_get (iter);
+        account = mAcccountList[i];
 	service = account->source;
 
 	if (service->url && *service->url && account->enabled)
 		updateUnreadCount(account);
-        e_iterator_next (iter);
     }
-
-    g_object_unref (iter);
 
 }
 
@@ -201,75 +207,63 @@ EmailAccountListModel::~EmailAccountListModel()
 
 EAccount * EmailAccountListModel::getAccountByIndex(int idx) const
 {
-    EIterator *iter;
-    int i=-1;
+    int index=-1;
     EAccount *account = NULL;
+    int i;
 
-    iter = e_list_get_iterator (E_LIST (account_list));
-    for (; e_iterator_is_valid (iter); e_iterator_next (iter)) {
+    for (i=0; i<mAcccountList.count(); i++) {
 	EAccountService *service;
 
-	account = (EAccount *) e_iterator_get (iter);
+	account = mAcccountList[i];
 	service = account->source;
 	
 	/* Iterate over valid accounts only */
 	if (service->url && *service->url && account->enabled) {
-	        i++;
+	        index++;
 	}
 	
-	if (i == idx)
+	if (index == idx)
 		break;
     }
-
-    if (!e_iterator_is_valid (iter))
-	account = NULL;
-	
-    g_object_unref (iter);
 
     return account;
 }
 
 EAccount * EmailAccountListModel::getAccountById(char *id)
 {
-    EIterator *iter;
     EAccount *account = NULL;
+    int i;
 
-    iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter)) {
-        account = (EAccount *) e_iterator_get (iter);
+    for (i=0; i<mAcccountList.count(); i++) {
+        account = mAcccountList[i];
 	if (strcmp (id, account->uid) == 0)
 	     return account;
-        e_iterator_next (iter);
     }
-
-    g_object_unref (iter);
 
     return NULL;
 }
 
 int EmailAccountListModel::getIndexById(char *id)
 {
-    EIterator *iter;
     EAccount *account = NULL;
     int index=-1;
+    int i;
 
-    iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter)) {
+    for (i=0; i<mAcccountList.count(); i++) {
 	EAccountService *service;
 
-	account = (EAccount *) e_iterator_get (iter);
+	account = mAcccountList[i];
 	service = account->source;
 	
 	/* Iterate over valid accounts only */
 	if (service->url && *service->url && account->enabled)
         	index++;
-        account = (EAccount *) e_iterator_get (iter);
+
+        account = mAcccountList[i];
         if (strcmp (id, account->uid) == 0)
              return index;
-        e_iterator_next (iter);
-    }
 
-    g_object_unref (iter);
+    }
 
     return -1;
 }
@@ -278,27 +272,23 @@ int EmailAccountListModel::getIndexById(char *id)
 int EmailAccountListModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
+    int index=0;
+    int i;
 
-    EIterator *iter;
-    int i=0;
-
-    iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter)) {
+    for (i=0; i<mAcccountList.count(); i++) {
 	EAccountService *service;
 	EAccount *acc;
 
-	acc = (EAccount *) e_iterator_get (iter);
+	acc = mAcccountList[i];
 	service = acc->source;
 	
 	/* Iterate over valid accounts only */
 	if (service->url && *service->url && acc->enabled)
-	        i++;
+	        index++;
 
-        e_iterator_next (iter);
-	
     }
 
-    return i;
+    return index;
 }
 
 QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
@@ -347,23 +337,47 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
 void EmailAccountListModel::onAccountsAdded(const QString &uid)
 {
+    EAccount *account, *account_copy;
+
     // Maintain a second list and manipulate. This might represent wrong data at some instance and can crash. 
     qDebug() << uid + ": Account added";
-    beginInsertRows(QModelIndex(), rowCount()-1, rowCount()-1);
+    beginInsertRows(QModelIndex(), rowCount(), rowCount());
+    EIterator *iter = e_list_get_iterator (E_LIST (account_list));
+
+    while (e_iterator_is_valid (iter)) {
+	char *xml;
+	account = (EAccount *) e_iterator_get (iter);
+	if (uid == QString(account->uid)) {
+		xml = e_account_to_xml (account);
+		account_copy = e_account_new_from_xml (xml);
+		g_free (xml);
+		mAcccountList.append (account_copy);
+		break;
+	}
+        e_iterator_next (iter);
+    }
+    g_object_unref (iter);
     endInsertRows();
-    rowCount();
+
     emit accountAdded(QVariant(uid));
 }
 
 void EmailAccountListModel::onAccountsRemoved(const QString &uid)
 {
     // Deal with a better mapping than a hack.
-    
-    beginRemoveRows (QModelIndex(), 0, rowCount());
+    int index;
+    char *cid = g_strdup((char *)uid.toLocal8Bit().constData());
+    EAccount *account;
+
+    index = getIndexById (cid);
+    beginRemoveRows (QModelIndex(), index, index);
+    account = mAcccountList[index];
+    mAcccountList.removeAt (index);
+    g_object_unref (account);
     endRemoveRows ();
-    beginInsertRows (QModelIndex(), 0, rowCount() -1);
-    endInsertRows();
     emit accountRemoved(QVariant(uid));
+
+    g_free (cid);
 }
 
 void EmailAccountListModel::onAccountsUpdated(const QString &uid)
