@@ -357,9 +357,12 @@ void EmailAccountListModel::onAccountsAdded(const QString &uid)
 
 void EmailAccountListModel::onAccountsRemoved(const QString &uid)
 {
-    beginResetModel();
-    endResetModel();
-
+    // Deal with a better mapping than a hack.
+    
+    beginRemoveRows (QModelIndex(), 0, rowCount());
+    endRemoveRows ();
+    beginInsertRows (QModelIndex(), 0, rowCount() -1);
+    endInsertRows();
     emit accountRemoved(QVariant(uid));
 }
 
