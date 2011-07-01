@@ -203,6 +203,10 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 EmailAccountListModel::~EmailAccountListModel()
 {
     delete session_instance;
+    g_object_unref (account_list);
+    for (int i=0; i<mAcccountList.count(); i++) {
+        g_object_unref (mAcccountList[i]);
+    }
 }
 
 EAccount * EmailAccountListModel::getAccountByIndex(int idx) const
@@ -383,10 +387,65 @@ void EmailAccountListModel::onAccountsRemoved(const QString &uid)
 void EmailAccountListModel::onAccountsUpdated(const QString &uid)
 {
     char *cid = g_strdup((char *)uid.toLocal8Bit().constData());
-    QModelIndex idx = createIndex (getIndexById(cid), 0);
-    emit dataChanged(idx, idx);
-    qDebug() << uid + ": Account changed";
+    int index = getIndexById(cid);
+    QModelIndex idx;
+    int newidx = -1;
+
+    qDebug() << uid + ": Account changed at index ";
+    printf("at index %d\n", index);
+
+    EIterator *iter = e_list_get_iterator (E_LIST (account_list));
+    EAccount *account = NULL, *copy=NULL;
+    while (e_iterator_is_valid (iter)) {
+	char *xml;
+	
+	newidx++;
+	account = (EAccount *) e_iterator_get (iter);
+	if (uid == QString(account->uid)) {
+		xml = e_account_to_xml (account);
+		copy = e_account_new_from_xml (xml);
+		g_free (xml);
+		break;
+	}
+        e_iterator_next (iter);
+    }
+    g_object_unref (iter);
+    if (!copy) {
+	g_warning ("Unable to find %sin the account list\n", cid);
+	return;
+    }
+    account = getAccountById (cid);
+    if (!copy->enabled && account->enabled) {
+	//int newidx;
+	//newidx = mAcccountList.indexOf (account);
+	/* Account disabled, so lets remove from the view. */
+	idx = createIndex (index, 0);
+	beginRemoveRows (QModelIndex(), index, index);
+	mAcccountList[newidx] = copy;
+	endRemoveRows ();
+	qDebug() << "Disabling account";
+	printf("At %d/%d at %d\n", newidx, mAcccountList.count(), index);
+    } else if (copy->enabled && !account->enabled) {
+	//int newidx;
+	//newidx = mAcccountList.indexOf (account);
+	/* An account just enabled, insert that into the view. */
+	account->enabled = TRUE;
+	index = getIndexById (cid);
+	idx = createIndex (index, 0);
+	beginInsertRows(QModelIndex(), index, index);
+	mAcccountList[newidx] = copy;
+	endInsertRows();
+	qDebug() << "Enabling account";
+	printf("At %d/%d at %d\n", newidx, mAcccountList.count(), index);
+    } else {
+	/* Some other thigns just changed, emit a dataChanged */
+    	idx = createIndex (index, 0);
+	mAcccountList[index] = copy;
+    	emit dataChanged(idx, idx);
+    }
+	
     g_free (cid);
+
 }
 
 
