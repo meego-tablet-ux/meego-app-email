@@ -308,19 +308,23 @@ void FolderListModel::setAccountKey(QVariant id)
 										     QDBusConnection::sessionBus(), this);
 	}
 	
-	reply = session_instance->getFolderFromUri (QString(m_account->sent_folder_uri));
-        reply.waitForFinished();
-        m_sent_proxy_id = reply.value();
-	m_sent_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
-									     m_sent_proxy_id.path(),
-									     QDBusConnection::sessionBus(), this);
+	if (m_account->sent_folder_uri &&  *m_account->sent_folder_uri) {
+		reply = session_instance->getFolderFromUri (QString(m_account->sent_folder_uri));
+       	 	reply.waitForFinished();
+       	 	m_sent_proxy_id = reply.value();
+		m_sent_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+										     m_sent_proxy_id.path(),
+										     QDBusConnection::sessionBus(), this);
+	}
 
-	reply = session_instance->getFolderFromUri (QString(m_account->drafts_folder_uri));
-        reply.waitForFinished();
-        m_drafts_proxy_id = reply.value();
-	m_drafts_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
-									     m_drafts_proxy_id.path(),
-									     QDBusConnection::sessionBus(), this);
+	if (m_account->drafts_folder_uri && *m_account->drafts_folder_uri) {
+		reply = session_instance->getFolderFromUri (QString(m_account->drafts_folder_uri));
+       	 	reply.waitForFinished();
+	        m_drafts_proxy_id = reply.value();
+		m_drafts_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+										     m_drafts_proxy_id.path(),
+										     QDBusConnection::sessionBus(), this);
+	}
 
 	qDebug() << "Setup Outbox/Draft/Sent";
     }

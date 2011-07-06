@@ -48,6 +48,34 @@ void EmailAccountListModel::setUnreadCount (QVariant id, int count)
 	onAccountsUpdated (id.toString());
 }
 
+QString createChecksum(QString uri)
+{
+	GChecksum *checksum;
+	guint8 *digest;
+	gsize length;
+	char buffer[9];
+	gint state = 0, save = 0;
+	QString hash;
+
+	length = g_checksum_type_get_length (G_CHECKSUM_MD5);
+	digest = (guint8 *)g_alloca (length);
+
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update  (checksum, (const guchar *)uri.toLocal8Bit().constData(), -1);
+
+	g_checksum_get_digest (checksum, digest, &length);
+	g_checksum_free (checksum);
+
+	g_base64_encode_step (digest, 6, FALSE, buffer, &state, &save);
+	g_base64_encode_close (FALSE, buffer, &state, &save);
+	buffer[8] = 0;
+	
+	hash = QString ((const char *)buffer);
+	
+    	return hash;
+    
+}
+
 void EmailAccountListModel::updateUnreadCount (EAccount *account)
 {	
 	QDBusObjectPath store_id;
@@ -107,16 +135,46 @@ void EmailAccountListModel::updateUnreadCount (EAccount *account)
 						CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		folderlist = reply2.value ();	
 		folderlist.removeLast();
+	} else if (folderlist.length() ) {
+		folderlist.removeLast();
 	}
 
     	foreach (CamelFolderInfoVariant fInfo, folderlist)
-    	{
+    	{	
+		bool loaded = folderLoaded[fInfo.uri];
+		if (!fInfo.uri.isEmpty() && !loaded) {
+			/* Create checksum and load its hierarchy into for remote loading */
+			QString hash = createChecksum (fInfo.uri);
+			accountUuid.insert (hash, QString(account->uid));
+			folderUuid.insert (hash, QString(fInfo.uri));
+			folderLoaded.insert(fInfo.uri, true);
+			qDebug() << fInfo.uri + " " + QString(account->uid) + " " + hash;
+		}
+
 		if (fInfo.unread_count > 0)
 			count+= fInfo.unread_count;
 	}
 
 	delete proxy;
 	acc_unread.insert (QString(account->uid), count);
+}
+
+QVariant EmailAccountListModel::getAccountByUuid (QString uuid)
+{
+	QString hash = uuid.left(8);
+
+	qDebug() << "getAccUuid " + uuid + "  " + hash;
+
+	return QVariant(accountUuid[hash]);
+}
+
+QVariant EmailAccountListModel::getFolderByUuid (QString uuid)
+{
+	QString hash = uuid.left(8);		
+	
+	qDebug() << "getFolderUuid " + uuid + "  " + hash;
+
+	return QVariant(folderUuid[hash]);
 }
 
 EmailAccountListModel::EmailAccountListModel(QObject *parent) :
@@ -145,6 +203,11 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     roles.insert(UnreadCount, "unreadCount");
     roles.insert(MailAccountId, "mailAccountId");
     setRoleNames(roles);
+
+    accountUuid.clear();
+    folderUuid.clear();
+    folderLoaded.clear();
+    acc_unread.clear();
 
     GConfClient *client;
 

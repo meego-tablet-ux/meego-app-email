@@ -473,8 +473,18 @@ Window {
             else
             {
                 var msgUuid = parameters[1];
-                var msgIdx = messageListModel.indexFromMessageId(msgUuid);
+                var msgIdx;
+		var currentAccount = mailAccountListModel.getAccountByUuid (msgUuid);
+		var currentFolder = mailAccountListModel.getFolderByUuid (msgUuid);
+
+		mailFolderListModel.setAccountKey (currentAccount);
+		messageListModel.setAccountKey (currentAccount);
+		messageListModel.setFolderKey (currentFolder);
+
+ 		msgIdx = messageListModel.indexFromMessageId(msgUuid);
                 window.currentMessageIndex = msgIdx;
+		console.log ("Msg Index " + msgIdx);
+
                 if (cmd == "reply")
                 {   
                     if (window.composerIsCurrentPage)

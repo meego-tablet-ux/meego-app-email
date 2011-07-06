@@ -779,6 +779,9 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 	}
 	m_folder_proxy_id = reply.value ();
     }
+   
+    /* Create checksum for the Folder. */
+    createChecksum();
     messages_present = true;
 
     /* Clear message list before you load a folder. */
@@ -1454,13 +1457,12 @@ QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
 {
     QString uid = uuid.right(uuid.length()-8);
     CamelMessageInfoVariant info = m_infos[uid];
+    int ret_row = -1;
 
-    for (int row = 0; row < rowCount(); row++)
-    {
-	if (info.uid == uid)
-            return row;
-    }
-    return -1;
+    ret_row = shown_uids.indexOf (uid);
+    /* We assume that content feed would have uids from what we are already showing/loaded. Check this up anyways. */
+
+    return ret_row;
 }
 
 QVariant EmailMessageListModel::messageId (int idx)

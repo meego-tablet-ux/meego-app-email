@@ -55,6 +55,9 @@ public slots:
     Q_INVOKABLE void addPassword(QString key, QString password);
     Q_INVOKABLE void sendReceive();
     Q_INVOKABLE void cancelOperations();
+    Q_INVOKABLE QVariant getAccountByUuid (QString uuid);
+    Q_INVOKABLE QVariant getFolderByUuid (QString uuid);
+
 
 signals:
     void accountAdded(QVariant accountId);
@@ -69,6 +72,9 @@ private:
     QList<EAccount *> mAcccountList;
     QHash<QString, int> acc_unread;
     void updateUnreadCount (EAccount *account);
+    QHash<QString, QString> accountUuid;
+    QHash<QString, QString> folderUuid;
+    QHash<QString, bool> folderLoaded;
 
 private slots:
     EAccount * getAccountByIndex (int idx) const;

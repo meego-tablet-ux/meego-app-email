@@ -29,15 +29,15 @@ EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent):
 {
     // TODO: pass the account id when Carl makes that available
 
-/*    FolderListModel *folders = new FolderListModel(this);
-    folders->setAccountKey(account);*/
+    FolderListModel *folders = new FolderListModel(this);
+    folders->setAccountKey(account);
 
     m_source = new EmailMessageListModel(this);
     m_source->setAccountKey(account);
-/*    m_source->setFolderKey(folders->inboxFolderId()); */
+    m_source->setFolderKey(folders->inboxFolderId()); 
     m_actions = new McaActions;
 
-/*    delete folders; */
+    delete folders;
 
     connect(m_source, SIGNAL(rowsInserted(QModelIndex,int,int)),
             this, SLOT(sourceRowsInserted(QModelIndex,int,int)));
