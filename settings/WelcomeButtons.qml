@@ -82,7 +82,7 @@ Column {
         icon: "image://themedimage/icons/services/generic"
         onClicked: {
             emailAccount.clear();
-            emailAccount.description = qsTr("");
+            emailAccount.description = "";
             emailAccount.recvSecurity = "0"; // None
             emailAccount.sendAuth = "0";     // None
             emailAccount.sendSecurity = "0"; // None
