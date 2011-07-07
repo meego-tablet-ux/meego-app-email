@@ -797,31 +797,7 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                         m_folder_proxy_id.path(),
                                                                         QDBusConnection::sessionBus(), this);
-	{
-		QString sort;
-		search_str = QString("(match-all (and " 
-						      "(not (system-flag \"deleted\")) "
-			        		      "(not (system-flag \"junk\")))) ");
-		if (m_sortById == EmailMessageListModel::SortDate)
-			sort = QString ("date");
-		else if (m_sortById == EmailMessageListModel::SortSubject)
-			sort = QString ("subject");
-
-		else if (m_sortById == EmailMessageListModel::SortSender)
-			sort = QString ("sender");
-		else
-			sort = QString ("date");
-
-		/* Prepare the summary it speeds up the process. */
-		QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
-		reply_prep.waitForFinished();
-
-		/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
-		QDBusPendingReply<QStringList> reply = m_folder_proxy->searchSortByExpression(search_str, sort, false);
-	        reply.waitForFinished();
-		folder_uids = reply.value ();
-		g_print("Fetched %d uids\n", folder_uids.length());
-	}
+    reloadFolderUids();
 
 	if (folder_uids.length() < WINDOW_LIMIT)
 		messages_present = false;
@@ -867,104 +843,140 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 #endif
 }
 
+void EmailMessageListModel::reloadFolderUids ()
+{
+	beginRemoveRows (QModelIndex(), 0, shown_uids.length()-1);
+	shown_uids.clear ();
+	folder_uids.clear();
+	endRemoveRows ();
+			
+	QString sort;
+	search_str = QString("(match-all (and " 
+			"(not (system-flag \"deleted\")) "
+			"(not (system-flag \"junk\")))) ");
+	if (m_sortById == EmailMessageListModel::SortDate)
+		sort = QString ("date");
+	else if (m_sortById == EmailMessageListModel::SortSubject)
+		sort = QString ("subject");
+
+	else if (m_sortById == EmailMessageListModel::SortSender)
+		sort = QString ("sender");
+	else
+		sort = QString ("date");
+		
+	/* Prepare the summary it speeds up the process. */
+	QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
+	reply_prep.waitForFinished();
+
+	/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
+	QDBusPendingReply<QStringList> reply_s = m_folder_proxy->searchSortByExpression(search_str, sort, false);
+	reply_s.waitForFinished();
+	folder_uids = reply_s.value ();
+	g_print("Fetched %d uids\n", folder_uids.length());
+
+}
+
+void EmailMessageListModel::loadMessages (int limit)
+{
+	int count=0;
+
+	beginInsertRows(QModelIndex(), 0, limit);
+	foreach (QString uid, folder_uids) {
+		QDBusError error;
+		CamelMessageInfoVariant info;
+		//qDebug() << "Fetching uid " << uid;
+
+		shown_uids << uid;
+		count++;
+		//printf("Showing %d/%d\n", count, total+WINDOW_LIMIT);
+		//info = m_infos[uid];
+
+		if (m_infos.contains(uid) && m_infos.count(uid) > 0) {
+			info = m_infos[uid];
+			//qDebug() << "Cache has " + uid + " and |" + info.uid + "|";
+			//g_print("Count %d\n", m_infos.count(uid));
+			if (count >= limit+1)
+				break;
+			else
+				continue;
+		}
+		
+		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+		reply.waitForFinished();
+		//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+		if (reply.isError()) {
+			error = reply.error();	
+			qDebug() << "Error: " << error.name () << " " << error.message();
+			continue;
+		}	
+		info = reply.value ();
+		m_infos.insert (uid, info);
+		if (count >= limit+1)
+			break;
+	}
+	endInsertRows();
+}
 void EmailMessageListModel::fetchMoreMessagesFinished (QDBusPendingCallWatcher *call)
 {
 	QDBusPendingReply<bool> reply = *call;
-	int count=0, total;
+	int total;
+	int max;
 
 	total = shown_uids.length();
 
 	messages_present = reply.value();
 	g_print("Messages present? %d\n", messages_present);
 
-			beginRemoveRows (QModelIndex(), 0, shown_uids.length()-1);
-			shown_uids.clear ();
-			folder_uids.clear();
-			endRemoveRows ();
-			{
-				QString sort;
-				search_str = QString("(match-all (and " 
-						      "(not (system-flag \"deleted\")) "
-			        		      "(not (system-flag \"junk\")))) ");
-				if (m_sortById == EmailMessageListModel::SortDate)
-					sort = QString ("date");
-				else if (m_sortById == EmailMessageListModel::SortSubject)
-					sort = QString ("subject");
+	reloadFolderUids();
 
-				else if (m_sortById == EmailMessageListModel::SortSender)
-					sort = QString ("sender");
-				else
-					sort = QString ("date");
-		
-				/* Prepare the summary it speeds up the process. */
-				QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
-				reply_prep.waitForFinished();
+	printf("Already showing %d, now to show %d\n", total, total+WINDOW_LIMIT-1);
+        max = ((total+WINDOW_LIMIT) > (folder_uids.length() )) ? (folder_uids.length()) : total+WINDOW_LIMIT;
 
-				/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
-				QDBusPendingReply<QStringList> reply_s = m_folder_proxy->searchSortByExpression(search_str, sort, false);
-			        reply_s.waitForFinished();
-				folder_uids = reply_s.value ();
-				g_print("Fetched %d uids\n", folder_uids.length());
-			}
+	loadMessages (max-1);
+
+	m_folder_proxy->blockSignals(false);
+	qDebug() << "Reconnected...........";
+	connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
+		 this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
 
 
-			printf("Already showing %d, now to show %d\n", total, total+WINDOW_LIMIT-1);
-			
-			beginInsertRows(QModelIndex(), 0, total+WINDOW_LIMIT-1);
-			foreach (QString uid, folder_uids) {
-				QDBusError error;
-				CamelMessageInfoVariant info;
-				//qDebug() << "Fetching uid " << uid;
-
-				shown_uids << uid;
-				count++;
-				//printf("Showing %d/%d\n", count, total+WINDOW_LIMIT);
-				//info = m_infos[uid];
-
-				if (m_infos.contains(uid) && m_infos.count(uid) > 0) {
-					info = m_infos[uid];
-					//qDebug() << "Cache has " + uid + " and |" + info.uid + "|";
-					//g_print("Count %d\n", m_infos.count(uid));
-					if (count >= total+WINDOW_LIMIT)
-						break;
-					else
-						continue;
-				}
-				QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-		                reply.waitForFinished();
-				//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
-				if (reply.isError()) {
-					error = reply.error();	
-					qDebug() << "Error: " << error.name () << " " << error.message();
-					continue;
-				}	
-				info = reply.value ();
-				m_infos.insert (uid, info);
-				if (count >= total+WINDOW_LIMIT)
-					break;
-			}
-			endInsertRows();
-
-			m_folder_proxy->blockSignals(false);
-			qDebug() << "Reconnected...........";
-		        connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                                            this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
-
-
-			//sortMails ();
-			emit messageRetrievalCompleted();
-
-
-
+	emit messageRetrievalCompleted();
 }
+
 bool EmailMessageListModel::stillMoreMessages ()
 {
 	return messages_present;
 }
 
+void EmailMessageListModel::loadMoreMessages (int max)
+{
+	int count = shown_uids.length();
+	int i;
+
+	beginInsertRows(QModelIndex(), count, max);
+	for (i=count; i < max; i++) {
+		QString uid = folder_uids[i];
+		QDBusError error;
+		CamelMessageInfoVariant info;
+		//qDebug() << "Fetching uid " << uid;
+		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+		reply.waitForFinished();
+		//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
+		if (reply.isError()) {
+			error = reply.error();	
+			qDebug() << "Error: " << error.name () << " " << error.message();
+			continue;
+		}	
+		info = reply.value ();
+		m_infos.insert (uid, info);
+		shown_uids << uid;
+	}
+	endInsertRows();
+}
+
 void EmailMessageListModel::getMoreMessages ()
 {
-	int i, count;
+	int count;
 	int max;
 
 	count = shown_uids.length();
@@ -973,26 +985,7 @@ void EmailMessageListModel::getMoreMessages ()
 	if (folder_uids.length() - count > WINDOW_LIMIT ) {
 		qDebug() << "Showing from cache";
 		max = ((count+WINDOW_LIMIT) > (folder_uids.length() )) ? (folder_uids.length()) : count+WINDOW_LIMIT;
-		beginInsertRows(QModelIndex(), count-1, max-1);
-		for (i=count; i < max; i++) {
-			QString uid = folder_uids[i];
-			QDBusError error;
-			CamelMessageInfoVariant info;
-			//qDebug() << "Fetching uid " << uid;
-			QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-	       	         reply.waitForFinished();
-			//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
-			if (reply.isError()) {
-				error = reply.error();	
-				qDebug() << "Error: " << error.name () << " " << error.message();
-				continue;
-			}	
-			info = reply.value ();
-			m_infos.insert (uid, info);
-			shown_uids << uid;
-		}
-		endInsertRows();
-		//sortMails ();
+		loadMoreMessages (max-1);
 		emit messageRetrievalCompleted();
 	} else {
 		qDebug() << "Fetching more from server";
@@ -1461,6 +1454,39 @@ QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
 
     ret_row = shown_uids.indexOf (uid);
     /* We assume that content feed would have uids from what we are already showing/loaded. Check this up anyways. */
+    if (ret_row == -1) {
+	/* We have gone past this already, lets fetch more till the point of need. EDS Should have downloaded old 
+ 	 * mails if we have it in content or else where */
+	
+	int global_idx;
+
+	/* Check if we have it in uids. */
+	global_idx = folder_uids.indexOf(uid); 
+	/* Block things off */
+	if (global_idx != -1) {
+		/* We have it, lets just load till that. */
+		loadMoreMessages (global_idx);
+		return global_idx;
+	}
+
+
+	disconnect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
+			this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
+
+	m_folder_proxy->blockSignals(true);
+	reloadFolderUids(); // If content or someone has it, its already in the eds daemon, lets pick till that in the view 
+	global_idx = folder_uids.indexOf (uid);
+	if (global_idx == -1) { /* We have a serious problem to fix. */
+		ret_row = -1;
+		qDebug()<< "WARNING! WARNING! We seem to totally miss this UID: " + uid + " UUID " + uuid;
+	} else {
+		loadMessages (global_idx);
+	}
+	m_folder_proxy->blockSignals(false);
+	connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
+		 this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
+
+    }
 
     return ret_row;
 }

@@ -146,6 +146,9 @@ private:
     void createChecksum ();
     void sortMails ();
     void setMessageFlag (QString uid, uint flag, uint set);
+    void reloadFolderUids ();
+    void loadMessages (int);
+    void loadMoreMessages (int);
 
     CamelFolderInfoArrayVariant m_folders; 
     QStringList folder_uids;
