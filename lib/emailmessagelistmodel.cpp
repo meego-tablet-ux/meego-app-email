@@ -1671,12 +1671,15 @@ void EmailMessageListModel::setMessageFlag (QString uid, uint flag, uint set)
 
 void EmailMessageListModel::deleteMessage(QVariant id)
 {
+	QString uuid = id.toString();
+	QString uid = uuid.right(uuid.length()-8);
    	qDebug() << "Delete message " << id.toString(); 
-   	setMessageFlag (id.toString(), CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN);
+   	setMessageFlag (uid, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN);
 }
 
 void EmailMessageListModel::deleteMessages(QList<QString> list)
 {
+	//Not used, see if UID or UUID is used and implement accordingly.
 	qDebug() << "Deleting multiple messages";
 	foreach (QString uid, list)
 		setMessageFlag (uid, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_DELETED | CAMEL_MESSAGE_SEEN);
@@ -1684,15 +1687,21 @@ void EmailMessageListModel::deleteMessages(QList<QString> list)
 
 void EmailMessageListModel::markMessageAsRead (QVariant id)
 {
+   QString uuid = id.toString();
+   QString uid = uuid.right(uuid.length()-8);
+
    qDebug() << "mark read message " << id.toString(); 
-   setMessageFlag (id.toString(), CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_SEEN);
+   setMessageFlag (uid, CAMEL_MESSAGE_SEEN, CAMEL_MESSAGE_SEEN);
 
 }
 
 void EmailMessageListModel::markMessageAsUnread (QVariant id)
 {
+   QString uuid = id.toString();
+   QString uid = uuid.right(uuid.length()-8);
+
    qDebug() << "mark unread message " << id.toString(); 
-   setMessageFlag (id.toString(), CAMEL_MESSAGE_SEEN | CAMEL_MESSAGE_DELETED, 0);
+   setMessageFlag (uid, CAMEL_MESSAGE_SEEN | CAMEL_MESSAGE_DELETED, 0);
 
 }
 
