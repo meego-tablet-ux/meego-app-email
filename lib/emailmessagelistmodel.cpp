@@ -230,6 +230,8 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageBccRole] = "bcc";
     roles[MessageTimeStampRole] = "qDateTime";
     roles[MessageSelectModeRole] = "selected";
+    roles[MessageMimeId] = "mimeMessageId";
+    roles[MessageReferences] = "messageReferences";
     setRoleNames(roles);
 
     m_folder_proxy = NULL;
@@ -366,6 +368,47 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     {
         QString uid = shown_uids[row];
         return bodyText (uid, TRUE);
+    } 
+    else if (role == MessageMimeId) 
+    {
+        QString uid = shown_uids[row];
+	QString qmsg;
+	CamelMimeMessage *message;
+	CamelStream *stream;
+	QString mid;
+
+	qmsg = ((EmailMessageListModel *)this)->mimeMessage(uid);
+
+	message = camel_mime_message_new();
+	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().data(), qmsg.length());
+	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
+	camel_stream_reset (stream, NULL);
+	g_object_unref(stream);
+
+	mid = QString((char *)camel_medium_get_header (CAMEL_MEDIUM (message), "Message-ID"));
+	g_object_unref (message);
+	return QVariant(mid);
+
+    }
+    else if (role == MessageReferences)
+    {
+        QString uid = shown_uids[row];
+	QString qmsg;
+	CamelMimeMessage *message;
+	CamelStream *stream;
+	QString references;
+
+	qmsg = ((EmailMessageListModel *)this)->mimeMessage(uid);
+
+	message = camel_mime_message_new();
+	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().data(), qmsg.length());
+	camel_data_wrapper_construct_from_stream ((CamelDataWrapper *) message, stream, NULL);
+	camel_stream_reset (stream, NULL);
+	g_object_unref(stream);
+
+	references = QString((char *)camel_medium_get_header (CAMEL_MEDIUM (message), "References"));
+	g_object_unref (message);
+	return QVariant(references);
     }
     else if (role == MessageHtmlBodyRole)
     {
@@ -1284,6 +1327,16 @@ QVariant EmailMessageListModel::quotedBody (int idx)
 QVariant EmailMessageListModel::htmlBody (int idx)
 {
     return mydata(idx, MessageHtmlBodyRole);
+}
+
+QVariant EmailMessageListModel::getMessageMimeId (int idx)
+{
+    return mydata(idx, MessageMimeId);
+}
+
+QVariant EmailMessageListModel::getReferences (int idx)
+{
+    return mydata(idx, MessageReferences);
 }
 
 QVariant EmailMessageListModel::attachments (int idx)

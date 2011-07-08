@@ -296,7 +296,6 @@ Window {
         toModel.append({"name": "", "email": messageListModel.mailSender(messageID)});
         composer.toModel = toModel;
 
-
         if (replyToAll == true)
         {
             ccModel.clear();
@@ -317,6 +316,8 @@ Window {
         // FIXME: Also need to only add Re: if it isn't already in the subject
         // to prevent "Re: Re: Re: Re: " subjects.
         composer.subject = "Re: " + messageListModel.subject (messageID);  //i18n ok
+	composer.messageMimeID = messageListModel.getMessageMimeId (messageID);
+	composer.messageReferences = messageListModel.getReferences (messageID);
     }
 
     FuzzyDateTime {

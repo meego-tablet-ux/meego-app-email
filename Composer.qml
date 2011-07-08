@@ -16,6 +16,8 @@ FocusScope {
     focus:  true
 
     property string quotedBody: "";
+    property string messageMimeID: "";
+    property string messageReferences: "";
 
     property alias textBody: textEditPane.text;
     property alias htmlBody: htmlEditPane.html;

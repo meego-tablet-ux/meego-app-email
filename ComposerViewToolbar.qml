@@ -69,13 +69,13 @@ BorderImage {
             {
                 body = composer.textBody;
                 message.setBody (composer.textBody, true);
-                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, false, att, composer.priority);
+                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, composer.messageMimeID, composer.messageReferences, false, att, composer.priority);
             }
             else
             {
                 body = composer.htmlBody;
                 message.setBody (composer.htmlBody, false);
-                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, true, att, composer.priority);
+                mailFolderListModel.sendMessage(mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, composer.messageMimeID, composer.messageReferences, true, att, composer.priority);
             }
 
             window.popPage ();
@@ -143,13 +143,13 @@ BorderImage {
             {
                 body = composer.textBody;
                 message.setBody (composer.textBody, true);
-                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, false, att, composer.priority);
+                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, composer.messageMimeID, composer.messageReferences, false, att, composer.priority);
             }
             else
             {
                 body = composer.htmlBody;
                 message.setBody (composer.htmlBody, false);
-                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, true, att, composer.priority);
+                mailFolderListModel.saveDraft (mailAccountListModel.getEmailAddressByIndex(composer.fromEmail), to, cc, bcc, composer.subject, body, composer.messageMimeID, composer.messageReferences, true, att, composer.priority);
             }
             window.popPage ();
         }

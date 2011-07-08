@@ -63,7 +63,9 @@ public:
         MessageCcRole,                                         // returns a list of Cc (email + displayName)
         MessageBccRole,                                        // returns a list of Bcc (email + displayName)
         MessageTimeStampRole,                                  // returns timestamp in QDateTime format
-        MessageSelectModeRole                                  // returns the select mode
+        MessageSelectModeRole,                                  // returns the select mode
+	MessageMimeId,					       // returns the MIME message id for threading purposes
+	MessageReferences				       // returns the MIME references of an email
     };
 
 
@@ -113,6 +115,9 @@ public slots:
     Q_INVOKABLE QVariant bccList (int index);
     Q_INVOKABLE QVariant toList (int index);
     Q_INVOKABLE QVariant messageRead (int index);
+    Q_INVOKABLE QVariant getMessageMimeId (int index);
+    Q_INVOKABLE QVariant getReferences (int index);
+
     Q_INVOKABLE int messagesCount ();
     Q_INVOKABLE int totalCount ();
     Q_INVOKABLE bool stillMoreMessages ();

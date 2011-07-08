@@ -572,7 +572,7 @@ best_charset (const char *buf, int buflen,
 
 #define ATTACHMENT_QUERY "standard::*,preview::*,thumbnail::*"
 
-CamelMimeMessage * createMessage (const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority)
+CamelMimeMessage * createMessage (const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QString &messagemimeid, const QString &references, bool html, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	GConfClient *client;
@@ -921,6 +921,20 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	}
 
 	g_object_unref (plain);
+
+	if (!messagemimeid.isEmpty()) {
+		camel_medium_add_header ((CamelMedium *)msg, "In-Reply-To", messagemimeid.toLocal8Bit().constData());
+		if (!references.isEmpty()) {
+			QString newref = references + " " + messagemimeid;
+			camel_medium_add_header ((CamelMedium *)msg, "References", newref.toLocal8Bit().constData());
+		} else 
+			camel_medium_add_header ((CamelMedium *)msg, "References", messagemimeid.toLocal8Bit().constData());
+			
+	} else if (!references.isEmpty()) {
+		camel_medium_add_header ((CamelMedium *)msg, "References", references.toLocal8Bit().constData());		
+	}
+
+
 	return msg;
 }
 
@@ -993,14 +1007,17 @@ void createInfo (CamelMessageInfoVariant &info, const QString &from, const QStri
 	return;
 }
 
-int FolderListModel::saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority)
+int FolderListModel::saveDraft(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QString &messagemimeid, const QString &references, bool html, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	CamelStream *stream;
         GByteArray *array;
 	CamelMessageInfoVariant info;
 
-	msg = createMessage (from, to, cc, bcc, subject, body, html, attachment_uris, priority);
+	msg = createMessage (from, to, cc, bcc, subject, body, messagemimeid, references, html, attachment_uris, priority);
+
+
+
 	stream = camel_stream_mem_new ();
         camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
         array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
@@ -1017,20 +1034,21 @@ int FolderListModel::saveDraft(const QString &from, const QStringList &to, const
 	
 }
 
-int FolderListModel::sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, bool html, const QStringList &attachment_uris, int priority)
+int FolderListModel::sendMessage(const QString &from, const QStringList &to, const QStringList &cc, const QStringList &bcc, const QString &subject, const QString &body, const QString &messagemimeid, const QString &references, bool html, const QStringList &attachment_uris, int priority)
 {
 	CamelMimeMessage *msg;
 	CamelStream *stream;
         GByteArray *array;
 	CamelMessageInfoVariant info;
 
-	msg = createMessage (from, to, cc, bcc, subject, body, html, attachment_uris, priority);
+	msg = createMessage (from, to, cc, bcc, subject, body, messagemimeid, references, html, attachment_uris, priority);
+
 	stream = camel_stream_mem_new ();
         camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
         array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
 	g_byte_array_append (array, (const guint8 *)"\0", 1);
 	g_print ("Send Message:\n\n%s\n", array->data);
-	
+
 	createInfo (info, from, to, cc, subject, msg);
 
 	m_outbox_proxy->AppendMessage (info, QString((char *)array->data));
