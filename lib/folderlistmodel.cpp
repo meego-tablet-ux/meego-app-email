@@ -204,6 +204,8 @@ void FolderListModel::setAccountKey(QVariant id)
     g_object_unref (client);
 
     quid = id.value<QString>();    
+    if (quid.isEmpty())
+	return;
     acc_id = g_strdup (quid.toLocal8Bit().constData());
     m_account = getAccountById (account_list, acc_id);
     g_free (acc_id);

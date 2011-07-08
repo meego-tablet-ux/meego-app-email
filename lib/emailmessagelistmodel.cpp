@@ -1156,6 +1156,9 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     }
 	 
     qDebug() << "Set Account: " << id.toString();
+    if (id.toString().isEmpty())
+	return;
+
     client = gconf_client_get_default ();
     account_list = e_account_list_new (client);
     g_object_unref (client);
