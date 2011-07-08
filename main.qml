@@ -472,18 +472,20 @@ Window {
             }
             else
             {
-                var msgUuid = parameters[1];
-                var msgIdx;
-		var currentAccount = mailAccountListModel.getAccountByUuid (msgUuid);
-		var currentFolder = mailAccountListModel.getFolderByUuid (msgUuid);
+                if (cmd == "reply" || cmd == "replyAll" || cmd == "forward" || cmd == "openReader")
+                {
+                    var msgUuid = parameters[1];
+                    var msgIdx;
+                    var currentAccount = mailAccountListModel.getAccountByUuid (msgUuid);
+                    var currentFolder = mailAccountListModel.getFolderByUuid (msgUuid);
 
-		mailFolderListModel.setAccountKey (currentAccount);
-		messageListModel.setAccountKey (currentAccount);
-		messageListModel.setFolderKey (currentFolder);
+                    mailFolderListModel.setAccountKey (currentAccount);
+                    messageListModel.setAccountKey (currentAccount);
+                    messageListModel.setFolderKey (currentFolder);
 
- 		msgIdx = messageListModel.indexFromMessageId(msgUuid);
-                window.currentMessageIndex = msgIdx;
-		console.log ("Msg Index " + msgIdx);
+                    msgIdx = messageListModel.indexFromMessageId(msgUuid);
+                    window.currentMessageIndex = msgIdx;
+                }
 
                 if (cmd == "reply")
                 {   
