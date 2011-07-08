@@ -72,7 +72,7 @@ public:
     int rowCount (const QModelIndex & parent = QModelIndex()) const;
     QVariant mydata (int row, int role = Qt::DisplayRole) const;    
     QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const;
-    QString bodyText(const QString&, bool plain) const;
+    QString bodyText(QString&, bool plain) const;
 
     QModelIndex index(int row, int column = 0, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &idx) const;
@@ -149,6 +149,7 @@ private:
     void reloadFolderUids ();
     void loadMessages (int);
     void loadMoreMessages (int);
+    QString mimeMessage (QString &uid);
 
     CamelFolderInfoArrayVariant m_folders; 
     QStringList folder_uids;

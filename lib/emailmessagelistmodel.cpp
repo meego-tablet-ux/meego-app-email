@@ -54,94 +54,6 @@ typedef enum _CamelMessageFlags {
 	CAMEL_MESSAGE_USER = 1<<31 /* supports user flags */
 } CamelMessageFlags;
 
-
-#if 0
-QString EmailMessageListModel::bodyHtmlText(QMailMessagePartContainer *container) const
-{
-    QMailMessageContentType contentType = container->contentType();
-
-    if (container->multipartType() == QMailMessagePartContainerFwd::MultipartNone)
-    {
-        if (contentType.subType().toLower() == "html")
-        {
-            if (container->hasBody() && container->body().data().size() > 1)
-                return container->body().data();
-            else
-            {
-                connect (m_retrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)),
-                                            this, SLOT(downloadActivityChanged(QMailServiceAction::Activity)));
-                QMailMessage *msg = (QMailMessage *)container;
-                QMailMessageIdList ids;
-                ids << msg->id();
-                m_retrievalAction->retrieveMessages(ids, QMailRetrievalAction::Content);
-                return " ";  // Put a space here as a place holder to notify UI that we do have html body.
-                             // Should find a better way.
-            }
-        }
-        return "";
-    }
-
-    if (!container->contentAvailable())
-    {
-        // if content is not available, attempts to downlaod from the server.
-        connect (m_retrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)),
-                                            this, SLOT(downloadActivityChanged(QMailServiceAction::Activity)));
-        QMailMessage *msg = (QMailMessage *)container;
-        QMailMessageIdList ids;
-        ids << msg->id();
-        m_retrievalAction->retrieveMessages(ids, QMailRetrievalAction::Content);
-        return " ";  // Put a space here as a place holder to notify UI that we do have html body.
-    }
-
-    QString text("");
-    for ( uint i = 0; i < container->partCount(); i++ )
-    {
-        QMailMessagePart messagePart = container->partAt(i);
-        contentType = messagePart.contentType();
-        if (contentType.type().toLower() == "text" && contentType.subType().toLower() == "html")
-        {
-            if (messagePart.hasBody())
-            {
-                text += messagePart.body().data();
-            }
-            else
-            {
-                connect (m_retrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)),
-                                            this, SLOT(downloadActivityChanged(QMailServiceAction::Activity)));
-
-                QMailMessagePart::Location location = messagePart.location();
-                m_retrievalAction->retrieveMessagePart(location);
-                text = " ";
-                break;
-            }
-        }
-        QMailMessagePart subPart;
-        for (uint j = 0; j < messagePart.partCount(); j++)
-        {
-            subPart = messagePart.partAt(j);
-            contentType = subPart.contentType();
-            if (contentType.type().toLower() == "text" && contentType.subType().toLower() == "html")
-            {
-                if (subPart.hasBody())
-                {
-                    text += subPart.body().data();
-                }
-                else
-                {
-                    connect (m_retrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)),
-                                                this, SLOT(downloadActivityChanged(QMailServiceAction::Activity)));
-                    QMailMessagePart::Location location = subPart.location();
-                    m_retrievalAction->retrieveMessagePart(location);
-                    text = " ";
-                    break;
-                }
-            }
-        }
-    }
-    return text;
-}
-#endif
-
 void   append_part_to_string (QByteArray &str, CamelMimePart *part)
 {
 	CamelStream *stream;
@@ -195,13 +107,10 @@ void parseMultipartBody (QByteArray &reparray, CamelMimePart *mpart, bool plain)
 	}
 }
 
-QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
+QString EmailMessageListModel::mimeMessage (QString &uid)
 {
     	QDBusPendingReply<QString> reply;
 	QString qmsg;
-	QByteArray reparray;
-	CamelMimeMessage *message;
-	CamelStream *stream;
 
 	qmsg = (*m_messages)[uid];
 	if (qmsg.isEmpty()) {
@@ -210,12 +119,25 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 		if (!reply.isError()) {
 			qmsg = reply.value ();
 			m_messages->insert (uid, qmsg);
-                	qDebug() << "BT Fetching message " << uid;
+                	qDebug() << "Fetching message " << uid;
 		} else
 			return QString("");
         } else {
-                qDebug() << "BT Got message from cache " << uid;
+                qDebug() << "Got message from cache " << uid;
 	}
+
+	return qmsg;
+}
+
+QString EmailMessageListModel::bodyText(QString &uid, bool plain) const
+{
+    	QDBusPendingReply<QString> reply;
+	QString qmsg;
+	QByteArray reparray;
+	CamelMimeMessage *message;
+	CamelStream *stream;
+
+	qmsg = ((EmailMessageListModel *)this)->mimeMessage (uid);
 
 	message = camel_mime_message_new();
 	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().constData(), qmsg.length());
@@ -224,41 +146,9 @@ QString EmailMessageListModel::bodyText(const QString &uid, bool plain) const
 	g_object_unref(stream);
 
 	parseMultipartBody (reparray, (CamelMimePart *)message, plain);
- 	
+ 	g_object_unref (message);
+
 	return QString::fromUtf8(reparray);
-#if 0
-    QMailMessagePartContainer *container = (QMailMessagePartContainer *)&mailMsg;
-    QMailMessageContentType contentType = container->contentType();
-    if (container->hasBody() && contentType.type().toLower() == "text" &&
-               contentType.subType().toLower() == "plain")
-    {
-        return container->body().data();
-
-    }
-
-    QString text("");
-    for ( uint i = 0; i < container->partCount(); i++ )
-    {
-        QMailMessagePart messagePart = container->partAt(i);
-
-        contentType = messagePart.contentType();
-        if (messagePart.hasBody() && contentType.type().toLower() == "text" &&
-                                     contentType.subType().toLower() == "plain")
-        {
-            text += messagePart.body().data() + "\n";
-        }
-        QMailMessagePart subPart;
-        for (uint j = 0; j < messagePart.partCount(); j++)
-        {
-            subPart = messagePart.partAt(j);
-            contentType = subPart.contentType();
-            if (subPart.hasBody() && contentType.type().toLower() == "text" &&
-                                     contentType.subType().toLower() == "plain")
-                text += subPart.body().data() + "\n";
-        }
-    }
-    return text;
-#endif
 }
 
 void EmailMessageListModel::createChecksum()
@@ -361,18 +251,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
 
     initMailServer();
-/*
-    QMailAccountIdList ids = QMailStore::instance()->queryAccounts(
-            QMailAccountKey::status(QMailAccount::Enabled, QMailDataComparator::Includes),
-            QMailAccountSortKey::name());
-
-    QMailMessageKey accountKey = QMailMessageKey::parentAccountId(ids);
-    QMailMessageListModel::setKey(accountKey);
-    m_key = key();
-    QMailMessageSortKey sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
-    QMailMessageListModel::setSortKey(sortKey);
-    m_selectedMsgIds.clear();
-*/    
 }
 
 EmailMessageListModel::~EmailMessageListModel()
@@ -418,30 +296,7 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 	
 	if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) != 0)
 		numberOfAttachments = 1; /* For now show just the presence of attachments */
-#if 0	    
-        // return number of attachments
-        QMailMessage message(idFromIndex(index));
-        if (!message.status() & QMailMessageMetaData::HasAttachments)
-            return 0;
 
-        int numberOfAttachments = 0;
-        for (uint i = 1; i < message.partCount(); i++)
-        {
-            QMailMessagePart sourcePart = message.partAt(i);
-            if (!(sourcePart.multipartType() == QMailMessagePartContainer::MultipartNone))
-                continue;
-
-            QMailMessageContentType contentType = sourcePart.contentType();
-            if (sourcePart.hasBody() && contentType.type().toLower() == "text" &&
-                                     contentType.subType().toLower() == "plain")
-                continue;
-
-            if (i == 1 && contentType.type().toLower() == "text" && contentType.subType().toLower() == "html")
-                continue;
-
-            numberOfAttachments += 1;
-        }
-#endif
         return numberOfAttachments;
     }
     else if (role == MessageAttachmentsRole)
@@ -454,19 +309,7 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 	if ((minfo.flags & CAMEL_MESSAGE_ATTACHMENTS) == 0)
 		return QStringList();
 
-	qmsg =(* m_messages)[iuid];
-	if (qmsg.isEmpty()) {
-		reply = m_folder_proxy->getMessage(iuid);
-		reply.waitForFinished();
-		if (!reply.isError()) {
-			qmsg = reply.value ();
-			m_messages->insert(QString(iuid), qmsg);
-			qDebug() << "AR Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
-		} else
-			qmsg = QString("");
-	} else {
-		qDebug() << "AR Got message from cache " << iuid;
-	}
+	qmsg = ((EmailMessageListModel *)this)->mimeMessage(iuid);
 
 	message = camel_mime_message_new();
 	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().data(), qmsg.length());
@@ -478,30 +321,6 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
         QStringList attachments;
 	parseMultipartAttachmentName (attachments, (CamelMimePart *)message, (CamelMimePart *)message);
 	g_object_unref (message);
-#if 0
-        // return a stringlist of attachments
-        QMailMessage message(idFromIndex(index));
-        if (!message.status() & QMailMessageMetaData::HasAttachments)
-            return QStringList();
-
-        QStringList attachments;
-        for (uint i = 1; i < message.partCount(); i++)
-        {
-            QMailMessagePart sourcePart = message.partAt(i);
-            if (!(sourcePart.multipartType() == QMailMessagePartContainer::MultipartNone))
-                continue;
-
-            QMailMessageContentType contentType = sourcePart.contentType();
-            if (sourcePart.hasBody() && contentType.type().toLower() == "text" &&
-                                     contentType.subType().toLower() == "plain")
-                continue;
-
-            if (i == 1 && contentType.type().toLower() == "text" && contentType.subType().toLower() == "html")
-                continue;
-
-            attachments << sourcePart.displayName();
-        }
-#endif
         return attachments;
     }
     else if (role == MessageRecipientsRole)
@@ -681,21 +500,6 @@ void EmailMessageListModel::setSearch(const QString search)
     timer->stop();
     timer->start(1500);
 
-#if 0
-    if(search.isEmpty())
-    {
-        setKey(QMailMessageKey::nonMatchingKey());
-    }else
-    {
-        if(m_search == search)
-            return;
-        QMailMessageKey subjectKey = QMailMessageKey::subject(search, QMailDataComparator::Includes);
-        QMailMessageKey toKey = QMailMessageKey::recipients(search, QMailDataComparator::Includes);
-        QMailMessageKey fromKey = QMailMessageKey::sender(search, QMailDataComparator::Includes);
-        setKey(m_key & (subjectKey | toKey | fromKey));
-    }
-    m_search = search;
-#endif
 }
 
 void EmailMessageListModel::onSendReceiveComplete()
@@ -831,16 +635,6 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 	/* Refresh the folder anyway to see any new mails. */
 	sendReceive();
 	
-#if 0
-    m_currentFolderId = id.value<QMailFolderId>();
-    if (!m_currentFolderId.isValid())
-        return;
-    QMailMessageKey folderKey = QMailMessageKey::parentFolderId(m_currentFolderId);
-    QMailMessageListModel::setKey(folderKey);
-    m_key=key();
-    QMailMessageSortKey sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
-    QMailMessageListModel::setSortKey(sortKey);
-#endif
 }
 
 void EmailMessageListModel::reloadFolderUids ()
@@ -1256,48 +1050,6 @@ void EmailMessageListModel::setAccountKey (QVariant id)
     }
 
     
-
-#if 0
-    QMailAccountId accountId = id.value<QMailAccountId>();
-    QMailAccountIdList ids;
-    if (!accountId.isValid() || id == -1)
-    {
-        ids = QMailStore::instance()->queryAccounts(
-                QMailAccountKey::status(QMailAccount::Enabled, QMailDataComparator::Includes),
-                QMailAccountSortKey::name());
-    }
-    else
-        ids << accountId;
-
-    QMailFolderIdList folderIdList;
-
-    for (int i = 0; i < ids.size(); i++)
-    {
-        QMailFolderKey key = QMailFolderKey::parentAccountId(accountId);
-        QMailFolderIdList  mailFolderIds = QMailStore::instance()->queryFolders(key);
-        foreach (QMailFolderId folderId, mailFolderIds)
-        {
-            QMailFolder folder(folderId);
-            if (QString::compare(folder.displayName(), "INBOX", Qt::CaseInsensitive) == 0)
-            {
-                folderIdList << folderId;
-                break;
-            }
-        }
-    }
-
-    QMailMessageKey accountKey = QMailMessageKey::parentAccountId(ids);
-    QMailMessageListModel::setKey(accountKey);
-
-    // default to INBOX for now
-    QMailMessageKey folderKey = QMailMessageKey::parentFolderId(folderIdList);
-    QMailMessageListModel::setKey(folderKey);//!FIXME: should this be folderKey&accountKey?
-
-    QMailMessageSortKey sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
-    QMailMessageListModel::setSortKey(sortKey);
-
-    m_key= key();
-#endif 
 }
 
 bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2, int id, int asc)
@@ -1601,20 +1353,6 @@ void EmailMessageListModel::deSelectAllMessages()
 {
     if (m_selectedMsgIds.size() == 0)
         return;
-#if 0
-    QMailMessageIdList msgIds = m_selectedMsgIds;
-    m_selectedMsgIds.clear();
-    foreach (QMailMessageId msgId,  msgIds)
-    {
-        for (int row = 0; row < rowCount(); row++)
-        {
-            QVariant vMsgId = data(index(row), QMailMessageModelBase::MessageIdRole);
-    
-            if (msgId == vMsgId.value<QMailMessageId>())
-                dataChanged (index(row), index(row));
-        }
-    }
-#endif    
 }
 
 void EmailMessageListModel::selectMessage( int idx )
@@ -1834,20 +1572,7 @@ void EmailMessageListModel::saveAttachmentIn (int row, QString uri, bool tmp)
 
 	iuid = shown_uids[row];
 
-	qmsg =(* m_messages)[iuid];
-	if (qmsg.isEmpty()) {
-		reply = m_folder_proxy->getMessage(iuid);
-		reply.waitForFinished();
-		if (!reply.isError()) {	
-			qmsg = reply.value ();
-			m_messages->insert(QString(iuid), qmsg);
-			qDebug() << "SaveAttach: Fetching message " << iuid << ": " << (*m_messages)[iuid].isEmpty();
-		} else
-			return;
-	} else {
-		qDebug() << "SaveAttach: Got message from cache " << iuid;
-	}
-	
+	qmsg = mimeMessage (iuid);
 
 	message = camel_mime_message_new();
 	stream = camel_stream_mem_new_with_buffer (qmsg.toLocal8Bit().constData(), qmsg.length());
