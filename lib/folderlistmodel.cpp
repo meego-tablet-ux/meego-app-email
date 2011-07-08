@@ -693,7 +693,6 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 		stream = newstream;	
         	GByteArray *array;
 	        array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
-		array->data[array->len-1] = 0;
 
 		if ((charset = best_charset ((const char *)array->data, array->len, /*p->charset, */ &plain_encoding))) {
 			camel_content_type_set_param (type, "charset", charset);
@@ -1028,7 +1027,7 @@ int FolderListModel::sendMessage(const QString &from, const QStringList &to, con
         camel_data_wrapper_decode_to_stream ((CamelDataWrapper *)msg, stream, NULL);
         array = camel_stream_mem_get_byte_array ((CamelStreamMem *)stream);
 	g_byte_array_append (array, (const guint8 *)"\0", 1);
-	g_print ("Draft Message:\n\n%s\n", array->data);
+	g_print ("Send Message:\n\n%s\n", array->data);
 	
 	createInfo (info, from, to, cc, subject, msg);
 
