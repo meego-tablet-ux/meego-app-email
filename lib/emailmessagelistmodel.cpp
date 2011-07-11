@@ -1053,7 +1053,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
-		if (m_folders.length() == 0 && strncmp (url, "pop:", 4) == 0) {
+		if ((reply.isError() || m_folders.length()) == 0 && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
 
 			/* Create base first*/
@@ -1078,6 +1078,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 			m_folders = reply2.value ();
 			m_folders.removeLast();	
 		}
+
 		if (!reply.isError())
 			m_folders.removeLast();
 

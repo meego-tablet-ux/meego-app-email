@@ -139,8 +139,10 @@ int FolderListModel::getFolderMailCount()
 	QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(pop_foldername ? pop_foldername : ""), 
 								CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 	reply.waitForFinished();
-	m_folderlist = reply.value ();
-	m_folderlist.removeLast();
+	if (!reply.isError()) {
+		m_folderlist = reply.value ();
+		m_folderlist.removeLast();
+	}
 
 	CamelFolderInfoArrayVariant ouboxlist;
 	reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
@@ -252,7 +254,7 @@ void FolderListModel::setAccountKey(QVariant id)
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
-		if (reply.isError() && strncmp (url, "pop:", 4) == 0) {
+		if ((reply.isError() || m_folders.length() == 0) && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
 			char *folder_name;
 
@@ -284,7 +286,12 @@ void FolderListModel::setAccountKey(QVariant id)
 				m_folderlist.removeFirst();
 				m_folderlist.removeLast();
 			}  else {
-				m_folderlist.removeLast();
+				if (!reply.isError())
+					m_folderlist.removeLast();
+				else {
+					qDebug() << "Failed to get basic folderlist in folderlistmodel/setAccountKey";
+					return;
+				}
 			}
 		}
 
