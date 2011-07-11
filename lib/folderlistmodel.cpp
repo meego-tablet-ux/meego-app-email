@@ -254,7 +254,7 @@ void FolderListModel::setAccountKey(QVariant id)
 									CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
 		reply.waitForFinished();
 		m_folderlist = reply.value ();	
-		if ((reply.isError() || m_folders.length() == 0) && strncmp (url, "pop:", 4) == 0) {
+		if ((reply.isError() || m_folderlist.length() == 0) && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
 			char *folder_name;
 
