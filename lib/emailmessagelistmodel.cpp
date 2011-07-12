@@ -594,7 +594,7 @@ void EmailMessageListModel::cancelOperations()
 
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
-    int count=0;
+    int count=0, max;
     bool not_found = true;
 
     if (m_current_folder == id.toString()) {
@@ -663,10 +663,13 @@ void EmailMessageListModel::setFolderKey (QVariant id)
                                                                         QDBusConnection::sessionBus(), this);
     reloadFolderUids();
 
-	if (folder_uids.length() < WINDOW_LIMIT)
+	if (folder_uids.length() < WINDOW_LIMIT) {
 		messages_present = false;
+		max = folder_uids.length();
+	} else
+		max = WINDOW_LIMIT;
 
-	beginInsertRows(QModelIndex(), 0, WINDOW_LIMIT-1);
+	beginInsertRows(QModelIndex(), 0, max-1);
 	foreach (QString uid, folder_uids) {
 		QDBusError error;
 		CamelMessageInfoVariant info;
