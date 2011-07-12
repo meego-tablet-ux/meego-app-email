@@ -811,7 +811,7 @@ void EmailMessageListModel::loadMoreMessages (int max)
 	int i;
 
 	beginInsertRows(QModelIndex(), count, max);
-	for (i=count; i < max; i++) {
+	for (i=count; i <= max; i++) {
 		QString uid = folder_uids[i];
 		QDBusError error;
 		CamelMessageInfoVariant info;
