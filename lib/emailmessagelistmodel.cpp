@@ -511,7 +511,24 @@ void EmailMessageListModel::updateSearch ()
     shown_uids.clear ();
     endRemoveRows ();
     beginInsertRows (QModelIndex(), 0, reply.value().length()-1);
-    shown_uids = reply.value ();
+    QStringList search_uids = reply.value();
+
+    QDBusError error;
+    foreach (QString uid, search_uids) {
+	CamelMessageInfoVariant info;
+	if (!(m_infos.contains(uid) && m_infos.count(uid) > 0)) {
+		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+		reply.waitForFinished();
+		if (reply.isError()) {
+			error = reply.error();	
+			qDebug() << "Error: " << error.name () << " " << error.message();
+			continue;
+		}	
+		info = reply.value ();
+		m_infos.insert (uid, info);
+	}
+	shown_uids << uid;
+    }
     endInsertRows();
 
     qDebug() << "Search count: "<< shown_uids.length();
