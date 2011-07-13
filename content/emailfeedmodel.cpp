@@ -24,9 +24,11 @@ const int FetchBatch = 10;
 // TODO: firm up this decision and move to a more central place
 const int BodyPreviewSize = 160;  // big enough for an SMS, larger than a tweet
 
-EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent):
+EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent, bool isSearchFeed):
         McaFeedModel(parent)
 {
+    m_isSearchFeed = isSearchFeed;
+
     // TODO: pass the account id when Carl makes that available
 
     FolderListModel *folders = new FolderListModel(this);
@@ -70,9 +72,13 @@ EmailFeedModel::~EmailFeedModel()
 void EmailFeedModel::setSearchText(const QString &text)
 {
     qDebug () << "Set Search: " << text;
-    if (text.isEmpty() || m_searchText!=text) {
-        m_source->setSearch(text);
-        m_searchText=text;
+    if(m_searchText != text) {
+        m_searchText = text;
+        if(text.isEmpty()) {
+            removeRows(0, m_messages.count());
+        } else {
+            m_source->setSearch(text);
+        }
     }
 }
 
@@ -120,7 +126,11 @@ bool EmailFeedModel::canFetchMore(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
 
-    return (m_messages.count() < m_source->rowCount()) || m_source->stillMoreMessages();
+    if(!m_isSearchFeed) {
+        return (m_messages.count() < m_source->rowCount()) || m_source->stillMoreMessages();
+    } else {
+        return false;
+    }
 }
 
 void EmailFeedModel::fetchMore(const QModelIndex &parent)
@@ -162,35 +172,43 @@ bool EmailFeedModel::removeRows ( int row, int count, const QModelIndex & parent
 void EmailFeedModel::sourceRowsInserted(const QModelIndex& parent, int first, int last)
 {
     Q_UNUSED(parent)
-    beginInsertRows(QModelIndex(), first, last);
-    copyRowsFromSource(first, last);
-    endInsertRows();
+    if(!m_isSearchFeed || hasSearchText()) {
+        beginInsertRows(QModelIndex(), first, last);
+        copyRowsFromSource(first, last);
+        endInsertRows();
+    }
 }
 
 void EmailFeedModel::sourceRowsRemoved(const QModelIndex& parent, int first, int last)
 {
     Q_UNUSED(parent)
-    removeRows(first,last-first+1, parent);
+    if(!m_isSearchFeed || hasSearchText()) {
+        removeRows(first,last-first+1, parent);
+    }
 }
 
 void EmailFeedModel::sourceDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
 {
-    int first = topLeft.row();
-    int last = bottomRight.row();
-    for (int i = first; i <= last; i++)
-        readRow(m_messages.at(i), i);
-    emit dataChanged(index(first), index(last));
+    if(!m_isSearchFeed || hasSearchText()) {
+        int first = topLeft.row();
+        int last = bottomRight.row();
+        for (int i = first; i <= last; i++)
+            readRow(m_messages.at(i), i);
+        emit dataChanged(index(first), index(last));
+    }
 }
 
 void EmailFeedModel::resetModel()
 {
-    // use remove instead of begine/end model reset because it seems upper layer
-    // not handling modelReset well yet.
-    removeRows(0, m_messages.count());
+    if(!m_isSearchFeed || hasSearchText()) {
+        // use remove instead of begine/end model reset because it seems upper layer
+        // not handling modelReset well yet.
+        removeRows(0, m_messages.count());
 
-    QModelIndex p;
-    if(canFetchMore(p))
-        fetchMore(p);
+        QModelIndex p;
+        if(canFetchMore(p))
+            fetchMore(p);
+    }
 }
 
 void EmailFeedModel::performAction(QString action, QString uniqueid)
@@ -244,4 +262,9 @@ void EmailFeedModel::readRow(EmailMessage *message, int row)
     message->id = m_source->data(sourceIndex, EmailMessageListModel::MessageUuidRole).toString();
     message->timestamp = m_source->data(sourceIndex, EmailMessageListModel::MessageTimeStampRole).toDateTime();
 
+}
+
+bool EmailFeedModel::hasSearchText() const
+{
+    return m_isSearchFeed && !m_searchText.isEmpty();
 }
