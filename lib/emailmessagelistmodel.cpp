@@ -511,7 +511,24 @@ void EmailMessageListModel::updateSearch ()
     shown_uids.clear ();
     endRemoveRows ();
     beginInsertRows (QModelIndex(), 0, reply.value().length()-1);
-    shown_uids = reply.value ();
+    QStringList search_uids = reply.value();
+
+    QDBusError error;
+    foreach (QString uid, search_uids) {
+	CamelMessageInfoVariant info;
+	if (!(m_infos.contains(uid) && m_infos.count(uid) > 0)) {
+		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+		reply.waitForFinished();
+		if (reply.isError()) {
+			error = reply.error();	
+			qDebug() << "Error: " << error.name () << " " << error.message();
+			continue;
+		}	
+		info = reply.value ();
+		m_infos.insert (uid, info);
+	}
+	shown_uids << uid;
+    }
     endInsertRows();
 
     qDebug() << "Search count: "<< shown_uids.length();
@@ -577,7 +594,7 @@ void EmailMessageListModel::cancelOperations()
 
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
-    int count=0;
+    int count=0, max;
     bool not_found = true;
 
     if (m_current_folder == id.toString()) {
@@ -646,10 +663,13 @@ void EmailMessageListModel::setFolderKey (QVariant id)
                                                                         QDBusConnection::sessionBus(), this);
     reloadFolderUids();
 
-	if (folder_uids.length() < WINDOW_LIMIT)
+	if (folder_uids.length() < WINDOW_LIMIT) {
 		messages_present = false;
+		max = folder_uids.length();
+	} else
+		max = WINDOW_LIMIT;
 
-	beginInsertRows(QModelIndex(), 0, WINDOW_LIMIT-1);
+	beginInsertRows(QModelIndex(), 0, max-1);
 	foreach (QString uid, folder_uids) {
 		QDBusError error;
 		CamelMessageInfoVariant info;
@@ -791,7 +811,7 @@ void EmailMessageListModel::loadMoreMessages (int max)
 	int i;
 
 	beginInsertRows(QModelIndex(), count, max);
-	for (i=count; i < max; i++) {
+	for (i=count; i <= max; i++) {
 		QString uid = folder_uids[i];
 		QDBusError error;
 		CamelMessageInfoVariant info;

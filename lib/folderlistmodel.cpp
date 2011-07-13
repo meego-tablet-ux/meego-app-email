@@ -218,6 +218,7 @@ void FolderListModel::setAccountKey(QVariant id)
     if (!m_lstore_proxy) {
 	QDBusPendingReply<QDBusObjectPath> reply;
 	reply = session_instance->getLocalStore();
+	reply.waitForFinished();
         m_lstore_proxy_id = reply.value();
 
         m_lstore_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
