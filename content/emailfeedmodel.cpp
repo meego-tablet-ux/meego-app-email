@@ -85,7 +85,7 @@ int EmailFeedModel::rowCount(const QModelIndex &parent) const
 QVariant EmailFeedModel::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
-    if (row >= m_messages.count())
+    if (row >= m_messages.count() || row == -1)
         return QVariant();
 
     EmailMessage *message = m_messages.at(row);
