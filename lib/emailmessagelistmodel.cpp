@@ -23,6 +23,10 @@
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-data-server-util.h>
 #include <gconf/gconf-client.h>
+#include "meegolocale.h"
+
+using namespace meego;
+static const Locale g_locale;
 
 #define WINDOW_LIMIT 20
 
@@ -432,14 +436,12 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageSenderDisplayNameRole)
     {
 	QString str = minfo.from;
-	QString name;
 	QStringList email = str.split ("<", QString::KeepEmptyParts);
 
-	if (email[0].isEmpty())
-		name = email[1];
-	else
-		name = email[0];
-        return name;
+        if (email.size() >= 1)
+            return email[0];
+        else
+            return ("");
     }
     else if (role == MessageSenderEmailAddressRole || role == MessageAddressTextRole)
     {
@@ -1121,9 +1123,9 @@ bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageI
   	bool ret;
 
 	if (id == EmailMessageListModel::SortSender) {
-		ret = info1.from < info2.from;
+                ret = g_locale.lessThan(info1.from, info2.from);
 	} else if (id == EmailMessageListModel::SortSubject) {
-		ret = info1.subject < info2.subject;
+                ret = g_locale.lessThan(info1.subject, info2.subject);
         } else if (id == EmailMessageListModel::SortDate) {
 		ret = info1.date_received < info2.date_received;
         } else {
