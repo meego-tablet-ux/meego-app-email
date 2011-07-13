@@ -432,14 +432,12 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageSenderDisplayNameRole)
     {
 	QString str = minfo.from;
-	QString name;
 	QStringList email = str.split ("<", QString::KeepEmptyParts);
 
-	if (email[0].isEmpty())
-		name = email[1];
-	else
-		name = email[0];
-        return name;
+        if (email.size() >= 1)
+            return email[0];
+        else
+            return ("");
     }
     else if (role == MessageSenderEmailAddressRole || role == MessageAddressTextRole)
     {
