@@ -117,6 +117,7 @@ Item {
                 Item {
                     Text {
                         anchors.left: parent.left
+                        anchors.right: signatureText.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 10
                         font.pixelSize: theme.fontPixelSizeLarge
@@ -125,6 +126,7 @@ Item {
                         text: qsTr("Signature")
                     }
                     Text {
+                        id: signatureText
                         anchors.right: parent.right
                         anchors.left: parent.horizontalCenter
                         anchors.verticalCenter: parent.verticalCenter
