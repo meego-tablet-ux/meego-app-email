@@ -174,7 +174,7 @@ Item {
                         anchors.rightMargin: 5
                         spacing: 2
                         NotificationSetting {
-                            text: qsTr("New email notifications")
+                            text: qsTr("New email notifications, which means that these notifications are a new feature not previously available on this device. It is left as an assignment for the sucker who bought this device to find out what notifications exactly they can expect to get, having selected this option. Use at your own risk!")
                             on: accountSettingsModel.newMailNotifications()
                             onOnChanged: accountSettingsModel.setNewMailNotifications(on)
                         }
