@@ -541,6 +541,9 @@ void EmailMessageListModel::updateSearch ()
 void EmailMessageListModel::setSearch(const QString search)
 {
     char *query;
+
+    if (!m_folder_proxy)
+	return;
     query = g_strdup_printf("(match-all (and " 
 				"(not (system-flag \"deleted\")) "
 			        "(not (system-flag \"junk\")) "
@@ -837,6 +840,9 @@ void EmailMessageListModel::getMoreMessages ()
 {
 	int count;
 	int max;
+
+	if (!m_folder_proxy)
+		return;
 
 	count = shown_uids.length();
 	g_print(" SHOWN: %d, total : %d\n", count, folder_uids.length());
