@@ -16,6 +16,8 @@
 #include <camel/camel-stream-filter.h>
 #include <camel/camel-mime-filter-charset.h>
 #include "emailmessagelistmodel.h"
+#include "asynccallwrapper.h"
+
 #include <QDateTime>
 #include <QTimer>
 #include <QProcess>
@@ -28,7 +30,105 @@
 using namespace meego;
 static const Locale g_locale;
 
-#define WINDOW_LIMIT 20
+namespace {
+    const int WINDOW_LIMIT = 20;
+    const QString strNotDeleted = QString("(match-all (and (not (system-flag \"deleted\")) (not (system-flag \"junk\")))) ");
+
+    const QString sortString(EmailMessageListModel::SortBy sortById)
+    {
+        switch (sortById)
+        {
+        case EmailMessageListModel::SortDate:
+            return QString ("date");
+        case EmailMessageListModel::SortSubject:
+            return QString ("subject");
+        case EmailMessageListModel::SortSender:
+            return QString ("sender");
+        default:
+            //Q_ASSERT (false);
+            return QString ("date");
+        }
+    }
+
+    bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2, int id, bool asc = true)
+    {
+            bool ret = false;
+
+            if (id == EmailMessageListModel::SortSender) {
+                ret = info1.from < info2.from;
+            } else if (id == EmailMessageListModel::SortSubject) {
+                ret = info1.subject < info2.subject;
+            } else if (id == EmailMessageListModel::SortDate) {
+                ret = info1.date_received < info2.date_received;
+            } else {
+                qCritical() << Q_FUNC_INFO << "Unsupported sort mode";
+                return ret;
+            }
+            return (ret == asc);
+    }
+
+    bool sortInfoSenderFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+    {
+            return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender);
+    }
+
+    bool sortInfoSubFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+    {
+            return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject);
+    }
+
+    bool sortInfoDateFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+    {
+            return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate);
+    }
+
+    class LessThan
+    {
+    public:
+        LessThan(const QHash<QString, CamelMessageInfoVariant>& infos, EmailMessageListModel::SortBy sortById) : mInfos(infos), mSortById(sortById)
+        {
+                Q_ASSERT (mInfos);
+        }
+
+        bool operator()(const QString& uid1, const QString& uid2) const
+        {
+                if (mInfos.contains(uid1) && mInfos.contains(uid2)) {
+                        return sortInfoFunction(mInfos.value(uid1), mInfos.value(uid2), mSortById, false);
+                } else {
+                        qDebug() << Q_FUNC_INFO << "there is no uid in cache" << uid1 << uid2;
+                        return false;
+                }
+        }
+
+    private:
+        const QHash<QString, CamelMessageInfoVariant>& mInfos;
+        const EmailMessageListModel::SortBy mSortById;
+    };
+
+    template<typename T>
+    QList<T> reverse(const QList<T> &l)
+    {
+            QList<T> ret;
+
+            for (int i=0 ; i<l.size(); i++)
+                    ret.prepend(l.at(i));
+            return ret;
+    }
+
+    bool sortInfoSenderFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+    {
+            return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, false);
+    }
+    bool sortInfoSubFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+    {
+            return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, false);
+    }
+    bool sortInfoDateFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
+    {
+            return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, false);
+    }
+
+}
 
 typedef enum _CamelMessageFlags {
 	CAMEL_MESSAGE_ANSWERED = 1<<0,
@@ -500,19 +600,8 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
 void EmailMessageListModel::updateSearch ()
 {
-    if (!m_folder_proxy)
-        return;
+    const QString& sort = sortString(m_sortById);
 
-	QString sort;
-	if (m_sortById == EmailMessageListModel::SortDate)
-		sort = QString ("date");
-	else if (m_sortById == EmailMessageListModel::SortSubject)
-		sort = QString ("subject");
-	else if (m_sortById == EmailMessageListModel::SortSender)
-		sort = QString ("sender");
-	else
-		sort = QString ("date");
-	
     QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
     reply_prep.waitForFinished();
 
@@ -1133,73 +1222,6 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 
     
 }
-
-bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2, int id, int asc)
-{
-  	bool ret;
-
-	if (id == EmailMessageListModel::SortSender) {
-                ret = g_locale.lessThan(info1.from, info2.from);
-	} else if (id == EmailMessageListModel::SortSubject) {
-                ret = g_locale.lessThan(info1.subject, info2.subject);
-        } else if (id == EmailMessageListModel::SortDate) {
-		ret = info1.date_sent < info2.date_sent;
-        } else {
-		return FALSE;
-	}
-	if (asc)
-		return ret;
-	else
-		return !ret;
-
-}
-
-bool sortInfoSenderFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-	return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 1);
-}
-bool sortInfoSubFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 1);
-}
-bool sortInfoDateFunction (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 1);
-}
-
-void EmailMessageListModel::sortMails ()
-{
-    if (m_sortById == EmailMessageListModel::SortSender)
-        sortBySender (m_sortKey);
-    else if (m_sortById == EmailMessageListModel::SortSubject)
-        sortBySender (m_sortKey);
-    else
-        sortByDate (m_sortKey);
-}
-
-template<typename T>
-QList<T> reverse(const QList<T> &l)
-{
-	QList<T> ret;
-
-	for (int i=0 ; i<l.size(); i++)
-		ret.prepend(l.at(i));
-	return ret;
-}
-
-bool sortInfoSenderFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSender, 0);
-}
-bool sortInfoSubFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortSubject, 0);
-}
-bool sortInfoDateFunctionDes (const CamelMessageInfoVariant &info1, const CamelMessageInfoVariant &info2)
-{
-        return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, 0);
-}
-
 
 void EmailMessageListModel::sortBySender(int key)
 {
