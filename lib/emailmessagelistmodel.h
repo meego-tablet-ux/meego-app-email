@@ -145,6 +145,8 @@ private slots:
     void updateSearch ();
     void onSendReceiveComplete ();
     void fetchMoreMessagesFinished (QDBusPendingCallWatcher *call);
+    void onFolderUidsReset(const QStringList &uids);
+    void addMessageInfo(const CamelMessageInfoVariant& info);
 
 private:
     void initMailServer ();
