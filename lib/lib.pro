@@ -23,7 +23,8 @@ SOURCES += \
     dbustypes.cpp	      \
     e-gdbus-emailsession-proxy.cpp \
     e-gdbus-emailstore-proxy.cpp   \
-    e-gdbus-emailfolder-proxy.cpp  
+    e-gdbus-emailfolder-proxy.cpp \  
+    asynccallwrapper.cpp
 
 INSTALL_HEADERS += \
     emailaccountlistmodel.h \
@@ -35,7 +36,8 @@ HEADERS += \
     dbustypes.h             \
     e-gdbus-emailsession-proxy.h \
     e-gdbus-emailstore-proxy.h   \
-    e-gdbus-emailfolder-proxy.h
+    e-gdbus-emailfolder-proxy.h \
+    asynccallwrapper.h
 
 
 target.path = $$[QT_INSTALL_LIBS]
