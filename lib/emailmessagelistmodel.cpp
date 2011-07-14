@@ -949,10 +949,10 @@ void EmailMessageListModel::getMoreMessages ()
                 QStringList toRetrieve((folder_uids.toSet() - shown_uids.toSet()).toList());
                 op->setMessageUids(toRetrieve);
                 connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
-                connect(op, SIGNAL(finished()), this, SIGNAL(messageRetrievalCompleted()));
+                connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
 
                 if (toLoad <= 0) {
-                    connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
+                    connect(op, SIGNAL(finished()), this, SIGNAL(messageRetrievalCompleted()));
                     op->start(WINDOW_LIMIT);
                 } else {
                     op->start(alreadyLoaded);
