@@ -145,7 +145,8 @@ private slots:
     void updateSearch ();
     void onSendReceiveComplete ();
     void onFolderUidsReset(const QStringList &uids);
-    void addMessageInfo(const CamelMessageInfoVariant& info);
+    void messageInfoAdded(const CamelMessageInfoVariant& info);
+    void messageInfoUpdated(const CamelMessageInfoVariant& info);
     /// Enable Camel folder notification
     void enableFolderNotification();
     /// Disable Camel folder notification

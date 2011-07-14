@@ -787,14 +787,14 @@ void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
         GetMessageInfo* op = new GetMessageInfo(m_folder_proxy, this);
         op->setMessageUids(folder_uids);
         connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
-        connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
+        connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
         op->start(WINDOW_LIMIT);
         enableFolderNotification();
         /* Refresh the folder anyway to see any new mails. */
         sendReceive();
 }
 
-void EmailMessageListModel::addMessageInfo(const CamelMessageInfoVariant &info)
+void EmailMessageListModel::messageInfoAdded(const CamelMessageInfoVariant &info)
 {
         const QString& uid = info.uid;
         if (!folder_uids.contains(uid)) {
@@ -817,6 +817,33 @@ void EmailMessageListModel::addMessageInfo(const CamelMessageInfoVariant &info)
         qDebug() << "Adding UID: " << info.uid << "at:" << index;
         shown_uids.insert(iter, uid);
         endInsertRows();
+}
+
+void EmailMessageListModel::messageInfoUpdated(const CamelMessageInfoVariant &info)
+{
+    const QString& uid = info.uid;
+    if (!shown_uids.contains(uid)) {
+        /* This UID isn't displayed. Forsafe we'll remove any stale info if present.*/
+        m_infos.remove (uid);
+        return;
+    }
+
+    m_infos.insert (uid, info);
+    if ((info.flags & CAMEL_MESSAGE_DELETED) != 0) {
+            /* Message is deleted, it should be off the list now */
+            int index;
+            qDebug() << "Removing UID of msg with deleted flag set : " << uid;
+
+            index = shown_uids.indexOf(uid);
+            if (index != -1) {
+                    beginRemoveRows (QModelIndex(), index, index);
+                    shown_uids.removeAt(index);
+                    endRemoveRows ();
+            }
+    } else {
+            QModelIndex idx = createIndex (shown_uids.indexOf(uid), 0);
+            emit dataChanged(idx, idx);
+    }
 }
 
 void EmailMessageListModel::enableFolderNotification()
@@ -949,7 +976,7 @@ void EmailMessageListModel::getMoreMessages ()
                 QStringList toRetrieve((folder_uids.toSet() - shown_uids.toSet()).toList());
                 op->setMessageUids(toRetrieve);
                 connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
-                connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
+                connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
 
                 if (toLoad <= 0) {
                     connect(op, SIGNAL(finished()), this, SIGNAL(messageRetrievalCompleted()));
@@ -992,8 +1019,18 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
             folder_uids << added;
             GetMessageInfo* op = new GetMessageInfo(m_folder_proxy, this);
             op->setMessageUids(added);
+            connect(op, SIGNAL(finished()), this, SIGNAL(folderChanged()));
             connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
-            connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
+            connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
+            op->start();
+        }
+
+        if (!changed.isEmpty()) {
+            GetMessageInfo* op = new GetMessageInfo(m_folder_proxy, this);
+            op->setMessageUids(changed);
+            connect(op, SIGNAL(finished()), this, SIGNAL(folderChanged()));
+            connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+            connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoUpdated(CamelMessageInfoVariant)));
             op->start();
         }
 
@@ -1015,48 +1052,9 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
 		folder_uids.removeAt(index);
 	}
 
-        foreach (const QString& uid, changed) {
-		/* Add uid */
-		qDebug() << "Changed UID: " << uid;
-
-		if (shown_uids.indexOf(uid) != -1) {
-			/* Add message info */
-	                QDBusError error;
-	                CamelMessageInfoVariant info;
-	                qDebug() << "Fetching uid " << uid;
-	                QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-	                reply.waitForFinished();
-	                qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
-	                if (reply.isError()) {
-	                        error = reply.error();
-	                        qDebug() << "Error: " << error.name () << " " << error.message();
-	                        continue;
-        	        }
-	                info = reply.value ();
-	                m_infos.insert (uid, info);
-		
-			if ((info.flags & CAMEL_MESSAGE_DELETED) != 0) {
-				/* Message is deleted, it should be off the list now */
-				int index; 
-				qDebug() << "Removing UID of msg with deleted flag set : " << uid;
-
-				index = shown_uids.indexOf(uid);
-				if (index != -1) {
-			        	beginRemoveRows (QModelIndex(), index, index);
-					shown_uids.removeAt(index);
-					endRemoveRows ();
-				}
-			} else {
-				QModelIndex idx = createIndex (shown_uids.indexOf(uid), 0);
-				emit dataChanged(idx, idx);
-			}
-			
-		} else {
-			/* This UID isn't displayed. Forsafe we'll remove any stale info if present.*/
-			m_infos.remove (uid);
-		}
-	}
-	emit folderChanged();
+        if (!removed.isEmpty()) {
+            emit folderChanged();
+        }
 }
 
 void EmailMessageListModel::setAccountKey (QVariant id)
