@@ -493,6 +493,9 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
 void EmailMessageListModel::updateSearch ()
 {
+    if (!m_folder_proxy)
+        return;
+
 	QString sort;
 	if (m_sortById == EmailMessageListModel::SortDate)
 		sort = QString ("date");
