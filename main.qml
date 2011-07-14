@@ -765,7 +765,7 @@ Window {
         toListModel.init();
         window.mailCc = messageListModel.ccList(msgid);
         ccListModel.init();
-        window.mailBcc = messageListModel.ccList(msgid);
+        window.mailBcc = messageListModel.bccList(msgid);
         bccListModel.init();
         mailAttachmentModel.init();
         window.currentMessageIndex = msgid;
