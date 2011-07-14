@@ -144,9 +144,12 @@ private slots:
     void myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
     void updateSearch ();
     void onSendReceiveComplete ();
-    void fetchMoreMessagesFinished (QDBusPendingCallWatcher *call);
     void onFolderUidsReset(const QStringList &uids);
     void addMessageInfo(const CamelMessageInfoVariant& info);
+    /// Enable Camel folder notification
+    void enableFolderNotification();
+    /// Disable Camel folder notification
+    void disableFolderNotification();
 
 private:
     void initMailServer ();
@@ -158,6 +161,7 @@ private:
     void loadMoreMessages (int);
     QString mimeMessage (QString &uid);
 
+private:
     CamelFolderInfoArrayVariant m_folders; 
     QStringList folder_uids;
     QStringList shown_uids;

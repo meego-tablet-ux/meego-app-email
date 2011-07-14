@@ -764,8 +764,9 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
                                                                         m_folder_proxy_id.path(),
                                                                         QDBusConnection::sessionBus(), this);
-    disconnect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                                            this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
+    connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
+                                                this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)), Qt::UniqueConnection);
+    disableFolderNotification();
     SearchSortByExpression* op = new SearchSortByExpression(m_folder_proxy, this);
     op->setQuery(strNotDeleted); op->setSort(sortString(m_sortById));
     connect(op, SIGNAL(result(QStringList)), this, SLOT(onFolderUidsReset(QStringList)));
@@ -788,9 +789,7 @@ void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
         connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
         connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
         op->start(WINDOW_LIMIT);
-        // now enable notification handling
-        connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                                                    this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)), Qt::UniqueConnection);
+        enableFolderNotification();
         /* Refresh the folder anyway to see any new mails. */
         sendReceive();
 }
@@ -818,6 +817,18 @@ void EmailMessageListModel::addMessageInfo(const CamelMessageInfoVariant &info)
         qDebug() << "Adding UID: " << info.uid << "at:" << index;
         shown_uids.insert(iter, uid);
         endInsertRows();
+}
+
+void EmailMessageListModel::enableFolderNotification()
+{
+    Q_ASSERT (m_folder_proxy);
+    m_folder_proxy->blockSignals(false);
+}
+
+void EmailMessageListModel::disableFolderNotification()
+{
+    Q_ASSERT (m_folder_proxy);
+    m_folder_proxy->blockSignals(true);
 }
 
 void EmailMessageListModel::reloadFolderUids ()
@@ -893,32 +904,6 @@ void EmailMessageListModel::loadMessages (int limit)
 	}
 	endInsertRows();
 }
-void EmailMessageListModel::fetchMoreMessagesFinished (QDBusPendingCallWatcher *call)
-{
-	QDBusPendingReply<bool> reply = *call;
-	int total;
-	int max;
-
-	total = shown_uids.length();
-
-	messages_present = reply.value();
-	g_print("Messages present? %d\n", messages_present);
-
-	reloadFolderUids();
-
-	printf("Already showing %d, now to show %d\n", total, total+WINDOW_LIMIT-1);
-        max = ((total+WINDOW_LIMIT) > (folder_uids.length() )) ? (folder_uids.length()) : total+WINDOW_LIMIT;
-
-	loadMessages (max-1);
-
-	m_folder_proxy->blockSignals(false);
-	qDebug() << "Reconnected...........";
-	connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-		 this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
-
-
-	emit messageRetrievalCompleted();
-}
 
 bool EmailMessageListModel::stillMoreMessages ()
 {
@@ -953,71 +938,47 @@ void EmailMessageListModel::loadMoreMessages (int max)
 
 void EmailMessageListModel::getMoreMessages ()
 {
-	int count;
-	int max;
+        g_print(" SHOWN: %d, total : %d\n", shown_uids.length(), folder_uids.length());
 
-	if (!m_folder_proxy)
-		return;
+        const int alreadyLoaded = folder_uids.length() - shown_uids.length();
+        const int toLoad = WINDOW_LIMIT - alreadyLoaded;
 
-	count = shown_uids.length();
-	g_print(" SHOWN: %d, total : %d\n", count, folder_uids.length());
+        if (alreadyLoaded > 0 ) {
+                qDebug() << Q_FUNC_INFO << "Showing from cache";
+                GetMessageInfo* op = new GetMessageInfo(m_folder_proxy, this);
+                QStringList toRetrieve((folder_uids.toSet() - shown_uids.toSet()).toList());
+                op->setMessageUids(toRetrieve);
+                connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+                connect(op, SIGNAL(finished()), this, SIGNAL(messageRetrievalCompleted()));
 
-	if (folder_uids.length() - count > WINDOW_LIMIT ) {
-		qDebug() << "Showing from cache";
-		max = ((count+WINDOW_LIMIT) > (folder_uids.length() )) ? (folder_uids.length()) : count+WINDOW_LIMIT;
-		loadMoreMessages (max-1);
-		emit messageRetrievalCompleted();
-	} else {
-		qDebug() << "Fetching more from server";
+                if (toLoad <= 0) {
+                    connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(addMessageInfo(CamelMessageInfoVariant)));
+                    op->start(WINDOW_LIMIT);
+                } else {
+                    op->start(alreadyLoaded);
+                }
+        }
+
+        if (toLoad > 0){
+                qDebug() <<  Q_FUNC_INFO << "Fetching more from server";
 		/* See if we can fetch more mails & again search/sort and show */
-		const char *url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-	        disconnect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                                            this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
 
-		if (strncmp (url, "pop:", 4) == 0) {
-			/* POP Account */
+                QDBusAbstractInterface* storageInterface = m_folder_proxy;
+                const char *url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
+                if (strncmp (url, "pop:", 4) == 0) {
+                   storageInterface = session_instance;
+                }
 
-			qDebug()<< "Disconnected..................";
+                QDBusMessage msg = QDBusMessage::createMethodCall(storageInterface->service(), storageInterface->path(), storageInterface->interface(), QString("fetchOldMessages"));
+                msg.setArguments(QVariantList() << QVariant(toLoad));
 
-			m_folder_proxy->blockSignals(true);
-			
-			/* Fetch another 40 more mails */
-			QDBusMessage msg = QDBusMessage::createMethodCall(session_instance->service(), session_instance->path(), session_instance->interface(), QString("fetchOldMessages"));
-		        QList<QVariant> argumentList;
-		        argumentList << qVariantFromValue(QString(m_account->uid)) << qVariantFromValue(40);
+                /* Make this a async call with 10min timeout. At times it takes that time to download messages */
+                QDBusPendingCall reply = m_folder_proxy->connection().asyncCall (msg, 10 * 60 * 1000);
 
-    			msg.setArguments(argumentList);
-			/* Make this a async call with 10min timeout. At times it takes that time to download messages */
-			QDBusPendingCall reply = session_instance->connection().asyncCall (msg, 10 * 60 * 1000);
-
-			QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
-	                //reply.waitForFinished();
-			  QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)),
- 			                     this, SLOT(fetchMoreMessagesFinished (QDBusPendingCallWatcher*)));
-
-
-		} else {
-			/* Handle IMAP/Other account */
-			qDebug()<< "Disconnected..................";
-
-			m_folder_proxy->blockSignals(true);
-			
-			/* Fetch another 40 more mails */
-			QDBusMessage msg = QDBusMessage::createMethodCall(m_folder_proxy->service(), m_folder_proxy->path(), m_folder_proxy->interface(), QString("fetchOldMessages"));
-		        QList<QVariant> argumentList;
-		        argumentList << qVariantFromValue(40);
-    			msg.setArguments(argumentList);
-			/* Make this a async call with 10min timeout. At times it takes that time to download messages */
-			QDBusPendingCall reply = m_folder_proxy->connection().asyncCall (msg, 10 * 60 * 1000);
-
-			QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
-	                //reply.waitForFinished();
-			  QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)),
- 			                     this, SLOT(fetchMoreMessagesFinished (QDBusPendingCallWatcher*)));
-
-		}
+                QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
+                connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SIGNAL(sendReceiveCompleted()), Qt::QueuedConnection);
+                connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), watcher, SLOT(deleteLater()));
 	}
-
 }
 
 void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent)
