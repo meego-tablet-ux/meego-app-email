@@ -180,6 +180,9 @@ Item {
         anchors.bottom: fromRect.bottom
         anchors.right:  parent.right
 
+        bgSourceUp: "image://theme/btn_blue_up"
+        bgSourceDn: "image://theme/btn_blue_dn"
+
         minWidth: 60
         visible: ccListAvailable
 
