@@ -34,16 +34,21 @@ Rectangle {
 
         Flickable {
             id: flicker
+
             height: parent.height
             width: parent.width - recipientText.width - 5
+
             contentWidth:  recipientRow.width
             contentHeight: flicker.height
 
             clip: true
             interactive: contentWidth > width
+            flickableDirection: Flickable.HorizontalFlick
 
             Row {
                 id: recipientRow
+
+                anchors.verticalCenter: parent.verticalCenter
 
                 spacing: 5
 
@@ -54,10 +59,7 @@ Rectangle {
                         // Don't show an empty "pill"
                         //
                         // @todo Why do we sometimes get an empty string from the Repeater?
-                        visible: container.recipients[index] != undefined && container.recipients[index] != ""
-
-                        // FIX ME: There is more then one mail Recipient
-                        anchors.verticalCenter: parent.verticalCenter
+                        visible: index < recipients.length && container.recipients[index] != ""
                         emailAddress: container.recipients[index]
                     }
                 }

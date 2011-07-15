@@ -42,7 +42,12 @@ Item {
     property string attachmentHasBeenSavedLabel: qsTr("%1 saved")
 
     // Show CCed recipients.
-    property bool showCc: false
+    property bool showCc: true
+
+    // Do we have Cc recipients?
+    //
+    // @todo For some reason the mailCc array length is 1 even though it is really empty.  Why?
+    property bool ccListAvailable: mailCc.length > 0 && !(mailCc.length == 1 && mailCc[0] == "")
 
     Connections {
         target: messageListModel
@@ -59,7 +64,6 @@ Item {
         saveRestore.setValue("window.mailSender",   window.mailSender)
         saveRestore.setValue( "window.mailBody", window.mailBody )
         saveRestore.setValue("window.mailSubject", window.mailSubject )
-        saveRestore.setValue("toEmailAddress.emailAddress", toEmailAddress.emailAddress )
     }
 
     function restore(saveRestore)
@@ -70,8 +74,6 @@ Item {
         window.mailSender   = saveRestore.value("window.mailSender")
         window.mailBody     = saveRestore.value("window.mailBody")
         window.mailSubject  = saveRestore.value("window.mailSubject")
-        toEmailAddress.emailAddress= saveRestore.value("toEmailAddress.emailAddress")
-
     }
 
     TopItem { id: topItem }
@@ -142,8 +144,8 @@ Item {
         id: fromRect
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.right:  ccToggle.left
-        anchors.rightMargin: 5
+        anchors.right:  ccToggle.visible ? ccToggle.left : parent.right
+        anchors.rightMargin: ccToggle.visible ? 5 : 0
         height: 43
         Image {
             anchors.fill: parent
@@ -179,6 +181,7 @@ Item {
         anchors.right:  parent.right
 
         minWidth: 60
+        visible: ccListAvailable
 
         //: Label for CC recipient view toggle button.
         text: qsTr("Cc")
@@ -208,7 +211,7 @@ Item {
         RecipientViewRectangle {
             id: ccRect
 
-            visible: showCc
+            visible: showCc && ccListAvailable
 
             recipients: mailCc
 
