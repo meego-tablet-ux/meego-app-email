@@ -212,7 +212,7 @@ Window {
 //            toListModel.init();
 //            window.mailCc = messageListModel.ccList(msgid);
 //            ccListModel.init();
-//            window.mailBcc = messageListModel.ccList(msgid);
+//            window.mailBcc = messageListModel.bccList(msgid);
 //            bccListModel.init();
 //            mailAttachmentModel.init();
 //            window.currentMessageIndex = msgid;
@@ -716,7 +716,7 @@ Window {
 
                     composerView.composer.bccModel.clear();
                     for (idx = 0; idx < window.mailCc.length; idx ++)
-                        composerView.composer.bccModel.append({"email": window.mailCc[idx]});
+                        composerView.composer.ccModel.append({"email": window.mailCc[idx]});
 
                     composerView.composer.bccModel.clear();
                     for (idx = 0; idx < window.mailBcc.length; idx ++)
