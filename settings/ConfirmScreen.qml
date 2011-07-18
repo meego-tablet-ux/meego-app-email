@@ -30,7 +30,6 @@ Item {
         spacing: 2
         Text {
             text: qsTr("Account set up successfully!")
-            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             //this should be part of the THEME
