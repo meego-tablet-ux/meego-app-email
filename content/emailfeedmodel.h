@@ -30,7 +30,7 @@ class EmailFeedModel: public McaFeedModel, public McaSearchableFeed
     Q_OBJECT
 
 public:
-    EmailFeedModel(QVariant account, QObject *parent = 0);
+    EmailFeedModel(QVariant account, QObject *parent = 0, bool isSearchFeed = false);
     ~EmailFeedModel();
 
     void setSearchText(const QString &text);
@@ -39,6 +39,8 @@ public:
     bool canFetchMore(const QModelIndex &parent) const;
     void fetchMore(const QModelIndex &parent);
     virtual bool removeRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
+
+    bool hasSearchText() const;
 
 protected slots:
     void sourceRowsInserted(const QModelIndex& parent, int first, int last);
@@ -56,6 +58,7 @@ private:
     QList<EmailMessage *> m_messages;
     QString m_searchText;
     McaActions *m_actions;
+    bool m_isSearchFeed;
 };
 
 #endif  // __emailfeedmodel_h

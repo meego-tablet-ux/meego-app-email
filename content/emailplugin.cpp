@@ -39,7 +39,7 @@ McaSearchableFeed *EmailPlugin::createSearchModel(const QString& service,
                                              const QString& searchText)
 {
     qDebug() << "EmailPlugin::createSearchModel: " << service << searchText;
-    EmailFeedModel* pModel=new EmailFeedModel(m_serviceModel->accountId(service), this);
+    EmailFeedModel* pModel=new EmailFeedModel(m_serviceModel->accountId(service), this, true);
     pModel->setSearchText(searchText);
     return pModel;
 }
