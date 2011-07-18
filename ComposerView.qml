@@ -13,7 +13,6 @@ import MeeGo.App.Email 0.1
 
 FocusScope {
     id: composerViewContainer
-    focus: true
 
     property alias composer: composer
 

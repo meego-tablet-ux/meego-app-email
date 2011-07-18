@@ -307,8 +307,7 @@ Item {
             font.pixelSize: theme.fontPixelSizeLarge
 
             onLinkClicked: {
-                console.log(" \nZZZZZZZZZZZ  ReadingView link clicked=" + url + "\n")
-//                emailAgent.openBrowser(url);
+                emailAgent.openBrowser(url);
             }
 
             onLoadStarted: {

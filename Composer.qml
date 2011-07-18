@@ -44,6 +44,8 @@ FocusScope {
         newBody += "<blockquote style=\"margin: 0pt 0pt 0pt 0.8ex; border-left: 1px solid rgb(204, 204, 204); padding-left: 1ex;\">\n";
         newBody += quotedHtml + "\n</blockquote>\n";
         quotedBody = newBody;
+
+        htmlEditPane.setFocusElement(replyElementId);
     }
 
     function setReplyFocus() {
@@ -53,7 +55,8 @@ FocusScope {
             textEditPane.focus = true;
             return textEditPane.focus;
         } else {
-            return htmlEditPane.setFocusElement(replyElementId)
+            htmlEditPane.forceFocus();
+            return htmlEditPane.focus;
         }
     }
 
@@ -74,7 +77,7 @@ FocusScope {
 
         source: "image://theme/email/bg_reademail_l"
 
-        HtmlField {
+        HtmlView {
             id: htmlEditPane
             anchors.fill: parent
             anchors.bottomMargin: 5
@@ -87,6 +90,10 @@ FocusScope {
                     return composer.quotedBody;
                 else
                     return (composer.quotedBody + "\n-- \n" + sig + "\n");
+            }
+
+            onLinkClicked: {
+                emailAgent.openBrowser(url);
             }
         }
 
