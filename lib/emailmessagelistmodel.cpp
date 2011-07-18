@@ -23,6 +23,10 @@
 #include <libedataserver/e-account-list.h>
 #include <libedataserver/e-data-server-util.h>
 #include <gconf/gconf-client.h>
+#include "meegolocale.h"
+
+using namespace meego;
+static const Locale g_locale;
 
 #define WINDOW_LIMIT 20
 
@@ -432,14 +436,12 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     else if (role == MessageSenderDisplayNameRole)
     {
 	QString str = minfo.from;
-	QString name;
 	QStringList email = str.split ("<", QString::KeepEmptyParts);
 
-	if (email[0].isEmpty())
-		name = email[1];
-	else
-		name = email[0];
-        return name;
+        if (email.size() >= 1)
+            return email[0];
+        else
+            return ("");
     }
     else if (role == MessageSenderEmailAddressRole || role == MessageAddressTextRole)
     {
@@ -491,6 +493,9 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
 void EmailMessageListModel::updateSearch ()
 {
+    if (!m_folder_proxy)
+        return;
+
 	QString sort;
 	if (m_sortById == EmailMessageListModel::SortDate)
 		sort = QString ("date");
@@ -511,7 +516,24 @@ void EmailMessageListModel::updateSearch ()
     shown_uids.clear ();
     endRemoveRows ();
     beginInsertRows (QModelIndex(), 0, reply.value().length()-1);
-    shown_uids = reply.value ();
+    QStringList search_uids = reply.value();
+
+    QDBusError error;
+    foreach (QString uid, search_uids) {
+	CamelMessageInfoVariant info;
+	if (!(m_infos.contains(uid) && m_infos.count(uid) > 0)) {
+		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
+		reply.waitForFinished();
+		if (reply.isError()) {
+			error = reply.error();	
+			qDebug() << "Error: " << error.name () << " " << error.message();
+			continue;
+		}	
+		info = reply.value ();
+		m_infos.insert (uid, info);
+	}
+	shown_uids << uid;
+    }
     endInsertRows();
 
     qDebug() << "Search count: "<< shown_uids.length();
@@ -522,6 +544,9 @@ void EmailMessageListModel::updateSearch ()
 void EmailMessageListModel::setSearch(const QString search)
 {
     char *query;
+
+    if (!m_folder_proxy)
+	return;
     query = g_strdup_printf("(match-all (and " 
 				"(not (system-flag \"deleted\")) "
 			        "(not (system-flag \"junk\")) "
@@ -577,7 +602,7 @@ void EmailMessageListModel::cancelOperations()
 
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
-    int count=0;
+    int count=0, max;
     bool not_found = true;
 
     if (m_current_folder == id.toString()) {
@@ -646,10 +671,13 @@ void EmailMessageListModel::setFolderKey (QVariant id)
                                                                         QDBusConnection::sessionBus(), this);
     reloadFolderUids();
 
-	if (folder_uids.length() < WINDOW_LIMIT)
+	if (folder_uids.length() < WINDOW_LIMIT) {
 		messages_present = false;
+		max = folder_uids.length();
+	} else
+		max = WINDOW_LIMIT;
 
-	beginInsertRows(QModelIndex(), 0, WINDOW_LIMIT-1);
+	beginInsertRows(QModelIndex(), 0, max-1);
 	foreach (QString uid, folder_uids) {
 		QDBusError error;
 		CamelMessageInfoVariant info;
@@ -791,7 +819,7 @@ void EmailMessageListModel::loadMoreMessages (int max)
 	int i;
 
 	beginInsertRows(QModelIndex(), count, max);
-	for (i=count; i < max; i++) {
+	for (i=count; i <= max; i++) {
 		QString uid = folder_uids[i];
 		QDBusError error;
 		CamelMessageInfoVariant info;
@@ -815,6 +843,9 @@ void EmailMessageListModel::getMoreMessages ()
 {
 	int count;
 	int max;
+
+	if (!m_folder_proxy)
+		return;
 
 	count = shown_uids.length();
 	g_print(" SHOWN: %d, total : %d\n", count, folder_uids.length());
@@ -1053,7 +1084,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
                                                                         CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
                 reply.waitForFinished();
                 m_folders = reply.value ();
-		if (m_folders.length() == 0 && strncmp (url, "pop:", 4) == 0) {
+		if ((reply.isError() || m_folders.length()) == 0 && strncmp (url, "pop:", 4) == 0) {
 			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
 
 			/* Create base first*/
@@ -1078,6 +1109,7 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 			m_folders = reply2.value ();
 			m_folders.removeLast();	
 		}
+
 		if (!reply.isError())
 			m_folders.removeLast();
 
@@ -1100,9 +1132,9 @@ bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageI
   	bool ret;
 
 	if (id == EmailMessageListModel::SortSender) {
-		ret = info1.from < info2.from;
+                ret = g_locale.lessThan(info1.from, info2.from);
 	} else if (id == EmailMessageListModel::SortSubject) {
-		ret = info1.subject < info2.subject;
+                ret = g_locale.lessThan(info1.subject, info2.subject);
         } else if (id == EmailMessageListModel::SortDate) {
 		ret = info1.date_received < info2.date_received;
         } else {

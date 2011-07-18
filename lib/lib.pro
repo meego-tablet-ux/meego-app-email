@@ -6,7 +6,12 @@ CONFIG += link_pkgconfig
 
 PKGCONFIG += libedataserver-1.2	\
     camel-1.2 \
-    gconf-2.0
+    gconf-2.0 \
+    icu-i18n \
+    icu-uc \
+    meegolocale
+
+INCLUDEPATH += /usr/include/mlite
 
 OBJECTS_DIR = .obj
 MOC_DIR = .moc

@@ -212,7 +212,7 @@ Window {
 //            toListModel.init();
 //            window.mailCc = messageListModel.ccList(msgid);
 //            ccListModel.init();
-//            window.mailBcc = messageListModel.ccList(msgid);
+//            window.mailBcc = messageListModel.bccList(msgid);
 //            bccListModel.init();
 //            mailAttachmentModel.init();
 //            window.currentMessageIndex = msgid;
@@ -254,19 +254,18 @@ Window {
     EmailAccountListModel {
         id: mailAccountListModel
 
-        onAccountAdded: {
+        function updateAccountList() {
             var accountList = new Array();
             accountList = mailAccountListModel.getAllDisplayNames();
             accountList.push(qsTr("Account switcher"));
             window.accountFilterModel = accountList;
         }
 
-        onAccountRemoved: {
-            var accountList = new Array();
-            accountList = mailAccountListModel.getAllDisplayNames();
-            accountList.push(qsTr("Account switcher"));
-            window.accountFilterModel = accountList;
-        }
+        onAccountAdded: { updateAccountList(); }
+
+        onAccountRemoved: { updateAccountList(); }
+
+        onDataChanged: { updateAccountList(); }
     }
 
     ListModel {
@@ -717,7 +716,7 @@ Window {
 
                     composerView.composer.bccModel.clear();
                     for (idx = 0; idx < window.mailCc.length; idx ++)
-                        composerView.composer.bccModel.append({"email": window.mailCc[idx]});
+                        composerView.composer.ccModel.append({"email": window.mailCc[idx]});
 
                     composerView.composer.bccModel.clear();
                     for (idx = 0; idx < window.mailBcc.length; idx ++)
@@ -766,7 +765,7 @@ Window {
         toListModel.init();
         window.mailCc = messageListModel.ccList(msgid);
         ccListModel.init();
-        window.mailBcc = messageListModel.ccList(msgid);
+        window.mailBcc = messageListModel.bccList(msgid);
         bccListModel.init();
         mailAttachmentModel.init();
         window.currentMessageIndex = msgid;

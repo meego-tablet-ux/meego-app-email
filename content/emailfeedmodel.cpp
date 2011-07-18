@@ -85,7 +85,7 @@ int EmailFeedModel::rowCount(const QModelIndex &parent) const
 QVariant EmailFeedModel::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
-    if (row >= m_messages.count())
+    if (row >= m_messages.count() || row == -1)
         return QVariant();
 
     EmailMessage *message = m_messages.at(row);
@@ -213,6 +213,7 @@ void EmailFeedModel::performAction(QString action, QString uniqueid)
 
 void EmailFeedModel::copyRowsFromSource(int first, int last)
 {
+    qDebug()<< "Fetch from " << first << " to " << last;
     for (int i = last; i >= first; i--) {
         EmailMessage *message = new EmailMessage;
         readRow(message, i);
@@ -223,7 +224,8 @@ void EmailFeedModel::copyRowsFromSource(int first, int last)
 void EmailFeedModel::readRow(EmailMessage *message, int row)
 {
     QModelIndex sourceIndex = m_source->index(row);
-
+	
+    qDebug() << "Reading row " << row;
     // prefer contact name to email address
     message->contact = m_source->data(sourceIndex, EmailMessageListModel::MessageSenderDisplayNameRole).toString();
     if (message->contact.isEmpty())

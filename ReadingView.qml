@@ -41,6 +41,14 @@ Item {
     //: Attachment has been saved message, where arg 1 is the name of the attachment.
     property string attachmentHasBeenSavedLabel: qsTr("%1 saved")
 
+    // Show CCed recipients.
+    property bool showCc: true
+
+    // Do we have Cc recipients?
+    //
+    // @todo For some reason the mailCc array length is 1 even though it is really empty.  Why?
+    property bool ccListAvailable: mailCc.length > 0 && !(mailCc.length == 1 && mailCc[0] == "")
+
     Connections {
         target: messageListModel
         onMessageDownloadCompleted: {
@@ -56,7 +64,6 @@ Item {
         saveRestore.setValue("window.mailSender",   window.mailSender)
         saveRestore.setValue( "window.mailBody", window.mailBody )
         saveRestore.setValue("window.mailSubject", window.mailSubject )
-        saveRestore.setValue("toEmailAddress.emailAddress", toEmailAddress.emailAddress )
     }
 
     function restore(saveRestore)
@@ -67,8 +74,6 @@ Item {
         window.mailSender   = saveRestore.value("window.mailSender")
         window.mailBody     = saveRestore.value("window.mailBody")
         window.mailSubject  = saveRestore.value("window.mailSubject")
-        toEmailAddress.emailAddress= saveRestore.value("toEmailAddress.emailAddress")
-
     }
 
     TopItem { id: topItem }
@@ -139,7 +144,8 @@ Item {
         id: fromRect
         anchors.top: parent.top
         anchors.left: parent.left
-        width: parent.width
+        anchors.right:  ccToggle.visible ? ccToggle.left : parent.right
+        anchors.rightMargin: ccToggle.visible ? 5 : 0
         height: 43
         Image {
             anchors.fill: parent
@@ -167,44 +173,63 @@ Item {
         }
     }
 
-    Rectangle {
-        id: toRect
-        anchors.top: fromRect.bottom
-        anchors.topMargin: 1
-        anchors.left: parent.left
+    Button {
+        id: ccToggle
+
+        anchors.top:    fromRect.top
+        anchors.bottom: fromRect.bottom
+        anchors.right:  parent.right
+
+        bgSourceUp: "image://theme/btn_blue_up"
+        bgSourceDn: "image://theme/btn_blue_dn"
+
+        minWidth: 60
+        visible: ccListAvailable
+
+        //: Label for CC recipient view toggle button.
+        text: qsTr("Cc")
+
+        onClicked: showCc = !showCc
+    }
+
+    Column {
+        id: recipients
+
         width: parent.width
-        height: 43
-        Image {
-            anchors.fill: parent
-            fillMode: Image.Tile
-            source: "image://theme/email/bg_email details_l"
+        anchors.top:  fromRect.bottom
+        anchors.topMargin: 2
+
+        spacing: 2
+
+        RecipientViewRectangle {
+            id: toRect
+            height: fromRect.height
+
+            recipients: mailRecipients
+            //: "To" e-mail recipients label
+
+            recipientLabel: qsTr("To:")
         }
-        Row {
-            spacing: 5
-            height: 43
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.leftMargin: 3
-            Text {
-                width: subjectLabel.width
-                id: toLabel
-                font.pixelSize: theme.fontPixelSizeMedium
-                text: qsTr("To:")
-                horizontalAlignment: Text.AlignRight
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            EmailAddress {
-                id:toEmailAddress
-                //FIX ME: There is more then one mail Recipient                
-                anchors.verticalCenter: parent.verticalCenter
-                emailAddress: mailRecipients[0]
-            }
+
+        RecipientViewRectangle {
+            id: ccRect
+
+            visible: showCc && ccListAvailable
+
+            recipients: mailCc
+
+            //: "Cc" (carbon copy) recipients label
+            recipientLabel: qsTr("Cc:")
+
+            height: fromRect.height
         }
+
+        // No need for Bcc recipients rectangle.  Nothing to show!
     }
 
     Rectangle {
         id: subjectRect
-        anchors.top: toRect.bottom
+        anchors.top: recipients.bottom
         anchors.left: parent.left
         width: parent.width
         anchors.topMargin: 1
