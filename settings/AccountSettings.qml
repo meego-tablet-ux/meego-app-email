@@ -39,12 +39,15 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
+                anchors.right: newAccountPulldown.left
                 anchors.leftMargin: 100
                 font.pixelSize: theme.fontPixelSizeLarge
                 color: theme.fontColorNormal
                 text: qsTr("Set up new account")
+                elide: Text.ElideRight
             }
             Image {
+                id: newAccountPulldown
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.margins: 10
@@ -61,6 +64,7 @@ Item {
                 Item {
                     Text {
                         anchors.left: parent.left
+                        anchors.right: actionText.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 10
                         font.pixelSize: theme.fontPixelSizeLarge
@@ -69,12 +73,14 @@ Item {
                         text: qsTr("Update:")
                     }
                     Text {
+                        id: actionText
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 10
                         font.pixelSize: theme.fontPixelSizeMedium
                         color: "#2fa7d4"
                         text: Settings.textForInterval(updateInterval.selectedValue)
+                        elide: Text.ElideRight
                     }
                 }
             }
@@ -111,6 +117,7 @@ Item {
                 Item {
                     Text {
                         anchors.left: parent.left
+                        anchors.right: signatureText.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 10
                         font.pixelSize: theme.fontPixelSizeLarge
@@ -119,9 +126,12 @@ Item {
                         text: qsTr("Signature")
                     }
                     Text {
+                        id: signatureText
                         anchors.right: parent.right
+                        anchors.left: parent.horizontalCenter
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 10
+                        horizontalAlignment: Text.AlignRight
                         font.pixelSize: theme.fontPixelSizeMedium
                         color: "#2fa7d4"
                         elide: Text.ElideRight

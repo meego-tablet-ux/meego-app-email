@@ -18,7 +18,7 @@ Rectangle {
 
     anchors.left: parent.left
     anchors.right: parent.right
-    height: 77
+    height: label.paintedHeight + 52//to make 77 with one line
     color: "#d5ecf6"
 
     Theme {
@@ -28,9 +28,11 @@ Rectangle {
     Text {
         id: label
         anchors.left: parent.left
+        anchors.right: toggle.left
         anchors.verticalCenter: parent.verticalCenter
         anchors.margins: 10
         font.pixelSize: theme.fontPixelSizeLarge
+        wrapMode: Text.Wrap
     }
 
     ToggleButton {
