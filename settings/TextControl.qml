@@ -23,6 +23,8 @@ Column {
 
     // private
     property bool suppress: true
+    property bool emailField: false
+    property int emailType: 2 //default to gmail
 
     signal textChanged()
 
@@ -48,6 +50,16 @@ Column {
         anchors.left: parent.left
         anchors.right: parent.right
         onTextChanged: {
+            //This piece of code auto fills the domain address. Currently only for gmail and yahoo
+            if(emailField && emailType>0 && (textentry.text.indexOf("@")==-1)) {
+                if(emailType == 2) {
+                    textentry.text += qsTr("@gmail.com");
+                } else if(emailType == 3) {
+                    textentry.text += qsTr("@yahoo.com");
+                }
+                textentry.cursorPosition = 1;
+            }
+
             if (!suppress)
                 root.textChanged();
         }

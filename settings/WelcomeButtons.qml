@@ -40,7 +40,8 @@ Column {
             settingsPage.state = "RegisterScreen";
         }
     }
-    WelcomeButton {
+    //Commenting out hotmail at the moment
+    /*WelcomeButton {
         title: qsTr("Microsoft Live Hotmail")
         icon: "image://themedimage/icons/services/msmail"
         onClicked: {
@@ -50,7 +51,7 @@ Column {
             savePreset();
             settingsPage.state = "RegisterScreen";
         }
-    }
+    }*/
     // disabled till we can get it working
     /*
     WelcomeButton {
