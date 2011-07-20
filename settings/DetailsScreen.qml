@@ -2,7 +2,7 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -143,159 +143,36 @@ Item {
                 }
             }
         }
-
-        Expandobox {
-            id: expandBar
-            onExpandedChanged: {
-                    //Scroll down when expanded
-           }
-
-            barContent: Component {
-                Item {
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: 10
-                        font.pixelSize: theme.fontPixelSizeLarge
-                        elide: Text.ElideRight
-                        color: theme.fontColorNormal
-                        text: qsTr("Edit email settings manually")
-                    }
-                }
+        Rectangle {
+            z: 1
+            color: "white"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 77
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {  settingsPage.state = "ManualScreen";
+                              loader.item.message = qsTr("Please fill in account details:");
+                            }
             }
-            content: Component {
-                Column {
-                //                    id: content
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.margins: 20
-                    width: settingsPage.width
-                    spacing: 10
-
-                    ControlGroup {
-                        title: qsTr("Receiving settings")
-                        subtitle: qsTr("You may need to contact your email provider for these settings.")
-                        children: [
-                            Item { width: 1; height: 1; },   // spacer
-                            DropDownControl {
-                                label: qsTr("Server type")
-                                model: Settings.serviceModel
-                                selectedIndex: emailAccount.recvType
-                                onTriggered: { emailAccount.recvType = index
-                                               textServerType.text = Settings.serviceName(emailAccount.recvType)
-                                              }
-                            },
-                            TextControl {
-                                id: recvServerField
-                                label: qsTr("Server address")
-                                Component.onCompleted: setText(emailAccount.recvServer)
-                                inputMethodHints: Qt.ImhNoAutoUppercase
-                                onTextChanged: { emailAccount.recvServer = text
-                                                 textServerAddress.text = emailAccount.recvType
-                                                }
-                            },
-                            TextControl {
-                                id: recvPortField
-                                label: qsTr("Port")
-                                Component.onCompleted: setText(emailAccount.recvPort)
-                                inputMethodHints: Qt.ImhDigitsOnly
-                                onTextChanged: { emailAccount.recvPort = text
-                                                 textServerPort.text = text
-                                }
-                            },
-                            DropDownControl {
-                                label: qsTr("Security")
-                                model: Settings.encryptionModel
-                                selectedIndex: emailAccount.recvSecurity
-                                onTriggered:{  emailAccount.recvSecurity = index
-                                               textServerSecurity.text= Settings.encryptionName(emailAccount.recvSecurity)
-                                }
-                            },
-                            TextControl {
-                                id: recvUsernameField
-                                label: qsTr("Username")
-                                Component.onCompleted: setText(emailAccount.recvUsername)
-                                inputMethodHints: Qt.ImhNoAutoUppercase
-                                onTextChanged: { emailAccount.recvUsername = text
-                                                 textServerUsername.text= text
-                                }
-                            },
-                            PasswordControl {
-                                id: recvPasswordField
-                                label: qsTr("Password")
-                                Component.onCompleted: setText(emailAccount.recvPassword)
-                                onTextChanged:emailAccount.recvPassword = text
-
-                            },
-                            Item { width: 1; height: 1; }   // spacer
-                        ]
-                    }
-
-                    ControlGroup {
-                        title: qsTr("Sending settings")
-                        subtitle: qsTr("You may need to contact your email provider for these settings.")
-                        children: [
-                            Item { width: 1; height: 1; },   // spacer
-                            TextControl {
-                                id: sendServerField
-                                label: qsTr("Server address")
-                                Component.onCompleted: setText(emailAccount.sendServer)
-                                inputMethodHints: Qt.ImhNoAutoUppercase
-                                onTextChanged:{ emailAccount.sendServer = text
-                                                textSendServerAddress.text = text
-                                }
-                            },
-                            TextControl {
-                                id: sendPortField
-                                label: qsTr("Port")
-                                Component.onCompleted: setText(emailAccount.sendPort)
-                                inputMethodHints: Qt.ImhDigitsOnly
-                                onTextChanged: { emailAccount.sendPort = text
-                                                 textServerPort.text = text
-                                }
-                            },
-                            DropDownControl {
-                                id: sendAuthField
-                                label: qsTr("Authentication")
-                                model: Settings.authenticationModel
-                                selectedIndex: emailAccount.sendAuth
-                                onTriggered:{ emailAccount.sendAuth = index
-                                              textSendAuthentication.text = Settings.authenticationName(emailAccount.sendAuth)
-                                }
-                            },
-                            DropDownControl {
-                                label: qsTr("Security")
-                                model: Settings.encryptionModel
-                                selectedIndex: emailAccount.sendSecurity
-                                onTriggered: { emailAccount.sendSecurity = index
-                                    textSendServerSecurity= Settings.encryptionName(emailAccount.sendSecurity)
-                                }
-                            },
-                            TextControl {
-                                id: sendUsernameField
-                                label: qsTr("Username")
-                                Component.onCompleted: setText(emailAccount.sendUsername)
-                                inputMethodHints: Qt.ImhNoAutoUppercase
-                                onTextChanged: { emailAccount.sendUsername = text
-                                    textSendServerUsername.text= text
-                                }
-                            },
-                            PasswordControl {
-                                id: sendPasswordField
-                                label: qsTr("Password")
-                                Component.onCompleted: setText(emailAccount.sendPassword)
-                                onTextChanged: { emailAccount.sendPassword = text
-                                }
-                            },
-                            Item { width: 1; height: 1; }   // spacer
-                        ]
-                    }
-
-
-                }
+            Text {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.margins: 10
+                font.pixelSize: theme.fontPixelSizeLarge
+                elide: Text.ElideRight
+                color: theme.fontColorNormal
+                text: qsTr("Edit email settings manually")
+            }
+            Image {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: 10
+                source: "image://theme/arrow-right"
             }
         }
-
     }
 
     ModalMessageBox {
