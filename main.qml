@@ -714,7 +714,7 @@ Window {
                     for (idx = 0; idx < window.mailRecipients.length; idx++)
                         composerView.composer.toModel.append({"name": "", "email": window.mailRecipients[idx]});
 
-                    composerView.composer.bccModel.clear();
+                    composerView.composer.ccModel.clear();
                     for (idx = 0; idx < window.mailCc.length; idx ++)
                         composerView.composer.ccModel.append({"email": window.mailCc[idx]});
 
