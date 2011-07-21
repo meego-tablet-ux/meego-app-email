@@ -167,16 +167,16 @@ QVariant EmailAccountSettingsModel::data(const QModelIndex &index, int role) con
 
         switch (role) {
             case DescriptionRole:
-                result = e_account_get_string(acc, E_ACCOUNT_NAME);
+                result = QString::fromUtf8(e_account_get_string(acc, E_ACCOUNT_NAME));
                 break;
             case EnabledRole:
                 result = acc->enabled;
                 break;
             case NameRole:
-                result = e_account_get_string(acc, E_ACCOUNT_ID_NAME);
+                result = QString::fromUtf8(e_account_get_string(acc, E_ACCOUNT_ID_NAME));
                 break;
             case AddressRole:
-                result = e_account_get_string(acc, E_ACCOUNT_ID_ADDRESS);
+                result = QString::fromUtf8(e_account_get_string(acc, E_ACCOUNT_ID_ADDRESS));
                 break;
             case PasswordRole: {
                char *key = camel_url_to_string(sourceCamelUrl, CAMEL_URL_HIDE_PASSWORD | CAMEL_URL_HIDE_PARAMS);
