@@ -2,7 +2,7 @@
  * Copyright 2011 Intel Corporation.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -23,6 +23,12 @@ Item {
 
     onHeightChanged: {
         settingsPage.height = root.height;
+    }
+
+
+    Theme {
+
+        id:theme
     }
 
     Column {
@@ -53,18 +59,23 @@ Item {
             text: qsTr("Receiving:")
         }
         Text {
+            id: textServerType
             text: qsTr("Server type: %1").arg(Settings.serviceName(emailAccount.recvType))
         }
         Text {
+            id: textServerAddress
             text: qsTr("Server address: %1").arg(emailAccount.recvServer)
         }
         Text {
+            id: textServerPort
             text: qsTr("Port: %1").arg(emailAccount.recvPort)
         }
         Text {
+            id: textServerSecurity
             text: qsTr("Security: %1").arg(Settings.encryptionName(emailAccount.recvSecurity))
         }
         Text {
+            id: textServerUsername
             text: qsTr("Username: %1").arg(emailAccount.recvUsername)
         }
         Item {
@@ -75,61 +86,91 @@ Item {
             text: qsTr("Sending:")
         }
         Text {
+            id: textSendServerAddress
             text: qsTr("Server address: %1").arg(emailAccount.sendServer)
         }
         Text {
+            id: textSendPort
             text: qsTr("Port: %1").arg(emailAccount.sendPort)
         }
         Text {
+            id: textSendAuthentication
             text: qsTr("Authentication: %1").arg(Settings.authenticationName(emailAccount.sendAuth))
         }
         Text {
+            id: textSendServerSecurity
             text: qsTr("Security: %1").arg(Settings.encryptionName(emailAccount.sendSecurity))
         }
         Text {
+            id: textSendServerUsername
             text: qsTr("Username: %1").arg(emailAccount.sendUsername)
         }
-        BottomToolBar {
-            width: settingsPage.width
-            content: BottomToolBarRow {
-                leftContent: Button {
-                    text: qsTr("Next")
-                    onClicked: {
-                        emailAccount.save();
-                        emailAccount.test();
-                        spinner.show();
-                    }
-                    Connections {
-                        target: emailAccount
-                        onTestSucceeded: {
-                            spinner.hide();
-                            settingsPage.state = "ConfirmScreen";
-                        }
-                        onTestFailed: {
-                            spinner.hide();
-                            errorDialog.show();
-                            emailAccount.remove();
-                        }
-                    }
-                }
-                rightContent:  Button {
-                    text: qsTr("Cancel")
-                    onClicked: {
-                        verifyCancel.show();
-                    }
-                }
-                centerContent: Button {
-                    text: qsTr("Manual Edit")
-                    onClicked: {
-                        settingsPage.state = "ManualScreen";
-                        loader.item.message = qsTr("Please fill in account details:");
-                    }
-                }
 
+        Row{
+            spacing: 10
+            anchors.horizontalCenter: parent.horizontalCenter
+            Button {
+                height: 45
+                text: qsTr("Cancel")
+//                bgSourceUp: "image://theme/btn_grey_up"
+//                bgSourceDn: "image://theme/btn_grey_dn"
+                onClicked: {
+                    verifyCancel.show();
+                }
             }
+            Button {
+                height: 45
+                text: qsTr("Next")
+//                bgSourceUp: "image://theme/btn_blue_up"
+//                bgSourceDn: "image://theme/btn_blue_dn"
+                onClicked: {
+                    emailAccount.save();
+                    emailAccount.test();
+                    spinner.show();
+                }
 
-            Component.onCompleted: {
-                show();
+                Connections {
+                    target: emailAccount
+                    onTestSucceeded: {
+                        spinner.hide();
+                        settingsPage.state = "ConfirmScreen";
+                    }
+                    onTestFailed: {
+                        spinner.hide();
+                        errorDialog.show();
+                        emailAccount.remove();
+                    }
+                }
+            }
+        }
+        Rectangle {
+            z: 1
+            color: "white"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 77
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {  settingsPage.state = "ManualScreen";
+                              loader.item.message = qsTr("Please fill in account details:");
+                            }
+            }
+            Text {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.margins: 10
+                font.pixelSize: theme.fontPixelSizeLarge
+                elide: Text.ElideRight
+                color: theme.fontColorNormal
+                text: qsTr("Edit email settings manually")
+            }
+            Image {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: 10
+                source: "image://theme/arrow-right"
             }
         }
     }
