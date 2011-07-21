@@ -293,133 +293,35 @@ Item {
         border.width: 1
         border.color: "black"
         color: "white"
-        Flickable {
-            id: flick
-            anchors.left: parent.left
-            anchors.top: parent.top
+
+
+        HtmlView {
+            id: htmlViewer
+            editable: false
+            html: (window.mailHtmlBody == "") ? window.mailBody : window.mailHtmlBody;
+            anchors.fill: parent
             anchors.topMargin: 2
-            width: parent.width
-            height: parent.height
-
-            property variant centerPoint
-
-            contentWidth: {
-                if (window.mailHtmlBody == "") 
-                    return edit.paintedWidth;
-                else
-                    return htmlViewer.width;
-            }
-            contentHeight:  {
-                if (window.mailHtmlBody == "") 
-                    return edit.paintedHeight;
-                else
-                    return htmlViewer.height;
-            }
+            contentsScale: 1
             clip: true
-         
-            function ensureVisible(r)
-            {
-                if (contentX >= r.x)
-                    contentX = r.x;
-                else if (contentX+width <= r.x+r.width)
-                    contentX = r.x+r.width-width;
-                if (contentY >= r.y)
-                    contentY = r.y;
-                else if (contentY+height <= r.y+r.height)
-                    contentY = r.y+r.height-height;
+
+            font.pixelSize: theme.fontPixelSizeLarge
+
+            onLinkClicked: {
+                emailAgent.openBrowser(url);
             }
 
-            GestureArea {
-                id: webGestureArea
-                anchors.fill: parent
-
-                Pinch {
-                    id: webpinch
-                    property real startScale: 1.0;
-                    property real minScale: 0.5;
-                    property real maxScale: 5.0;
-
-                    onStarted: {
-
-                        flick.interactive = false;
-                        flick.centerPoint = window.mapToItem(flick, gesture.centerPoint.x, gesture.centerPoint.y);
-                        startScale = htmlViewer.contentsScale;
-                        htmlViewer.startZooming();
-                    }
-
-                    onUpdated: {
-                        var cw = flick.contentWidth;
-                        var ch = flick.contentHeight;
-
-                        if (window.mailHtmlBody == "") {
-                            var newPixelSize = edit.font.pixelSize * gesture.scaleFactor;
-                            edit.font.pixelSize = Math.max(theme.fontPixelSizeLarge, Math.min(newPixelSize, theme.fontPixelSizeLargest3));
-                        } else {
-                            htmlViewer.contentsScale = Math.max(minScale, Math.min(startScale * gesture.totalScaleFactor, maxScale));
-                        }
-
-                        flick.contentX = (flick.centerPoint.x + flick.contentX) / cw * flick.contentWidth - flick.centerPoint.x;
-                        flick.contentY = (flick.centerPoint.y + flick.contentY) / ch * flick.contentHeight - flick.centerPoint.y;
-
-                    }
-
-
-                    onFinished: {
-                        htmlViewer.stopZooming();
-                        flick.interactive = true;
-                    }
-                }
+            onLoadStarted: {
+                progressBarText = downloadingContentLabel;
+                progressBarVisible = true;
             }
 
-            HtmlField {
-                id: htmlViewer
-                editable: false
-                html: window.mailHtmlBody
-                transformOrigin: Item.TopLeft
-                anchors.left: parent.left
-                anchors.topMargin: 2
-                contentsScale: 1
-                focus: true
-                clip: true
-                font.pixelSize: theme.fontPixelSizeLarge
-                visible: (window.mailHtmlBody != "")
-                onLinkClicked: {
-                    emailAgent.openBrowser(url);
-                }
-
-                onLoadStarted: {
-                    progressBarText = downloadingContentLabel;
-                    progressBarVisible = true;
-                }
-
-                onLoadFinished: {
-                    progressBarVisible = false;
-                }
-
-                onLoadProgress: {
-                    progressBarPercentage=progress;
-                }
-
+            onLoadFinished: {
+                progressBarVisible = false;
             }
 
-            TextEdit {
-                id: edit
-                anchors.left: parent.left
-                anchors.leftMargin: 5
-                width: flick.width
-                height: flick.height
-                focus: true
-                wrapMode: TextEdit.Wrap
-                //textFormat: TextEdit.RichText
-                font.pixelSize: theme.fontPixelSizeLarge
-                readOnly: true
-                onCursorRectangleChanged: flick.ensureVisible(cursorRectangle)
-                text: window.mailBody
-                visible:  (window.mailHtmlBody == "")
+            onLoadProgress: {
+                progressBarPercentage=progress;
             }
-
         }
     }
-
-
 }

@@ -23,13 +23,22 @@ class HtmlField : public QDeclarativeItem {
     Q_PROPERTY(bool delegateLinks READ delegateLinks WRITE setDelegateLinks NOTIFY delegateLinksChanged);
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
 
-
     Q_PROPERTY(int contentsTimeoutMs READ contentsTimeoutMs WRITE setContentsTimeoutMs NOTIFY contentsTimeoutMsChanged);
+
+    Q_PROPERTY(int preferredWidth READ preferredWidth WRITE setPreferredWidth NOTIFY preferredWidthChanged)
+    Q_PROPERTY(int preferredHeight READ preferredHeight WRITE setPreferredHeight NOTIFY preferredHeightChanged)
 
 public:
     Q_INVOKABLE void startZooming();
     Q_INVOKABLE void stopZooming();
     Q_INVOKABLE bool setFocusElement(const QString& elementName);
+
+    Q_INVOKABLE void forceFocus();
+    Q_INVOKABLE void openSoftwareInputPanel();
+    Q_INVOKABLE void closeSoftwareInputPanel();
+    void focusInEvent(QFocusEvent *event);
+    void focusOutEvent(QFocusEvent *event);
+
 
     HtmlField(QDeclarativeItem *parent = 0);
     ~HtmlField();
@@ -50,7 +59,12 @@ public:
     int contentsTimeoutMs() const;
     void setContentsTimeoutMs(int msec);
 
+
 public:
+    int preferredWidth() const;
+    void setPreferredWidth(int);
+    int preferredHeight() const;
+    void setPreferredHeight(int);
 
     QSize contentsSize() const;
     void setContentsScale(qreal scale);
@@ -68,6 +82,8 @@ signals:
     void htmlChanged();
     void contentsSizeChanged(const QSize&);
     void contentsScaleChanged();
+    void zoomFactorChanged();
+
     void fontChanged();
     void delegateLinksChanged();
     void contentsTimeoutMsChanged();
@@ -77,6 +93,9 @@ signals:
     void loadStarted();
     void statusBarMessage(const QString & message);
 
+    void preferredWidthChanged();
+    void preferredHeightChanged();
+    void preferredSizeChanged();
 
 private slots:
     void webViewUpdateImplicitSize();
@@ -94,6 +113,8 @@ private slots:
 private:
     HFWebView *m_gwv;
     QTimer m_loadTimer;
+    int m_preferredWidth;
+    int m_preferredHeight;
 
     void init();
     virtual void componentComplete();

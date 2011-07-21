@@ -2,6 +2,8 @@
 #include <QDeclarativeEngine>
 #include <QWebFrame>
 #include <QWebElement>
+#include <QApplication>
+#include <QGraphicsView>
 
 HtmlField::HtmlField(QDeclarativeItem *parent) : QDeclarativeItem(parent)
 {
@@ -15,6 +17,9 @@ HtmlField::~HtmlField()
 
 void HtmlField::init()
 {
+    m_preferredWidth = 0;
+    m_preferredHeight = 0;
+
     setAcceptedMouseButtons(Qt::LeftButton);
     setFlag(QGraphicsItem::ItemHasNoContents, true);
     setClip(true);
@@ -31,8 +36,6 @@ void HtmlField::init()
     setDelegateLinks(true);
     m_gwv->setAcceptTouchEvents(false);
     m_gwv->setAcceptedMouseButtons(Qt::LeftButton);
-
-    setFocusProxy(m_gwv);
 
     page->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
     page->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
@@ -53,7 +56,12 @@ void HtmlField::init()
     connect(m_gwv,  SIGNAL(loadProgress(int)),       this, SLOT(privateOnLoadProgress(int)));
 
     connect(m_gwv,  SIGNAL(statusBarMessage(QString)),this, SIGNAL(statusBarMessage(QString)));
+
+
+    connect(this,   SIGNAL(preferredHeightChanged()),  SIGNAL(preferredSizeChanged()));
+    connect(this,   SIGNAL(preferredWidthChanged()),   SIGNAL(preferredSizeChanged()));
 }
+
 
 bool HtmlField::setFocusElement(const QString &elementName)
 {
@@ -96,6 +104,43 @@ void HtmlField::setDelegateLinks(bool f)
     }
 }
 
+/*!
+    \qmlproperty int WebView::preferredWidth
+    This property holds the ideal width for displaying the current URL.
+*/
+int HtmlField::preferredWidth() const
+{
+    return m_preferredWidth;
+}
+
+void HtmlField::setPreferredWidth(int width)
+{
+    if (m_preferredWidth == width)
+        return;
+    m_preferredWidth = width;
+    updateContentsSize();
+    emit preferredWidthChanged();
+}
+
+/*!
+    \qmlproperty int WebView::preferredHeight
+    This property holds the ideal height for displaying the current URL.
+    This only affects the area zoomed by heuristicZoom().
+*/
+int HtmlField::preferredHeight() const
+{
+    return m_preferredHeight;
+}
+
+void HtmlField::setPreferredHeight(int height)
+{
+    if (m_preferredHeight == height)
+        return;
+    m_preferredHeight = height;
+    updateContentsSize();
+    emit preferredHeightChanged();
+}
+
 void HtmlField::webViewUpdateImplicitSize()
 {
     QSizeF size = m_gwv->geometry().size() * contentsScale();
@@ -106,7 +151,9 @@ void HtmlField::webViewUpdateImplicitSize()
 void HtmlField::updateContentsSize()
 {
     if (m_gwv->page()) {
-        m_gwv->page()->setPreferredContentsSize(m_gwv->preferredSize().toSize());
+        m_gwv->page()->setPreferredContentsSize(QSize(
+            m_preferredWidth>0 ? m_preferredWidth : width(),
+            m_preferredHeight>0 ? m_preferredHeight : height()));
     }
 }
 
@@ -115,12 +162,15 @@ void HtmlField::geometryChanged(const QRectF& newGeometry, const QRectF& oldGeom
     QWebPage* webPage = m_gwv->page();
     if (webPage && newGeometry.size() != oldGeometry.size()) {
         QSize contentSize = webPage->preferredContentsSize();
-        if (widthValid())
+        if (widthValid()) {
             contentSize.setWidth(width());
-        if (heightValid())
+        }
+        if (heightValid()) {
             contentSize.setHeight(height());
-        if (contentSize != webPage->preferredContentsSize())
+        }
+        if (contentSize != webPage->preferredContentsSize()) {
             webPage->setPreferredContentsSize(contentSize);
+        }
     }
     QDeclarativeItem::geometryChanged(newGeometry, oldGeometry);
 }
@@ -187,7 +237,6 @@ void HtmlField::setContentsScale(qreal scale)
     }
 }
 
-
 QFont HtmlField::font() const
 {
     return m_gwv->font();
@@ -200,7 +249,6 @@ void HtmlField::setFont(const QFont &f)
         emit fontChanged();
     }
 }
-
 
 void HtmlField::privateOnLoadStarted()
 {
@@ -236,6 +284,49 @@ void HtmlField::setContentsTimeoutMs(int msec)
     emit contentsTimeoutMsChanged();
 }
 
+void HtmlField::openSoftwareInputPanel()
+{
+    QEvent event(QEvent::RequestSoftwareInputPanel);
+    if (qApp) {
+        if (QGraphicsView * view = qobject_cast<QGraphicsView*>(qApp->focusWidget())) {
+            if (view->scene() && view->scene() == scene()) {
+                QApplication::sendEvent(view, &event);
+            }
+        }
+    }
+}
+
+void HtmlField::closeSoftwareInputPanel()
+{
+    QEvent event(QEvent::CloseSoftwareInputPanel);
+    if (qApp) {
+        if (QGraphicsView * view = qobject_cast<QGraphicsView*>(qApp->focusWidget())) {
+            if (view->scene() && view->scene() == scene()) {
+                QApplication::sendEvent(view, &event);
+            }
+        }
+    }
+}
+
+void HtmlField::focusInEvent(QFocusEvent *event)
+{
+    QDeclarativeItem::focusInEvent(event);
+}
+
+void HtmlField::focusOutEvent(QFocusEvent *event)
+{
+    closeSoftwareInputPanel();
+    QDeclarativeItem::focusOutEvent(event);
+}
+
+void HtmlField::forceFocus()
+{
+    // Magic Alert: Not sure why but this seems the only way to reliably force focus and VKB
+    forceActiveFocus();         // 1
+    m_gwv->setFocus();          // 2
+    openSoftwareInputPanel();   // 3
+}
+
 
 HFWebView::HFWebView(QGraphicsItem *parent)
     : QGraphicsWebView(parent)
@@ -254,4 +345,5 @@ void HFWebView::keyPressEvent(QKeyEvent *event)
         QGraphicsWebView::keyPressEvent(event);
     }
 }
+
 
