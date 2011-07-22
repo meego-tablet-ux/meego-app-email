@@ -23,7 +23,7 @@ FocusScope {
     property alias delegateLinks:       edit.delegateLinks
     property alias font:                edit.font
     property alias contentsTimeoutMs:   edit.contentsTimeoutMs
-    property alias editable:            edit.editable
+    property alias readOnly:            edit.readOnly
 
     signal linkClicked( string url )
     signal loadStarted()
@@ -54,7 +54,15 @@ FocusScope {
     width: 200
 
     function forceFocus() {
-        edit.forceFocus();
+        edit.forceFocus()
+    }
+
+    function paste() {
+        edit.paste()
+    }
+
+    function showContextMenu() {
+        edit.contextMenu()
     }
 
     onHeightChanged: {
@@ -81,10 +89,11 @@ FocusScope {
         id: container
 
         anchors.fill: parent
-        source: (edit.activeFocus && !edit.readOnly) ? "image://themedimage/widgets/common/text-area/text-area-background-active" : "image://themedimage/widgets/common/text-area/text-area-background"
         clip: true
+//        source: "image://themedimage/widgets/common/text-area/text-area-background"
 
-        opacity: edit.readOnly ? 0.5 : 1.0
+        //        source: (edit.activeFocus && !edit.readOnly) ? "image://themedimage/widgets/common/text-area/text-area-background-active" : "image://themedimage/widgets/common/text-area/text-area-background"
+        //        opacity: edit.readOnly ? 0.5 : 1.0
 
         Theme { id: theme }
 
@@ -125,7 +134,9 @@ FocusScope {
             GestureArea {
                 id: webGestureArea
                 anchors.fill: parent
+                acceptUnhandledEvents:  true
 
+                // Pinch handles zooming.
                 Pinch {
                     id: webpinch
                     property real startScale: 1.0;
@@ -133,10 +144,12 @@ FocusScope {
                     property real maxScale: 5.0;
 
                     onStarted: {
+                        //                    console.log("\nPinch Started")
                         flick.interactive = false;
                         flick.centerPoint = window.mapToItem(flick, gesture.centerPoint.x, gesture.centerPoint.y);
                         startScale = edit.contentsScale;
                         edit.startZooming();
+                        //                    console.log("Pinch Start End...\n")
                     }
 
                     onUpdated: {
@@ -152,10 +165,20 @@ FocusScope {
                     onFinished: {
                         edit.stopZooming();
                         flick.interactive = true;
+
+                    }
+                }
+
+                TapAndHold {
+                    onFinished: {
+                        var p = gesture.position
+                        contextMenu.setPosition( mapToItem( topItem.topItem, p.x, p.y ).x, mapToItem( topItem.topItem, p.x, p.y ).y )
+                        contextMenu.updateAndShow()
+
+                        console.log("--- =========== End Tap And Hold =============\n\n")
                     }
                 }
             }
-
 
             HtmlField {
                 id: edit
@@ -177,11 +200,105 @@ FocusScope {
                     scope.htmlChanged()
                 }
 
+                onGeometryChanged: {
+                    if( window ) {
+                        if( edit.activeFocus && window.currentVkbHeight > 0 ) {
+                            window.updateVkbShift( mapToItem( topItem.topItem, 0, edit.cursorRectangle.y + edit.cursorRectangle.height * 3 ).y )
+                        }
+                    }
+                }
+
                 onLinkClicked: { scope.linkClicked( url ) }
                 onLoadStarted: { scope.loadStarted() }
                 onLoadFinished: { scope.loadFinished( ok ) }
                 onLoadProgress: { scope.loadProgress( progress ) }
+
+                onFocusChanged: {
+                    console.log( "||| FOCUS HtmlField.onFocusChanged = " + focus + " activeFocus = " + activeFocus )
+                }
+
+                onActiveFocusChanged: {
+                    console.log( "||| FOCUS HtmlField.onACTIVEFocusChanged = " + focus + " activeFocus = " + activeFocus )
+                }
+        }
+
+        TopItem{ id: topItem }
+
+
+        ContextMenu {
+            id: contextMenu
+
+            forceFingerMode: -1
+            shouldFocus: false
+
+            // NOTE: These are not translated on purpose.
+            property variant actionIds: [ "Copy" , "Cut", "Past" ]
+
+            function updateAndShow()
+            {
+
+                var tmpIds = new Array()
+                var tmpModel = new Array()
+
+                actionIds = []
+                if ( edit.copyAvailable() ) {
+                    tmpModel.push(qsTr("Copy"))
+                    tmpIds.push("Copy")
+                }
+
+                if ( edit.cutAvailable() ) {
+                    tmpModel.push(qsTr("Cut"))
+                    tmpIds.push("Cut")
+                }
+
+                if ( edit.pasteAvailable() ) {
+                    tmpModel.push(qsTr("Paste"))
+                    tmpIds.push("Paste")
+                }
+
+                clipboardMenu.model = tmpModel
+                actionIds = tmpIds
+
+                show()
+            }
+
+            content: ActionMenu{
+                id: clipboardMenu
+
+                maxWidth: 200
+                minWidth: 100
+
+                model: [ qsTr("Copy"), qsTr("Cut"), qsTr("Paste") ]
+
+                onTriggered: {
+                    // Using actionIds as key instead of model so I
+                    // don't have to worry about translation.
+                    var triggeredId = contextMenu.actionIds[index]
+
+                    if (triggeredId == "Copy") {
+                        edit.copy()
+                    } else if (triggeredId == "Cut") {
+                        edit.cut()
+                    } else if (triggeredId == "Paste") {
+                        edit.paste()
+                    }
+
+                    contextMenu.hide()
+                }
             }
         }
+
+        Connections {
+            target: mainWindow
+            onVkbHeight: {
+                if( window ) {
+                    if( edit.activeFocus && scope.height > 0 ) {
+                        window.adjustForVkb( mapToItem( topItem.topItem, 0, edit.cursorRectangle.y + edit.cursorRectangle.height * 3 ).y, width, height )
+                    }
+                }
+            }
+        }
+    }
+
     }
 }
