@@ -197,7 +197,7 @@ void parseMultipartAttachmentName (QStringList &attachments, CamelMimePart *mpar
 			parseMultipartAttachmentName (attachments, part, top);
 		}
 	} else if (camel_mime_part_get_filename(mpart) != NULL) {
-		attachments << QString (camel_mime_part_get_filename(mpart));
+		attachments << QString::fromUtf8 (camel_mime_part_get_filename(mpart));
 		qDebug() << "Attachment : " << QString (camel_mime_part_get_filename(mpart));
 	} else if (mpart != top) {
 		/* Check content type see if the attachment is a email */
