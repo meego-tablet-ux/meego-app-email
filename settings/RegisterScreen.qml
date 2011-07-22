@@ -50,6 +50,8 @@ Item {
                 TextControl {
                     id: addressField
                     label: qsTr("Email address:")
+                    emailField:true
+                    emailType:emailAccount.preset
                     Component.onCompleted: setText(emailAccount.address)
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhEmailCharactersOnly
                     onTextChanged: emailAccount.address = text
@@ -121,6 +123,12 @@ Item {
                             {
                                 emailAccount.preset = 4; // AOL
                                 emailAccount.description = qsTr("AOL");
+                            }
+                            //Hotmail preset
+                            else if(emailAddress.search(/hotmail.com/i) > 0)
+                            {
+                                emailAccount.preset = 5; // Microsoft Live
+                                emailAccount.description = qsTr("Microsoft Live Hotmail");
                             }
 
                             emailAccount.applyPreset();

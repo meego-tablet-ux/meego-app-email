@@ -163,7 +163,6 @@ Item {
 
             onAccepted: {
                 mailFolderListModel.createFolder(folderNameEntry.text,
-                                        window.currentMailAccountId,
                                         window.currentFolderId);
             }
         }

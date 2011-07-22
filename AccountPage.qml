@@ -72,10 +72,11 @@ Item {
                 {
                     "image://themedimage/icons/services/gmail"
                 }
+                /* Disabled until we procure license from hotmail
                 else if (mailServer == "msn" || mailServer == "hotmail")
                 {
                     "image://themedimage/icons/services/msmail"
-                }
+                }*/
                 else if (mailServer == "facebook")
                 {
                     "image://themedimage/icons/services/facebook"

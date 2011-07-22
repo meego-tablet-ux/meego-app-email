@@ -407,14 +407,8 @@ Item {
                     anchors.right: attachmentRight.left
                     anchors.top: parent.top
                     anchors.topMargin: 4
-                    width: numberOfAttachmentLabel.width + attachmentIcon.width + 1
+                    width: attachmentIcon.width + 1
                     source: "image://theme/email/bg_attachment_mid"
-                    Text {
-                        id: numberOfAttachmentLabel
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: numberOfAttachments + " " // i18n ok
-                        font.pixelSize: theme.fontPixelSizeNormal
-                    }
                     opacity: numberOfAttachments ? 1 : 0
                 }
                 Image {
@@ -429,10 +423,9 @@ Item {
                 Image {
                     id: attachmentIcon
                     anchors.top: parent.top
-                    anchors.topMargin: 4
-                    height: attachmentMiddle.height
+                    anchors.topMargin: 5
+                    height: attachmentMiddle.height - 4
                     anchors.left: attachmentLeft.right
-                    anchors.leftMargin: numberOfAttachmentLabel.width + 1
                     source: "image://theme/email/icn_paperclip"
                     z: 10000
                     opacity: numberOfAttachments ? 1 : 0
