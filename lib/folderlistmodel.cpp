@@ -1075,6 +1075,11 @@ void FolderListModel::createFolder(const QString &name, QVariant parentFolderId)
 	//See what to do with parentFolderId, do we have to create under Parent?
 	reply = m_store_proxy->createFolder ("", name);
 	reply.waitForFinished();
+
+	/* May be a UI error dialog to say that creation failed? */
+	if (reply.isError())
+		return;
+
 	newlist = reply.value ();
 	newlist.removeLast();
 
