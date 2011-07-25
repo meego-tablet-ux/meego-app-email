@@ -4,6 +4,9 @@
 #include <QWebElement>
 #include <QApplication>
 #include <QGraphicsView>
+#include <QGraphicsSceneContextMenuEvent>
+
+
 
 HtmlField::HtmlField(QDeclarativeItem *parent) : QDeclarativeItem(parent)
 {
@@ -24,7 +27,6 @@ void HtmlField::init()
     setFlag(QGraphicsItem::ItemHasNoContents, true);
     setClip(true);
 
-
     m_gwv = new HFWebView(this);
     m_gwv->setResizesToContents(true);
 
@@ -35,11 +37,14 @@ void HtmlField::init()
 
     setDelegateLinks(true);
     m_gwv->setAcceptTouchEvents(false);
+
     m_gwv->setAcceptedMouseButtons(Qt::LeftButton);
 
     page->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
     page->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
     page->settings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, true);
+
+    setReadOnly(true);
 
     connect(page->mainFrame(), SIGNAL(contentsSizeChanged(QSize)), this, SIGNAL(contentsSizeChanged(QSize)));
 
@@ -62,6 +67,12 @@ void HtmlField::init()
     connect(this,   SIGNAL(preferredWidthChanged()),   SIGNAL(preferredSizeChanged()));
 }
 
+void HtmlField::componentComplete()
+{
+    QDeclarativeItem::componentComplete();
+    m_gwv->page()->setNetworkAccessManager(qmlEngine(this)->networkAccessManager());
+
+}
 
 bool HtmlField::setFocusElement(const QString &elementName)
 {
@@ -78,17 +89,11 @@ void HtmlField::startZooming()
     m_gwv->setAcceptedMouseButtons(Qt::NoButton);
     setTiledBackingStoreFrozen(true);
 }
+
 void HtmlField::stopZooming()
 {
     setTiledBackingStoreFrozen(false);
     m_gwv->setAcceptedMouseButtons(Qt::LeftButton);
-}
-
-void HtmlField::componentComplete()
-{
-    QDeclarativeItem::componentComplete();
-    m_gwv->page()->setNetworkAccessManager(qmlEngine(this)->networkAccessManager());
-
 }
 
 bool HtmlField::delegateLinks() const
@@ -104,10 +109,6 @@ void HtmlField::setDelegateLinks(bool f)
     }
 }
 
-/*!
-    \qmlproperty int WebView::preferredWidth
-    This property holds the ideal width for displaying the current URL.
-*/
 int HtmlField::preferredWidth() const
 {
     return m_preferredWidth;
@@ -122,11 +123,6 @@ void HtmlField::setPreferredWidth(int width)
     emit preferredWidthChanged();
 }
 
-/*!
-    \qmlproperty int WebView::preferredHeight
-    This property holds the ideal height for displaying the current URL.
-    This only affects the area zoomed by heuristicZoom().
-*/
 int HtmlField::preferredHeight() const
 {
     return m_preferredHeight;
@@ -175,16 +171,16 @@ void HtmlField::geometryChanged(const QRectF& newGeometry, const QRectF& oldGeom
     QDeclarativeItem::geometryChanged(newGeometry, oldGeometry);
 }
 
-bool HtmlField::editable() const
+bool HtmlField::readOnly() const
 {
     return (m_gwv->page()) ? m_gwv->page()->isContentEditable() : false;
 }
 
-void HtmlField::setEditable(bool enabled)
+void HtmlField::setReadOnly(bool readonly)
 {
-    if (m_gwv->page() && m_gwv->page()->isContentEditable() != enabled) {
-        m_gwv->page()->setContentEditable(enabled);
-        emit editableChanged();
+    if (m_gwv->page() && !m_gwv->page()->isContentEditable() != readonly) {
+        m_gwv->page()->setContentEditable(!readonly);
+        emit readOnlyChanged();
     }
 }
 
@@ -308,17 +304,6 @@ void HtmlField::closeSoftwareInputPanel()
     }
 }
 
-void HtmlField::focusInEvent(QFocusEvent *event)
-{
-    QDeclarativeItem::focusInEvent(event);
-}
-
-void HtmlField::focusOutEvent(QFocusEvent *event)
-{
-    closeSoftwareInputPanel();
-    QDeclarativeItem::focusOutEvent(event);
-}
-
 void HtmlField::forceFocus()
 {
     // Magic Alert: Not sure why but this seems the only way to reliably force focus and VKB
@@ -327,6 +312,79 @@ void HtmlField::forceFocus()
     openSoftwareInputPanel();   // 3
 }
 
+void HtmlField::focusInEvent(QFocusEvent *event)
+{
+//    qDebug() << " ----- " << Q_FUNC_INFO;
+    QDeclarativeItem::focusInEvent(event);
+}
+
+void HtmlField::focusOutEvent(QFocusEvent *event)
+{
+//    qDebug() << " ----- " << Q_FUNC_INFO;
+    closeSoftwareInputPanel();
+    QDeclarativeItem::focusOutEvent(event);
+}
+
+void HtmlField::paste()
+{
+    m_gwv->page()->triggerAction(QWebPage::Paste);
+}
+
+void HtmlField::cut()
+{
+    m_gwv->page()->triggerAction(QWebPage::Cut);
+}
+
+void HtmlField::copy()
+{
+    m_gwv->page()->triggerAction(QWebPage::Copy);
+}
+
+void HtmlField::selectNextWord()
+{
+    m_gwv->page()->triggerAction(QWebPage::SelectNextWord);
+}
+
+void HtmlField::selectPrevWord()
+{
+    m_gwv->page()->triggerAction(QWebPage::SelectNextWord);
+}
+
+void HtmlField::selectAll()
+{
+    m_gwv->page()->triggerAction(QWebPage::SelectAll);
+}
+
+bool HtmlField::copyAvailable() const
+{
+    return m_gwv->pageAction(QWebPage::Copy)->isEnabled();
+}
+
+bool HtmlField::cutAvailable() const
+{
+    return m_gwv->pageAction(QWebPage::Cut)->isEnabled();
+}
+
+bool HtmlField::pasteAvailable() const
+{
+    qDebug() << "\t" << Q_FUNC_INFO << m_gwv->pageAction(QWebPage::Paste)->isEnabled();
+    return m_gwv->pageAction(QWebPage::Paste)->isEnabled();
+}
+
+QString HtmlField::selectedText() const
+{
+    return m_gwv->page()->selectedText();
+}
+
+void HtmlField::selectWord(const QPoint &pos)
+{
+    m_gwv->selectWord(pos);
+}
+
+bool HtmlField::isSelected(const QPoint &pos) const
+{
+    return m_gwv->hitTestContent(pos).isContentSelected();
+}
 
 HFWebView::HFWebView(QGraphicsItem *parent)
     : QGraphicsWebView(parent)
@@ -346,4 +404,18 @@ void HFWebView::keyPressEvent(QKeyEvent *event)
     }
 }
 
+QWebHitTestResult HFWebView::hitTestContent(const QPoint &pos) const
+{
+    return page()->mainFrame()->hitTestContent(pos);
+}
 
+void HFWebView::selectWord(const QPointF &pos)
+{
+    // We just need to send the internals a DoubleClick event. This functionality is not exposed otherwise.
+    QGraphicsSceneMouseEvent *e = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMouseDoubleClick);
+    e->setButton(Qt::LeftButton);
+    e->setPos(pos);
+    e->setScenePos(mapToScene(pos));
+    e->setScreenPos(mapToScene(pos).toPoint());
+    sceneEvent(e);
+}

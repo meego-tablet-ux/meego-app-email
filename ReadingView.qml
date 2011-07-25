@@ -297,7 +297,8 @@ Item {
 
         HtmlView {
             id: htmlViewer
-            editable: false
+//            editable: false
+            readOnly: true
             html: (window.mailHtmlBody == "") ? window.mailBody : window.mailHtmlBody;
             anchors.fill: parent
             anchors.topMargin: 2
