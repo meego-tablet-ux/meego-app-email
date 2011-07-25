@@ -384,11 +384,23 @@ Item {
                 width: parent.width
                 height: theme.listBackgroundPixelHeightTwo / 2
 
-                Text {
-                    id: subjectText
-                    anchors.left: parent.left
+                Image {
+                    id: priorityIcon
+
+                    anchors.left:  parent.left
                     anchors.top: parent.top
                     anchors.topMargin: 4
+
+                    // Private
+                    property bool __high_priority: priority == EmailMessageListModel.HighPriority
+
+                    source: __high_priority ? "image://themedimage/widgets/apps/email/email-high-priority" : ""
+                    visible: __high_priority
+                }
+                Text {
+                    id: subjectText
+                    anchors.left: priorityIcon.left
+                    anchors.verticalCenter: priorityIcon.verticalCenter
                     text: subject
                     width: (parent.width * 2) / 3
                     font.pixelSize: theme.fontPixelSizeNormal

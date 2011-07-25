@@ -27,6 +27,7 @@
 class EmailMessageListModel : public QAbstractItemModel
 {
     Q_OBJECT
+    Q_ENUMS(Priority)
 
 public:
     enum SortBy
@@ -50,6 +51,7 @@ public:
         MessagePresenceIconRole,
         MessageBodyTextRole,
         MessageIdRole,
+        MessagePriorityRole,
         MessageAttachmentCountRole, // returns number of attachment
         MessageAttachmentsRole,                                // returns a list of attachments
         MessageRecipientsRole,                                 // returns a list of recipients (email address)
@@ -67,6 +69,13 @@ public:
 	MessageMimeId,					       // returns the MIME message id for threading purposes
 	MessageReferences				       // returns the MIME references of an email
     };
+
+    /**
+     * @todo Refactor this priority enum and the one in emailmessage.h.
+     *
+     * @note The camel API currently doesn't support low message priority.
+     */
+    enum Priority { /* LowPriority, */ NormalPriority, HighPriority };
 
 
     EmailMessageListModel (QObject *parent = 0);
