@@ -220,7 +220,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessagePresenceIconRole] = "presenceIcon";
     roles[MessageBodyTextRole] = "body";
     roles[MessageIdRole] = "messageId";
-    roles[MessagePriorityRole] = "priority";
+    roles[MessagePriorityIconRole] = "priorityIcon";
     roles[MessageAttachmentCountRole] = "numberOfAttachments";
     roles[MessageAttachmentsRole] = "listOfAttachments";
     roles[MessageRecipientsRole] = "recipients";
@@ -297,13 +297,23 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     {
 	return QVariant(minfo.subject);
     }    
-    else if (role == MessagePriorityRole)
+    else if (role == MessagePriorityIconRole)
     {
         // The camel API currently has a very limited concept of
         // message importance.
-        bool const high_priority = minfo.flags & CAMEL_MESSAGE_FLAGGED;
 
-	return high_priority ? HighPriority : NormalPriority;
+        static char const highIcon[] =
+            "image://themedimage/widgets/apps/email/email-high-priority";
+        // static char const lowIcon[] =
+        //     "image://themedimage/widgets/apps/email/email-low-priority";
+
+	  qDebug() << "****** FLAGGED **********: " << (minfo.flags & CAMEL_MESSAGE_FLAGGED);
+
+	if (minfo.flags & CAMEL_MESSAGE_FLAGGED) {
+	    return QString(highIcon);
+	 }
+
+	return QString();
     }
     else if (role == MessageAttachmentCountRole)
     {
