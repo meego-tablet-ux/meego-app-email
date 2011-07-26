@@ -289,7 +289,7 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
     if (role == MessageTimeStampTextRole)
     {
-        QDateTime timeStamp = QDateTime::fromTime_t ((uint) minfo.date_received);	    
+        QDateTime timeStamp = QDateTime::fromTime_t ((uint) minfo.date_sent);	    
         return (timeStamp.toString("hh:mm MM/dd/yyyy"));
     }
     else if (role == MessageSubjectTextRole) 
@@ -473,7 +473,7 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
     }
     else if (role == MessageTimeStampRole)
     {
-        QDateTime timeStamp = QDateTime::fromTime_t ((uint) minfo.date_received);
+        QDateTime timeStamp = QDateTime::fromTime_t ((uint) minfo.date_sent);
         return (timeStamp.toLocalTime());	    
     }
     else if (role == MessageSelectModeRole)
@@ -1136,7 +1136,7 @@ bool sortInfoFunction (const CamelMessageInfoVariant &info1, const CamelMessageI
 	} else if (id == EmailMessageListModel::SortSubject) {
                 ret = g_locale.lessThan(info1.subject, info2.subject);
         } else if (id == EmailMessageListModel::SortDate) {
-		ret = info1.date_received < info2.date_received;
+		ret = info1.date_sent < info2.date_sent;
         } else {
 		return FALSE;
 	}
