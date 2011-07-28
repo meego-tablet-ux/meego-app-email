@@ -384,24 +384,28 @@ Item {
                 width: parent.width
                 height: theme.listBackgroundPixelHeightTwo / 2
 
-                Image {
-                    id: priority
-
+                Row {
                     anchors.left:  parent.left
                     anchors.top: parent.top
                     anchors.topMargin: 4
-
-                    source: priorityIcon
-                    visible: priorityIcon != ""
-                }
-                Text {
-                    id: subjectText
-                    anchors.left: priority.left
-                    anchors.verticalCenter: priority.verticalCenter
-                    text: subject
                     width: (parent.width * 2) / 3
-                    font.pixelSize: theme.fontPixelSizeNormal
-                    elide: Text.ElideRight
+                    spacing: 5
+
+                    Image {
+                        id: priority
+
+                        source: priorityIcon
+                        visible: priorityIcon != ""
+                    }
+
+                    Text {
+                        id: subjectText
+
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: subject
+                        font.pixelSize: theme.fontPixelSizeNormal
+                        elide: Text.ElideRight
+                    }
                 }
                 Image {
                     id: attachmentLeft
