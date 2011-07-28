@@ -303,15 +303,15 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
         // message importance.
 
         static char const highIcon[] =
-            "image://themedimage/widgets/apps/email/email-high-priority";
+            "image://themedimage/widgets/apps/email/email-priority-high";
         // static char const lowIcon[] =
-        //     "image://themedimage/widgets/apps/email/email-low-priority";
+        //     "image://themedimage/widgets/apps/email/email-priority-low";
 
-	  qDebug() << "****** FLAGGED **********: " << (minfo.flags & CAMEL_MESSAGE_FLAGGED);
+	qDebug() << "****** FLAGGED **********: " << (minfo.flags & CAMEL_MESSAGE_FLAGGED);
 
 	if (minfo.flags & CAMEL_MESSAGE_FLAGGED) {
 	    return QString(highIcon);
-	 }
+	}
 
 	return QString();
     }
