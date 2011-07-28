@@ -371,8 +371,7 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
    //  QMailAccount account(accountId);
     if (role == DisplayName)
     {
-        return QVariant(e_account_get_string(account, E_ACCOUNT_ID_NAME));
-	//QMailAccountListModel::data(index, QMailAccountListModel::NameTextRole);
+        return QVariant(QString::fromUtf8(e_account_get_string(account, E_ACCOUNT_ID_NAME)));
     }
 
     if (role == EmailAddress)
