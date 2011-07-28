@@ -283,6 +283,7 @@ Window {
     Component.onCompleted: {
         switchBook (mailAccount);
         window.fastPageSwitch = true;
+        parseCommandLine (mainWindow.call)
     }
 
     function setMessageDetails (composer, messageID, replyToAll) {
@@ -335,7 +336,8 @@ Window {
             clear();
              for (idx = 0; idx < window.mailAttachments.length; idx ++)
              {
-                 append({"uri": window.mailAttachments[idx]});
+                 if (window.mailAttachments[idx] != "")
+                     append({"uri": window.mailAttachments[idx]});
              }
         }
     }
@@ -416,114 +418,130 @@ Window {
     Connections {
         target: mainWindow
         onCall: {
-            var cmd = parameters[0];
-            var cdata = parameters[1];
+            parseCommandLine (mainWindow.call)
+        }
+    }
 
-            callFromRemote = true;
-            if (cmd == "openComposer") {
-                // This is the command for opening up the composer window with attachments.
-                // cdata only contains a list of attachment files names 
-                var datalist = cdata.split(',');
-                window.mailAttachments = datalist;
-                mailAttachmentModel.init();
-                if (window.composerIsCurrentPage)
-                    window.popPage();
-                window.addPage(composer);
-            }
-            else if (cmd == "compose")
-            {
-                // This is the new command to open the composer with to, subject and message body.
-                // the cdata contains: recipients;;subject_text;;bodyFilePath
-                argv = cdata.split(";;");
-                var to = "";
-                var subject = "";
-                var bodyPath = "";
+    function parseCommandLine(parameters) {
+        var cmd = parameters[0];
+        var cdata = parameters[1];
+
+        callFromRemote = true;
+        if (cmd == "openComposer") {
+            // This is the command for opening up the composer window with attachments.
+            // cdata only contains a list of attachment files names 
+            messageListModel.setAccountKey (window.currentMailAccountId);
+            mailFolderListModel.setAccountKey (window.currentMailAccountId);
+            var datalist = cdata.split(',');
+            window.mailAttachments = datalist;
+            mailAttachmentModel.init();
+            if (window.composerIsCurrentPage)
+                window.popPage();
+            window.addPage(composer);
+        }
+        else if (cmd == "compose")
+        {
+            // This is the new command to open the composer with to, subject and message body.
+            // the cdata contains: recipients;;subject_text;;bodyFilePath
+            messageListModel.setAccountKey (window.currentMailAccountId);
+            mailFolderListModel.setAccountKey (window.currentMailAccountId);
+            argv = cdata.split(";;");
+            var to = "";
+            var subject = "";
+            var bodyPath = "";
                 
-                if (argv.length > 0)
-                    to = argv[0];
+            if (argv.length > 0)
+                to = argv[0];
 
-                if (argv.length > 1)
-                    subject = argv[1];
+            if (argv.length > 1)
+                subject = argv[1];
 
-                if (argv.length > 2)
-                    bodyPath = argv[2];
+            if (argv.length > 2)
+                bodyPath = argv[2];
 
+            if (window.composerIsCurrentPage)
+                window.popPage();
+            var newPage;
+            window.addPage(composer);
+            newPage = window.pageStack.currentPage;
+            if (to != "")
+            {
+                toModel.clear();
+                toModel.append({"name": "", "email": to});
+                newPage.composer.toModel = toModel;
+            }
+
+            if (subject != "")
+            {
+                newPage.composer.subject = subject;
+            }
+
+            if (bodyPath != "")
+            {
+                newPage.composer.quotedBody = emailAgent.getMessageBodyFromFile(bodyPath);
+            }
+        }
+        else
+        {
+            if (cmd == "reply" || cmd == "replyAll" || cmd == "forward" || cmd == "openReader")
+            {
+                var msgUuid = parameters[1];
+                var msgIdx;
+                var currentAccount = mailAccountListModel.getAccountByUuid (msgUuid);
+                var currentFolder = mailAccountListModel.getFolderByUuid (msgUuid);
+
+                mailFolderListModel.setAccountKey (currentAccount);
+                messageListModel.setAccountKey (currentAccount);
+                messageListModel.setFolderKey (currentFolder);
+
+                msgIdx = messageListModel.indexFromMessageId(msgUuid);
+                window.currentMessageIndex = msgIdx;
+            }
+            else
+            {
+                if (window.currentMailAccountId != 0)
+                {
+                    mailFolderListModel.setAccountKey (window.currentMailAccountId);
+                    messageListModel.setAccountKey (window.currentMailAccountId);
+                }
+            }
+
+            if (cmd == "reply")
+            {   
                 if (window.composerIsCurrentPage)
                     window.popPage();
                 var newPage;
                 window.addPage(composer);
                 newPage = window.pageStack.currentPage;
-                if (to != "")
-                {
-                    toModel.clear();
-                    toModel.append({"name": "", "email": to});
-                    newPage.composer.toModel = toModel;
-                }
-
-                if (subject != "")
-                {
-                    newPage.composer.subject = subject;
-                }
-
-                if (bodyPath != "")
-                {
-                    newPage.composer.quotedBody = emailAgent.getMessageBodyFromFile(bodyPath);
-                }
+                setMessageDetails (newPage.composer, window.currentMessageIndex, false);
             }
-            else
+            else if (cmd == "replyAll")
             {
-                if (cmd == "reply" || cmd == "replyAll" || cmd == "forward" || cmd == "openReader")
-                {
-                    var msgUuid = parameters[1];
-                    var msgIdx;
-                    var currentAccount = mailAccountListModel.getAccountByUuid (msgUuid);
-                    var currentFolder = mailAccountListModel.getFolderByUuid (msgUuid);
+                if (window.composerIsCurrentPage)
+                    window.popPage();
+                var newPage;
+                window.addPage(composer);
+                newPage = window.pageStack.currentPage;
+                setMessageDetails (newPage.composer, window.currentMessageIndex, 2);
+            }
+            else if (cmd == "forward")
+            {
+                if (window.composerIsCurrentPage)
+                    window.popPage();
+                var newPage;
+                window.addPage(composer);
+                newPage = window.pageStack.currentPage;
 
-                    mailFolderListModel.setAccountKey (currentAccount);
-                    messageListModel.setAccountKey (currentAccount);
-                    messageListModel.setFolderKey (currentFolder);
+                newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
+                newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
+                window.mailAttachments = messageListModel.attachments(window.currentMessageIndex);
+                messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
+                mailAttachmentModel.init();
+                newPage.composer.attachmentsModel = mailAttachmentModel;
 
-                    msgIdx = messageListModel.indexFromMessageId(msgUuid);
-                    window.currentMessageIndex = msgIdx;
-                }
-
-                if (cmd == "reply")
-                {   
-                    if (window.composerIsCurrentPage)
-                        window.popPage();
-                    var newPage;
-                    window.addPage(composer);
-                    newPage = window.pageStack.currentPage;
-                    setMessageDetails (newPage.composer, window.currentMessageIndex, false);
-                }
-                else if (cmd == "replyAll")
-                {
-                    if (window.composerIsCurrentPage)
-                        window.popPage();
-                    var newPage;
-                    window.addPage(composer);
-                    newPage = window.pageStack.currentPage;
-                    setMessageDetails (newPage.composer, window.currentMessageIndex, 2);
-                }
-                else if (cmd == "forward")
-                {
-                    if (window.composerIsCurrentPage)
-                        window.popPage();
-                    var newPage;
-                    window.addPage(composer);
-                    newPage = window.pageStack.currentPage;
-
-                    newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
-                    newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
-                    window.mailAttachments = messageListModel.attachments(window.currentMessageIndex);
-                    messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
-                    mailAttachmentModel.init();
-                    newPage.composer.attachmentsModel = mailAttachmentModel;
-
-                }
-                else if (cmd == "openReader") {
-                    updateReadingView(msgIdx);
-                }
+            }
+            else if (cmd == "openReader") {
+                updateReadingView(msgIdx);
             }
         }
     }

@@ -1488,6 +1488,7 @@ void EmailMessageListModel::setMessageFlag (QString uid, uint flag, uint set)
 {
 	QDBusPendingReply<bool> reply;
 
+	if (uid.length() < 1) return;
 	reply = m_folder_proxy->setMessageFlags (uid, flag, set);
 	reply.waitForFinished();
 }

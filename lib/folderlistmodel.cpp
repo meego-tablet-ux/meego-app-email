@@ -684,8 +684,12 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 			if (!gcharset || !*gcharset) {
 				gcharset = gconf_client_get_string (gconf, "/apps/evolution/mail/composer/charset",NULL);
 				if (!gcharset || !*gcharset) {
-					bool ret = g_get_charset (&gcharset);
-					if (!ret || !gcharset || !*gcharset)
+					char *lcharset = NULL;
+					bool ret = g_get_charset ((const char**)&lcharset);
+					
+					if (lcharset)
+						gcharset = g_strdup(lcharset);
+					if (!ret || !lcharset || !*lcharset)
 						gcharset = g_strdup ("us-ascii");
 				}
 			}
