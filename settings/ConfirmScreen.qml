@@ -13,7 +13,6 @@ import MeeGo.Settings 0.1
 
 Item {
     id: page
-    anchors.fill: parent
     height: content.height
 
     onHeightChanged: {
