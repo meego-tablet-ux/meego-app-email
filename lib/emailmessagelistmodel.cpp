@@ -355,7 +355,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
                                                                QString ("/org/gnome/evolution/dataserver/Mail/Session"),
                                                                QDBusConnection::sessionBus(), parent);
 
-    QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SLOT(onSendReceiveComplete()));
+    QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SIGNAL(sendReceiveCompleted()));
 
     initMailServer();
 }
@@ -600,76 +600,35 @@ QVariant EmailMessageListModel::mydata(int row, int role) const {
 
 void EmailMessageListModel::updateSearch ()
 {
-    const QString& sort = sortString(m_sortById);
-
-    QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
-    reply_prep.waitForFinished();
-
-    QDBusPendingReply<QStringList> reply = m_folder_proxy->searchSortByExpression (search_str, sort, false);
-    reply.waitForFinished();
-    
-    beginRemoveRows (QModelIndex(), 0, shown_uids.length()-1);
-    shown_uids.clear ();
-    endRemoveRows ();
-    beginInsertRows (QModelIndex(), 0, reply.value().length()-1);
-    QStringList search_uids = reply.value();
-
-    QDBusError error;
-    foreach (QString uid, search_uids) {
-	CamelMessageInfoVariant info;
-	if (!(m_infos.contains(uid) && m_infos.count(uid) > 0)) {
-		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-		reply.waitForFinished();
-		if (reply.isError()) {
-			error = reply.error();	
-			qDebug() << "Error: " << error.name () << " " << error.message();
-			continue;
-		}	
-		info = reply.value ();
-		m_infos.insert (uid, info);
-	}
-	shown_uids << uid;
-    }
-    endInsertRows();
-
-    qDebug() << "Search count: "<< shown_uids.length();
+    Q_ASSERT (m_folder_proxy);
+    qDebug() << "Search for: " << search_str << "really began";
+    SearchSortByExpression* op = new SearchSortByExpression(m_folder_proxy, this);
+    op->setQuery(search_str); op->setSort(sortString(m_sortById));
+    connect(op, SIGNAL(result(QStringList)), this, SLOT(onFolderUidsReset(QStringList)));
+    connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+    op->start();
 
     timer->stop();
 }
 
-void EmailMessageListModel::setSearch(const QString search)
+void EmailMessageListModel::setSearch(const QString& search)
 {
-    char *query;
-
     if (!m_folder_proxy)
 	return;
-    query = g_strdup_printf("(match-all (and " 
-				"(not (system-flag \"deleted\")) "
-			        "(not (system-flag \"junk\")) "
-				"(or" 
-					"(header-contains \"From\" \"%s\")"
-                      			"(header-contains \"To\" \"%s\")"
-                      			"(header-contains \"Cc\" \"%s\")"
-                      			"(header-contains \"Bcc\" \"%s\")"
-		      			"(header-contains \"Subject\" \"%s\"))))", search.toLocal8Bit().constData(), 
-										   search.toLocal8Bit().constData(), 
- 										   search.toLocal8Bit().constData(),
- 										   search.toLocal8Bit().constData(), 
- 										   search.toLocal8Bit().constData());
 
-    qDebug() << "Search for: " << search;
-    
-    search_str = QString(query);
+    search_str = QString("(match-all (and "
+                                 "(not (system-flag \"deleted\")) "
+                                 "(not (system-flag \"junk\")) "
+                                 "(or"
+                                         "(header-contains \"From\" \"%1\")"
+                                         "(header-contains \"To\" \"%1\")"
+                                         "(header-contains \"Cc\" \"%1\")"
+                                         "(header-contains \"Bcc\" \"%1\")"
+                                         "(header-contains \"Subject\" \"%1\"))))").arg(search);
+    qDebug() << "Search for: " << search_str;
     /* Start search when the user gives a keyb bread, in 1.5 secs*/
     timer->stop();
     timer->start(1500);
-
-}
-
-void EmailMessageListModel::onSendReceiveComplete()
-{
-	qDebug() << "Send Receive complete \n\n";
-	emit sendReceiveCompleted();
 }
 
 void EmailMessageListModel::sendReceive()
@@ -765,13 +724,14 @@ void EmailMessageListModel::setFolderKey (QVariant id)
                                                                         m_folder_proxy_id.path(),
                                                                         QDBusConnection::sessionBus(), this);
     connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                                                this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)), Qt::UniqueConnection);
-    disableFolderNotification();
+                                                this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)), Qt::UniqueConnection);
+//    disableFolderNotification();
     SearchSortByExpression* op = new SearchSortByExpression(m_folder_proxy, this);
     op->setQuery(strNotDeleted); op->setSort(sortString(m_sortById));
     connect(op, SIGNAL(result(QStringList)), this, SLOT(onFolderUidsReset(QStringList)));
     connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
-    op->start();    
+    connect(op, SIGNAL(finished()), this, SLOT(sendReceive()), Qt::QueuedConnection);
+    op->start();        
 }
 
 void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
@@ -789,9 +749,7 @@ void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
         connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
         connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
         op->start(WINDOW_LIMIT);
-        enableFolderNotification();
-        /* Refresh the folder anyway to see any new mails. */
-        sendReceive();
+      //  enableFolderNotification();
 }
 
 void EmailMessageListModel::messageInfoAdded(const CamelMessageInfoVariant &info)
@@ -1008,7 +966,7 @@ void EmailMessageListModel::getMoreMessages ()
 	}
 }
 
-void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent)
+void EmailMessageListModel::onFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent)
 {
 	qDebug () << "Folder changed event: " << added.length() << " " << removed.length() << " " << changed.length() << " " << recent.length();
 
@@ -1034,25 +992,23 @@ void EmailMessageListModel::myFolderChanged(const QStringList &added, const QStr
             op->start();
         }
 
-
-        foreach (const QString& uid, removed) {
-		/* Removed uid */
-		int index; 
-		qDebug() << "Removing UID: " << uid;
-
-		index = shown_uids.indexOf(uid);
-		if (index != -1) {
-	        	beginRemoveRows (QModelIndex(), index, index);
-			shown_uids.removeAt(index);
-			endRemoveRows ();
-		}
-
-		index = folder_uids.indexOf(uid);
-		m_infos.remove (uid);
-		folder_uids.removeAt(index);
-	}
-
         if (!removed.isEmpty()) {
+            foreach (const QString& uid, removed) {
+                    /* Removed uid */
+                    int index;
+                    qDebug() << "Removing UID: " << uid;
+
+                    index = shown_uids.indexOf(uid);
+                    if (index != -1) {
+                            beginRemoveRows (QModelIndex(), index, index);
+                            shown_uids.removeAt(index);
+                            endRemoveRows ();
+                    }
+
+                    index = folder_uids.indexOf(uid);
+                    m_infos.remove (uid);
+                    folder_uids.removeAt(index);
+            }
             emit folderChanged();
         }
 }
@@ -1283,7 +1239,7 @@ QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
 
 
 	disconnect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-			this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
+                        this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
 
 	m_folder_proxy->blockSignals(true);
 	reloadFolderUids(); // If content or someone has it, its already in the eds daemon, lets pick till that in the view 
@@ -1296,7 +1252,7 @@ QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
 	}
 	m_folder_proxy->blockSignals(false);
 	connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-		 this, SLOT(myFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
+                 this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
 
     }
 

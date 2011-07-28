@@ -70,7 +70,7 @@ public:
     };
 
     EmailMessageListModel (QObject *parent = 0);
-    ~EmailMessageListModel();
+    virtual ~EmailMessageListModel();
     int rowCount (const QModelIndex & parent = QModelIndex()) const;
     QVariant mydata (int row, int role = Qt::DisplayRole) const;    
     QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const;
@@ -98,7 +98,7 @@ public slots:
     Q_INVOKABLE void sortBySubject (int key);
     Q_INVOKABLE void sortByDate (int key);
     Q_INVOKABLE void sortByAttachment (int key);
-    Q_INVOKABLE void setSearch(const QString search);
+    Q_INVOKABLE void setSearch(const QString& search);
 
     Q_INVOKABLE QVariant indexFromMessageId(QString msgId);
     Q_INVOKABLE QVariant messageId (int index);
@@ -141,9 +141,8 @@ public slots:
 
 private slots:
     //ckw void downloadActivityChanged(QMailServiceAction::Activity);
-    void myFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
+    void onFolderChanged(const QStringList &added, const QStringList &removed, const QStringList &changed, const QStringList &recent);
     void updateSearch ();
-    void onSendReceiveComplete ();
     void onFolderUidsReset(const QStringList &uids);
     void messageInfoAdded(const CamelMessageInfoVariant& info);
     void messageInfoUpdated(const CamelMessageInfoVariant& info);

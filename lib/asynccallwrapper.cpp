@@ -71,7 +71,6 @@ void GetMessageInfo::start(int count)
 
 void GetMessageInfo::onAsyncCallFinished(QDBusPendingCallWatcher *watcher)
 {
-    qWarning() << Q_FUNC_INFO;
     Q_ASSERT (watcher);
     if (watcher->isError()) {
         qWarning() << Q_FUNC_INFO << "dbus error occured";
