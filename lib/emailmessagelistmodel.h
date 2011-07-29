@@ -50,6 +50,7 @@ public:
         MessagePresenceIconRole,
         MessageBodyTextRole,
         MessageIdRole,
+        MessageHighPriorityRole,
         MessageAttachmentCountRole, // returns number of attachment
         MessageAttachmentsRole,                                // returns a list of attachments
         MessageRecipientsRole,                                 // returns a list of recipients (email address)
@@ -67,7 +68,6 @@ public:
 	MessageMimeId,					       // returns the MIME message id for threading purposes
 	MessageReferences				       // returns the MIME references of an email
     };
-
 
     EmailMessageListModel (QObject *parent = 0);
     ~EmailMessageListModel();

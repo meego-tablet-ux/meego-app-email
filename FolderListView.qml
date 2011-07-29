@@ -384,15 +384,27 @@ Item {
                 width: parent.width
                 height: theme.listBackgroundPixelHeightTwo / 2
 
-                Text {
-                    id: subjectText
-                    anchors.left: parent.left
+                Row {
+                    anchors.left:  parent.left
                     anchors.top: parent.top
                     anchors.topMargin: 4
-                    text: subject
                     width: (parent.width * 2) / 3
-                    font.pixelSize: theme.fontPixelSizeNormal
-                    elide: Text.ElideRight
+                    spacing: 5
+
+                    Image {
+                        anchors.verticalCenter: parent.verticalCenter
+                        source: "image://themedimage/widgets/apps/email/email-priority-high"
+                        visible: highPriority
+                    }
+
+                    Text {
+                        id: subjectText
+
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: subject
+                        font.pixelSize: theme.fontPixelSizeNormal
+                        elide: Text.ElideRight
+                    }
                 }
                 Image {
                     id: attachmentLeft
