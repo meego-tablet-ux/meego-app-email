@@ -668,7 +668,8 @@ CamelMimeMessage * createMessage (const QString &from, const QStringList &to, co
 	} else
 		camel_medium_add_header (CAMEL_MEDIUM (msg), "X-MSMail-Priority", "Normal");
 
-	stream = camel_stream_mem_new_with_buffer (body.toLocal8Bit().constData(), body.length());
+        const char *messageBody = body.toUtf8().constData();
+	stream = camel_stream_mem_new_with_buffer (messageBody, strlen(messageBody));
 	type = camel_content_type_new ("text", html ? "html" : "plain");
 
 	if (html) {
