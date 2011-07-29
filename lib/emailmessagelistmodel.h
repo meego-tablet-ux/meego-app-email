@@ -50,7 +50,7 @@ public:
         MessagePresenceIconRole,
         MessageBodyTextRole,
         MessageIdRole,
-        MessagePriorityIconRole,
+        MessageHighPriorityRole,
         MessageAttachmentCountRole, // returns number of attachment
         MessageAttachmentsRole,                                // returns a list of attachments
         MessageRecipientsRole,                                 // returns a list of recipients (email address)

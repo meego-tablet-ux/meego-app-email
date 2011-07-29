@@ -392,10 +392,9 @@ Item {
                     spacing: 5
 
                     Image {
-                        id: priority
-
-                        source: priorityIcon
-                        visible: priorityIcon != ""
+                        anchors.verticalCenter: parent.verticalCenter
+                        source: "image://themedimage/widgets/apps/email/email-priority-high"
+                        visible: highPriority
                     }
 
                     Text {
