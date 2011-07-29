@@ -657,81 +657,16 @@ void EmailMessageListModel::cancelOperations()
 
 void EmailMessageListModel::setFolderKey (QVariant id)
 {
-    bool not_found = true;
-
-    if (m_current_folder == id.toString()) {
-	return;
-    }
-    m_current_folder = id.toString ();
-    CamelFolderInfoVariant c_info;
-    const char *fstr = m_current_folder.toLocal8Bit().constData();
-
-    if (!fstr || !*fstr) {
-	return;
-    }
-    
-    qDebug() << "Set folder key: " << m_current_folder;
-    foreach (CamelFolderInfoVariant info, m_folders) {
-	if (m_current_folder == info.uri) {
-		c_info = info;	
-		not_found = false;
-	}
-    }
-    if (not_found) {
-	CamelURL *curl = camel_url_new (id.toString().toUtf8(), NULL);
-	c_info.full_name = QString(curl->path);
-	qDebug() << "Path " + c_info.full_name;
-	if (c_info.full_name.startsWith("/"))
-		c_info.full_name.remove (0, 1);
-	qDebug() << "newPath " + c_info.full_name;
-	camel_url_free (curl);
-    }
-
-    if (m_current_folder.endsWith ("Outbox", Qt::CaseInsensitive)) {
-	QDBusPendingReply<QDBusObjectPath> reply = m_lstore_proxy->getFolder (QString(c_info.full_name));
-	reply.waitForFinished();
-	if (reply.isError()) {
-		qDebug()<< "Failed to fetch folder: " + id.toString();
+    const QString& newFolder = id.toString();
+    if (m_current_folder == newFolder || newFolder.isEmpty()) {
 		return;
-	}
-	m_folder_proxy_id = reply.value ();
-
-    } else if (m_store_proxy && m_store_proxy->isValid()) {
-	QDBusPendingReply<QDBusObjectPath> reply = m_store_proxy->getFolder (QString(c_info.full_name));
-	reply.waitForFinished();
-	if (reply.isError()) {
-		qDebug()<< "Failed to fetch folder: " + id.toString();
-		return;
-	}
-	m_folder_proxy_id = reply.value ();
     }
-    qDebug() << Q_FUNC_INFO << "current folder is" << m_current_folder;
-    /* Create checksum for the Folder. */
-    createChecksum();
-    messages_present = true;
 
-    /* Clear message list before you load a folder. */
-    beginRemoveRows (QModelIndex(), 0, shown_uids.length()-1);
-    shown_uids.clear();
-    endRemoveRows ();
-    folder_uids.clear();
-    m_infos.clear();
-    m_messages->clear();
-    if (m_folder_proxy)
-	delete m_folder_proxy;
-
-    m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
-                                                                        m_folder_proxy_id.path(),
-                                                                        QDBusConnection::sessionBus(), this);
-    connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                                                this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)), Qt::UniqueConnection);
-//    disableFolderNotification();
-    SearchSortByExpression* op = new SearchSortByExpression(m_folder_proxy, this);
-    op->setQuery(strNotDeleted); op->setSort(sortString(m_sortById));
-    connect(op, SIGNAL(result(QStringList)), this, SLOT(onFolderUidsReset(QStringList)));
-    connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
-    connect(op, SIGNAL(finished()), this, SLOT(sendReceive()), Qt::QueuedConnection);
-    op->start();        
+    GetFolder* op = new GetFolder(m_store_proxy, m_lstore_proxy, this);
+    op->setKnownFolders(m_folders); op->setFolderName(newFolder);
+    connect (op, SIGNAL(result(QString,QString)), this, SLOT(setFolder(QString,QString)));
+    connect (op, SIGNAL(finished()), op, SLOT(deleteLater()));
+    op->start();
 }
 
 void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
@@ -814,6 +749,41 @@ void EmailMessageListModel::disableFolderNotification()
 {
     Q_ASSERT (m_folder_proxy);
     m_folder_proxy->blockSignals(true);
+}
+
+void EmailMessageListModel::setFolder(const QString& newFolder, const QString& objectPath)
+{
+    if (m_current_folder == newFolder || newFolder.isEmpty()) {
+        return;
+    }
+
+    m_current_folder = newFolder;
+    createChecksum();
+
+    messages_present = true;
+
+    /* Clear message list before you load a folder. */
+    beginRemoveRows (QModelIndex(), 0, shown_uids.length()-1);
+    shown_uids.clear();
+    endRemoveRows ();
+    folder_uids.clear();
+    m_infos.clear();
+    m_messages->clear();
+
+    if (m_folder_proxy)
+        delete m_folder_proxy;
+
+    m_folder_proxy = new OrgGnomeEvolutionDataserverMailFolderInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                                        objectPath,
+                                                                        QDBusConnection::sessionBus(), this);
+    connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
+                                                this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)), Qt::UniqueConnection);
+    SearchSortByExpression* op = new SearchSortByExpression(m_folder_proxy, this);
+    op->setQuery(strNotDeleted); op->setSort(sortString(m_sortById));
+    connect(op, SIGNAL(result(QStringList)), this, SLOT(onFolderUidsReset(QStringList)));
+    connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+    connect(op, SIGNAL(finished()), this, SLOT(sendReceive()), Qt::QueuedConnection);
+    op->start();
 }
 
 void EmailMessageListModel::reloadFolderUids ()

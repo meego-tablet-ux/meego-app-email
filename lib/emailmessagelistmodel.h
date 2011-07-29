@@ -149,7 +149,8 @@ private slots:
     /// Enable Camel folder notification
     void enableFolderNotification();
     /// Disable Camel folder notification
-    void disableFolderNotification();
+    void disableFolderNotification();    
+    void setFolder(const QString& newFolder, const QString& objectPath);
 
 private:
     void initMailServer ();

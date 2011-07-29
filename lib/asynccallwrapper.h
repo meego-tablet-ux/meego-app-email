@@ -9,6 +9,7 @@
 #include <QtDBus/QDBusPendingCall>
 
 class OrgGnomeEvolutionDataserverMailFolderInterface;
+class OrgGnomeEvolutionDataserverMailStoreInterface;
 
 class SearchSortByExpression: public QObject
 {
@@ -66,6 +67,35 @@ private:
     QStringList mUids;
     OrgGnomeEvolutionDataserverMailFolderInterface* const mFolderProxy;
     int mCount;
+};
+
+class GetFolder: public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit GetFolder(OrgGnomeEvolutionDataserverMailStoreInterface *storeProxy, OrgGnomeEvolutionDataserverMailStoreInterface *lstoreProxy = 0, QObject* parent = 0)
+        :QObject(parent), mStoreProxy(storeProxy), mLstoreProxy(lstoreProxy) {}
+    virtual ~GetFolder() {}
+
+    void setFolderName(const QString& folderName);
+    void setKnownFolders(const CamelFolderInfoArrayVariant& folders);
+
+public slots:
+    void start();
+
+signals:
+    void result(const QString& folderName, const QString& objectPath);
+    void finished();
+
+private slots:
+    void onAsyncCallFinished(QDBusPendingCallWatcher *watcher);
+
+private:
+    QString mFolderName;
+    OrgGnomeEvolutionDataserverMailStoreInterface *mStoreProxy;
+    OrgGnomeEvolutionDataserverMailStoreInterface *mLstoreProxy;
+    CamelFolderInfoArrayVariant mKnownFolders;
 };
 
 #endif // ASYNCCALLWRAPPER_H
