@@ -357,7 +357,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
 
     QObject::connect (session_instance, SIGNAL(sendReceiveComplete()), this, SIGNAL(sendReceiveCompleted()));
 
-    initMailServer();
 }
 
 EmailMessageListModel::~EmailMessageListModel()
@@ -684,7 +683,7 @@ void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
         connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
         connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
         op->start(WINDOW_LIMIT);
-      //  enableFolderNotification();
+        emit folderUidsReset();
 }
 
 void EmailMessageListModel::messageInfoAdded(const CamelMessageInfoVariant &info)
@@ -739,18 +738,6 @@ void EmailMessageListModel::messageInfoUpdated(const CamelMessageInfoVariant &in
     }
 }
 
-void EmailMessageListModel::enableFolderNotification()
-{
-    Q_ASSERT (m_folder_proxy);
-    m_folder_proxy->blockSignals(false);
-}
-
-void EmailMessageListModel::disableFolderNotification()
-{
-    Q_ASSERT (m_folder_proxy);
-    m_folder_proxy->blockSignals(true);
-}
-
 void EmailMessageListModel::setFolder(const QString& newFolder, const QString& objectPath)
 {
     if (m_current_folder == newFolder || newFolder.isEmpty()) {
@@ -786,109 +773,9 @@ void EmailMessageListModel::setFolder(const QString& newFolder, const QString& o
     op->start();
 }
 
-void EmailMessageListModel::reloadFolderUids ()
-{
-	beginRemoveRows (QModelIndex(), 0, shown_uids.length()-1);
-	shown_uids.clear ();
-	folder_uids.clear();
-	endRemoveRows ();
-			
-	QString sort;
-	search_str = QString("(match-all (and " 
-			"(not (system-flag \"deleted\")) "
-			"(not (system-flag \"junk\")))) ");
-	if (m_sortById == EmailMessageListModel::SortDate)
-		sort = QString ("date");
-	else if (m_sortById == EmailMessageListModel::SortSubject)
-		sort = QString ("subject");
-
-	else if (m_sortById == EmailMessageListModel::SortSender)
-		sort = QString ("sender");
-	else
-		sort = QString ("date");
-		
-	/* Prepare the summary it speeds up the process. */
-	QDBusPendingReply<> reply_prep = m_folder_proxy->prepareSummary();
-	reply_prep.waitForFinished();
-
-	/* Don't blindly load all UIDs. Just load non-deleted and non junk only */
-	QDBusPendingReply<QStringList> reply_s = m_folder_proxy->searchSortByExpression(search_str, sort, false);
-	reply_s.waitForFinished();
-	folder_uids = reply_s.value ();
-	g_print("Fetched %d uids\n", folder_uids.length());
-
-}
-
-void EmailMessageListModel::loadMessages (int limit)
-{
-	int count=0;
-
-	beginInsertRows(QModelIndex(), 0, limit);
-	foreach (QString uid, folder_uids) {
-		QDBusError error;
-		CamelMessageInfoVariant info;
-		//qDebug() << "Fetching uid " << uid;
-
-		shown_uids << uid;
-		count++;
-		//printf("Showing %d/%d\n", count, total+WINDOW_LIMIT);
-		//info = m_infos[uid];
-
-		if (m_infos.contains(uid) && m_infos.count(uid) > 0) {
-			info = m_infos[uid];
-			//qDebug() << "Cache has " + uid + " and |" + info.uid + "|";
-			//g_print("Count %d\n", m_infos.count(uid));
-			if (count >= limit+1)
-				break;
-			else
-				continue;
-		}
-		
-		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-		reply.waitForFinished();
-		//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
-		if (reply.isError()) {
-			error = reply.error();	
-			qDebug() << "Error: " << error.name () << " " << error.message();
-			continue;
-		}	
-		info = reply.value ();
-		m_infos.insert (uid, info);
-		if (count >= limit+1)
-			break;
-	}
-	endInsertRows();
-}
-
 bool EmailMessageListModel::stillMoreMessages ()
 {
 	return messages_present;
-}
-
-void EmailMessageListModel::loadMoreMessages (int max)
-{
-	int count = shown_uids.length();
-	int i;
-
-	beginInsertRows(QModelIndex(), count, max);
-	for (i=count; i <= max; i++) {
-		QString uid = folder_uids[i];
-		QDBusError error;
-		CamelMessageInfoVariant info;
-		//qDebug() << "Fetching uid " << uid;
-		QDBusPendingReply <CamelMessageInfoVariant> reply = m_folder_proxy->getMessageInfo (uid);
-		reply.waitForFinished();
-		//qDebug() << "Decoing..." << reply.isFinished() << "or error ? " << reply.isError() << " valid ? "<< reply.isValid();
-		if (reply.isError()) {
-			error = reply.error();	
-			qDebug() << "Error: " << error.name () << " " << error.message();
-			continue;
-		}	
-		info = reply.value ();
-		m_infos.insert (uid, info);
-		shown_uids << uid;
-	}
-	endInsertRows();
 }
 
 void EmailMessageListModel::getMoreMessages ()
@@ -1179,54 +1066,39 @@ void EmailMessageListModel::sortByAttachment(int key)
     // TDB
 }
 
-void EmailMessageListModel::initMailServer()
+void EmailMessageListModel::checkIfListPopulatedTillUuid()
 {
-    return;
+    disconnect (this, SIGNAL(folderUidsReset()), this, SLOT(checkIfListPopulatedTillUuid()));
+    int ret_row = shown_uids.indexOf (m_UuidToShow);
+    if (ret_row >= 0) {
+        emit listPopulatedTillUuid(ret_row, m_UuidToShow);
+        m_UuidToShow = QString();
+    } else if (folder_uids.indexOf(m_UuidToShow) >= 0) {
+        /* We have it, lets just load till that. */
+        GetMessageInfo* op = new GetMessageInfo(m_folder_proxy, this);
+        QStringList toRetrieve((folder_uids.toSet() - shown_uids.toSet()).toList());
+        op->setMessageUids(toRetrieve);
+        const int global_idx = toRetrieve.indexOf(m_UuidToShow);
+        connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+        connect(op, SIGNAL(finished()), this, SLOT(checkIfListPopulatedTillUuid()));
+        connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
+        op->start(global_idx);
+    } else {
+        qWarning() << Q_FUNC_INFO << "FAIL to show message:" << m_UuidToShow;
+        m_UuidToShow = QString();
+    }
 }
 
-QVariant EmailMessageListModel::indexFromMessageId (QString uuid)
+void EmailMessageListModel::populateListTillUuid (const QString& account, const QString& folder, const QString& uuid)
 {
-    QString uid = uuid.right(uuid.length()-8);
-    CamelMessageInfoVariant info = m_infos[uid];
-    int ret_row = -1;
-
-    ret_row = shown_uids.indexOf (uid);
-    /* We assume that content feed would have uids from what we are already showing/loaded. Check this up anyways. */
-    if (ret_row == -1) {
-	/* We have gone past this already, lets fetch more till the point of need. EDS Should have downloaded old 
- 	 * mails if we have it in content or else where */
-	
-	int global_idx;
-
-	/* Check if we have it in uids. */
-	global_idx = folder_uids.indexOf(uid); 
-	/* Block things off */
-	if (global_idx != -1) {
-		/* We have it, lets just load till that. */
-		loadMoreMessages (global_idx);
-		return global_idx;
-	}
-
-
-	disconnect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                        this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
-
-	m_folder_proxy->blockSignals(true);
-	reloadFolderUids(); // If content or someone has it, its already in the eds daemon, lets pick till that in the view 
-	global_idx = folder_uids.indexOf (uid);
-	if (global_idx == -1) { /* We have a serious problem to fix. */
-		ret_row = -1;
-		qDebug()<< "WARNING! WARNING! We seem to totally miss this UID: " + uid + " UUID " + uuid;
-	} else {
-		loadMessages (global_idx);
-	}
-	m_folder_proxy->blockSignals(false);
-	connect (m_folder_proxy, SIGNAL(FolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)),
-                 this, SLOT(onFolderChanged(const QStringList &, const QStringList &, const QStringList &, const QStringList &)));
-
+    m_UuidToShow = uuid;
+    if (m_current_folder == folder && account == m_account->uid) {
+        checkIfListPopulatedTillUuid();
+    } else {
+        setAccountKey(account);
+        setFolderKey(folder);
+        connect (this, SIGNAL(folderUidsReset()), SLOT(checkIfListPopulatedTillUuid()), Qt::UniqueConnection);
     }
-
-    return ret_row;
 }
 
 QVariant EmailMessageListModel::messageId (int idx)

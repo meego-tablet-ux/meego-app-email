@@ -90,6 +90,8 @@ signals:
     void sendReceiveCompleted ();
     void sendReceiveBegin ();
     void folderChanged ();
+    void folderUidsReset ();
+    void listPopulatedTillUuid (int index, const QString& uuid);
 
 public slots:
     Q_INVOKABLE void setFolderKey (QVariant id);
@@ -100,7 +102,7 @@ public slots:
     Q_INVOKABLE void sortByAttachment (int key);
     Q_INVOKABLE void setSearch(const QString& search);
 
-    Q_INVOKABLE QVariant indexFromMessageId(QString msgId);
+    Q_INVOKABLE void populateListTillUuid(const QString& account, const QString& folder, const QString& uuid);
     Q_INVOKABLE QVariant messageId (int index);
     Q_INVOKABLE QVariant subject (int index);
     Q_INVOKABLE QVariant mailSender (int index);
@@ -145,21 +147,15 @@ private slots:
     void updateSearch ();
     void onFolderUidsReset(const QStringList &uids);
     void messageInfoAdded(const CamelMessageInfoVariant& info);
-    void messageInfoUpdated(const CamelMessageInfoVariant& info);
-    /// Enable Camel folder notification
-    void enableFolderNotification();
-    /// Disable Camel folder notification
-    void disableFolderNotification();    
+    void messageInfoUpdated(const CamelMessageInfoVariant& info);   
     void setFolder(const QString& newFolder, const QString& objectPath);
+    void checkIfListPopulatedTillUuid();
 
 private:
     void initMailServer ();
     void createChecksum ();
     void sortMails ();
     void setMessageFlag (QString uid, uint flag, uint set);
-    void reloadFolderUids ();
-    void loadMessages (int);
-    void loadMoreMessages (int);
     QString mimeMessage (QString &uid);
 
 private:
@@ -191,6 +187,8 @@ private:
     EmailMessageListModel::SortBy m_sortById;
     int m_sortKey;
     QList<QString> m_selectedMsgIds;
+
+    QString m_UuidToShow;
 };
 
 #endif

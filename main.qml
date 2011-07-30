@@ -494,8 +494,8 @@ Window {
                 messageListModel.setAccountKey (currentAccount);
                 messageListModel.setFolderKey (currentFolder);
 
-                msgIdx = messageListModel.indexFromMessageId(msgUuid);
-                window.currentMessageIndex = msgIdx;
+//                msgIdx = messageListModel.indexFromMessageId(msgUuid);
+//                window.currentMessageIndex = msgIdx;
             }
             else
             {
