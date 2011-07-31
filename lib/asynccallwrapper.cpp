@@ -5,9 +5,22 @@
 #define CAMEL_COMPILATION 1
 #include <camel/camel-url.h>
 
+/// AsyncOperation
+AsyncOperation::AsyncOperation(QObject *parent)
+    : QObject(parent)
+{
+}
+
+void AsyncOperation::cancel()
+{
+    disconnect (this, SLOT(onAsyncCallFinished(QDBusPendingCallWatcher*)));
+    emit finished();
+}
+
+
 /// SearchSortByExpression
 SearchSortByExpression::SearchSortByExpression(OrgGnomeEvolutionDataserverMailFolderInterface *folderProxy, QObject *parent)
-    :QObject(parent), mFolderProxy(folderProxy), mPrepareSumWatcher(0), mSearchWatcher(0)
+    :AsyncOperation(parent), mFolderProxy(folderProxy), mPrepareSumWatcher(0), mSearchWatcher(0)
 {
     Q_ASSERT (mFolderProxy);
 }
@@ -22,6 +35,7 @@ void SearchSortByExpression::start()
 
     mPrepareSumWatcher = new QDBusPendingCallWatcher(mFolderProxy->prepareSummary(), this);
     connect (mPrepareSumWatcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(onAsyncCallFinished(QDBusPendingCallWatcher*)));
+    connect (mPrepareSumWatcher, SIGNAL(finished(QDBusPendingCallWatcher*)), mPrepareSumWatcher, SLOT(deleteLater()));
 }
 
 void SearchSortByExpression::onAsyncCallFinished(QDBusPendingCallWatcher *watcher)
@@ -36,6 +50,7 @@ void SearchSortByExpression::onAsyncCallFinished(QDBusPendingCallWatcher *watche
             mPrepareSumWatcher = 0;
             mSearchWatcher = new QDBusPendingCallWatcher(mFolderProxy->searchSortByExpression(mQuery, mSort, false), this);
             connect (mSearchWatcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(onAsyncCallFinished(QDBusPendingCallWatcher*)));
+            connect (mSearchWatcher, SIGNAL(finished(QDBusPendingCallWatcher*)), mSearchWatcher, SLOT(deleteLater()));
         } else {
             Q_ASSERT (watcher == mSearchWatcher);
             mSearchWatcher = 0;
@@ -44,7 +59,6 @@ void SearchSortByExpression::onAsyncCallFinished(QDBusPendingCallWatcher *watche
             emit finished();
         }
     }
-    watcher->deleteLater();
 }
 
 ///GetMessageInfo
@@ -70,6 +84,7 @@ void GetMessageInfo::start(int count)
     for (int i = 0; i < mCount; ++i) {
         QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(mFolderProxy->getMessageInfo(mUids.at(i)), this);
         connect (watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(onAsyncCallFinished(QDBusPendingCallWatcher*)));
+        connect (watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), watcher, SLOT(deleteLater()));
     }
 }
 
@@ -85,7 +100,6 @@ void GetMessageInfo::onAsyncCallFinished(QDBusPendingCallWatcher *watcher)
     if (--mCount <= 0) {
         emit finished();
     }
-    watcher->deleteLater();
 }
 
 
@@ -132,6 +146,7 @@ void GetFolder::start()
 
     if (watcher) {
         connect (watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(onAsyncCallFinished(QDBusPendingCallWatcher*)));
+        connect (watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), watcher, SLOT(deleteLater()));
     } else {
         emit finished();
     }
@@ -149,5 +164,4 @@ void GetFolder::onAsyncCallFinished(QDBusPendingCallWatcher *watcher)
     }
 
     emit finished();
-    watcher->deleteLater();
 }

@@ -11,7 +11,29 @@
 class OrgGnomeEvolutionDataserverMailFolderInterface;
 class OrgGnomeEvolutionDataserverMailStoreInterface;
 
-class SearchSortByExpression: public QObject
+class AsyncOperation : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit AsyncOperation(QObject *parent = 0);
+    virtual ~AsyncOperation() {}
+
+signals:
+    void finished();
+
+public slots:
+    virtual void cancel();
+
+protected slots:
+    virtual void onAsyncCallFinished(QDBusPendingCallWatcher* watcher)// = 0?
+    {
+        Q_UNUSED (watcher);
+    }
+
+};
+
+class SearchSortByExpression: public AsyncOperation
 {
     Q_OBJECT
 
@@ -28,10 +50,9 @@ public slots:
 
 signals:
     void result(const QStringList& uids);
-    void finished();
 
-private slots:
-    void onAsyncCallFinished(QDBusPendingCallWatcher* mWatcher);
+protected slots:
+    virtual void onAsyncCallFinished(QDBusPendingCallWatcher* watcher);
 
 private:
     QString mQuery;
@@ -41,12 +62,12 @@ private:
     QDBusPendingCallWatcher* mSearchWatcher;
 };
 
-class GetMessageInfo: public QObject
+class GetMessageInfo: public AsyncOperation
 {
     Q_OBJECT
 
 public:
-    explicit GetMessageInfo(OrgGnomeEvolutionDataserverMailFolderInterface *folderProxy, QObject* parent = 0) : QObject(parent), mFolderProxy(folderProxy), mCount(0)
+    explicit GetMessageInfo(OrgGnomeEvolutionDataserverMailFolderInterface *folderProxy, QObject* parent = 0) : AsyncOperation(parent), mFolderProxy(folderProxy), mCount(0)
     { Q_ASSERT (mFolderProxy); }
 
     virtual ~GetMessageInfo() {}
@@ -58,10 +79,9 @@ public slots:
 
 signals:
     void result(const CamelMessageInfoVariant& info);
-    void finished();
 
-private slots:
-    void onAsyncCallFinished(QDBusPendingCallWatcher* watcher);
+protected slots:
+    virtual void onAsyncCallFinished(QDBusPendingCallWatcher* watcher);
 
 private:
     QStringList mUids;
@@ -69,13 +89,13 @@ private:
     int mCount;
 };
 
-class GetFolder: public QObject
+class GetFolder: public AsyncOperation
 {
     Q_OBJECT
 
 public:
     explicit GetFolder(OrgGnomeEvolutionDataserverMailStoreInterface *storeProxy, OrgGnomeEvolutionDataserverMailStoreInterface *lstoreProxy = 0, QObject* parent = 0)
-        :QObject(parent), mStoreProxy(storeProxy), mLstoreProxy(lstoreProxy) {}
+        :AsyncOperation(parent), mStoreProxy(storeProxy), mLstoreProxy(lstoreProxy) {}
     virtual ~GetFolder() {}
 
     void setFolderName(const QString& folderName);
@@ -86,10 +106,9 @@ public slots:
 
 signals:
     void result(const QString& folderName, const QString& objectPath);
-    void finished();
 
-private slots:
-    void onAsyncCallFinished(QDBusPendingCallWatcher *watcher);
+protected slots:
+    virtual void onAsyncCallFinished(QDBusPendingCallWatcher *watcher);
 
 private:
     QString mFolderName;
