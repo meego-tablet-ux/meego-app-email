@@ -16,13 +16,16 @@
 #undef Status
 #endif
 
-#include <QAbstractListModel>
-#include <QProcess>
 #include <libedataserver/e-account.h>
 #include "dbustypes.h"
+#include "asynccallwrapper.h"
 #include "e-gdbus-emailsession-proxy.h"
 #include "e-gdbus-emailstore-proxy.h"
 #include "e-gdbus-emailfolder-proxy.h"
+//Qt
+#include <QAbstractListModel>
+#include <QProcess>
+#include <QPointer>
 
 class EmailMessageListModel : public QAbstractItemModel
 {
@@ -150,6 +153,7 @@ private slots:
     void messageInfoUpdated(const CamelMessageInfoVariant& info);   
     void setFolder(const QString& newFolder, const QString& objectPath);
     void checkIfListPopulatedTillUuid();
+    void cancelPendingFolderOperations();
 
 private:
     void initMailServer ();
@@ -157,6 +161,7 @@ private:
     void sortMails ();
     void setMessageFlag (QString uid, uint flag, uint set);
     QString mimeMessage (QString &uid);
+    void addPendingFolderApp(AsyncOperation* op);
 
 private:
     CamelFolderInfoArrayVariant m_folders; 
@@ -189,6 +194,7 @@ private:
     QList<QString> m_selectedMsgIds;
 
     QString m_UuidToShow;
+    QList<QPointer<AsyncOperation> > m_pending_folder_ops;
 };
 
 #endif

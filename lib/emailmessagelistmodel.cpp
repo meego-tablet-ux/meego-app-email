@@ -16,7 +16,6 @@
 #include <camel/camel-stream-filter.h>
 #include <camel/camel-mime-filter-charset.h>
 #include "emailmessagelistmodel.h"
-#include "asynccallwrapper.h"
 
 #include <QDateTime>
 #include <QTimer>
@@ -253,6 +252,20 @@ QString EmailMessageListModel::bodyText(QString &uid, bool plain) const
  	g_object_unref (message);
 
 	return QString::fromUtf8(reparray);
+}
+
+void EmailMessageListModel::addPendingFolderApp(AsyncOperation *op)
+{
+    Q_ASSERT (op);
+    QMutableListIterator<QPointer<AsyncOperation> > i(m_pending_folder_ops);
+    while (i.hasNext()) {
+        QPointer<AsyncOperation> val = i.next();
+        if (val.isNull()) {
+            i.remove();
+        }
+    }
+
+    m_pending_folder_ops.append(QPointer<AsyncOperation>(op));
 }
 
 void EmailMessageListModel::createChecksum()
@@ -660,12 +673,14 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     if (m_current_folder == newFolder || newFolder.isEmpty()) {
 		return;
     }
+    cancelPendingFolderOperations();
 
     GetFolder* op = new GetFolder(m_store_proxy, m_lstore_proxy, this);
     op->setKnownFolders(m_folders); op->setFolderName(newFolder);
     connect (op, SIGNAL(result(QString,QString)), this, SLOT(setFolder(QString,QString)));
     connect (op, SIGNAL(finished()), op, SLOT(deleteLater()));
     op->start();
+    addPendingFolderApp(op);
 }
 
 void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
@@ -683,6 +698,7 @@ void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
         connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
         connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
         op->start(WINDOW_LIMIT);
+        addPendingFolderApp(op);
         emit folderUidsReset();
 }
 
@@ -771,6 +787,7 @@ void EmailMessageListModel::setFolder(const QString& newFolder, const QString& o
     connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
     connect(op, SIGNAL(finished()), this, SLOT(sendReceive()), Qt::QueuedConnection);
     op->start();
+    addPendingFolderApp(op);
 }
 
 bool EmailMessageListModel::stillMoreMessages ()
@@ -1068,7 +1085,6 @@ void EmailMessageListModel::sortByAttachment(int key)
 
 void EmailMessageListModel::checkIfListPopulatedTillUuid()
 {
-    disconnect (this, SIGNAL(folderUidsReset()), this, SLOT(checkIfListPopulatedTillUuid()));
     int ret_row = shown_uids.indexOf (m_UuidToShow);
     if (ret_row >= 0) {
         emit listPopulatedTillUuid(ret_row, m_UuidToShow);
@@ -1086,6 +1102,20 @@ void EmailMessageListModel::checkIfListPopulatedTillUuid()
     } else {
         qWarning() << Q_FUNC_INFO << "FAIL to show message:" << m_UuidToShow;
         m_UuidToShow = QString();
+    }
+}
+
+void EmailMessageListModel::cancelPendingFolderOperations()
+{
+    const int count = m_pending_folder_ops.count();
+    if (count > 0) {
+        qWarning() << Q_FUNC_INFO << "cancelling folder ops" << count;
+    }
+
+    foreach(QPointer<AsyncOperation> op, m_pending_folder_ops) {
+        if (!op.isNull()) {
+            op->cancel();
+        }
     }
 }
 
