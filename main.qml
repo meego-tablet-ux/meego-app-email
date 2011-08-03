@@ -56,6 +56,8 @@ Window {
     property string errMsg: "";
     property variant argv: [] 
     property variant accountFilterModel: []
+    property string pendingCall: "";
+    property string pendingUuid: "";
 
     Theme {
         id: theme
@@ -412,6 +414,9 @@ Window {
             window.refreshInProgress = false;
         }
 
+        onListPopulatedTillUuid: {
+            executePendingCall(index, uuid);
+        }
 
     }
 
@@ -491,11 +496,10 @@ Window {
                 var currentFolder = mailAccountListModel.getFolderByUuid (msgUuid);
 
                 mailFolderListModel.setAccountKey (currentAccount);
-                messageListModel.setAccountKey (currentAccount);
-                messageListModel.setFolderKey (currentFolder);
 
-//                msgIdx = messageListModel.indexFromMessageId(msgUuid);
-//                window.currentMessageIndex = msgIdx;
+                pendingCall = cmd;
+                pendingUuid = msgUuid;
+                messageListModel.populateListTillUuid(currentAccount, currentFolder, msgUuid);
             }
             else
             {
@@ -505,44 +509,60 @@ Window {
                     messageListModel.setAccountKey (window.currentMailAccountId);
                 }
             }
+        }
+    }
 
-            if (cmd == "reply")
-            {   
-                if (window.composerIsCurrentPage)
-                    window.popPage();
-                var newPage;
-                window.addPage(composer);
-                newPage = window.pageStack.currentPage;
-                setMessageDetails (newPage.composer, window.currentMessageIndex, false);
-            }
-            else if (cmd == "replyAll")
-            {
-                if (window.composerIsCurrentPage)
-                    window.popPage();
-                var newPage;
-                window.addPage(composer);
-                newPage = window.pageStack.currentPage;
-                setMessageDetails (newPage.composer, window.currentMessageIndex, 2);
-            }
-            else if (cmd == "forward")
-            {
-                if (window.composerIsCurrentPage)
-                    window.popPage();
-                var newPage;
-                window.addPage(composer);
-                newPage = window.pageStack.currentPage;
+    function executePendingCall(index, uuid)
+    {
+        if (uuid != pendingUuid) {
+            console.log ("executePendingCall: waiting for:", pendingUuid, "but got:", uuid);
+            return;
+        }
 
-                newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
-                newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
-                window.mailAttachments = messageListModel.attachments(window.currentMessageIndex);
-                messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
-                mailAttachmentModel.init();
-                newPage.composer.attachmentsModel = mailAttachmentModel;
+        console.log ("executing pending:", pendingCall, "for index", index);
 
-            }
-            else if (cmd == "openReader") {
-                updateReadingView(msgIdx);
-            }
+        var cmd = pendingCall;
+        window.currentMessageIndex = index;
+        // reset
+        pendingCall = "";
+        pendingUuid = "";
+
+        if (cmd == "reply")
+        {
+            if (window.composerIsCurrentPage)
+                window.popPage();
+            var newPage;
+            window.addPage(composer);
+            newPage = window.pageStack.currentPage;
+            setMessageDetails (newPage.composer, window.currentMessageIndex, false);
+        }
+        else if (cmd == "replyAll")
+        {
+            if (window.composerIsCurrentPage)
+                window.popPage();
+            var newPage;
+            window.addPage(composer);
+            newPage = window.pageStack.currentPage;
+            setMessageDetails (newPage.composer, window.currentMessageIndex, 2);
+        }
+        else if (cmd == "forward")
+        {
+            if (window.composerIsCurrentPage)
+                window.popPage();
+            var newPage;
+            window.addPage(composer);
+            newPage = window.pageStack.currentPage;
+
+            newPage.composer.quotedBody = "\n" + qsTr("-------- Forwarded Message --------") + messageListModel.quotedBody (window.currentMessageIndex);
+            newPage.composer.subject = qsTr("[Fwd: %1]").arg(messageListModel.subject (window.currentMessageIndex));
+            window.mailAttachments = messageListModel.attachments(window.currentMessageIndex);
+            messageListModel.saveAttachmentsInTemp (window.currentMessageIndex);
+            mailAttachmentModel.init();
+            newPage.composer.attachmentsModel = mailAttachmentModel;
+
+        }
+        else if (cmd == "openReader") {
+            updateReadingView(index);
         }
     }
 

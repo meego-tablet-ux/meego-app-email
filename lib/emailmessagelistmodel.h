@@ -94,7 +94,7 @@ signals:
     void sendReceiveBegin ();
     void folderChanged ();
     void folderUidsReset ();
-    void listPopulatedTillUuid (int index, const QString& uuid);
+    void listPopulatedTillUuid (int index, QString uuid);
 
 public slots:
     Q_INVOKABLE void setFolderKey (QVariant id);
