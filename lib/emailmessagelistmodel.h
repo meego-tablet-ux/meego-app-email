@@ -85,7 +85,7 @@ public:
 
     QModelIndex generateIndex(int row, int column, void *ptr);
 
-    
+    Q_INVOKABLE QString accountKey() const;
 
 signals:
     void messageDownloadCompleted();
@@ -93,7 +93,8 @@ signals:
     void sendReceiveCompleted ();
     void sendReceiveBegin ();
     void folderChanged ();
-    void folderUidsReset ();
+    void folderReset();
+    void accountReset();
     void listPopulatedTillUuid (int index, QString uuid);
 
 public slots:
@@ -152,6 +153,8 @@ private slots:
     void messageInfoAdded(const CamelMessageInfoVariant& info);
     void messageInfoUpdated(const CamelMessageInfoVariant& info);   
     void setFolder(const QString& newFolder, const QString& objectPath);
+    void setAccount(EAccount* account, const QString& objectPath);
+    void onAccountFoldersFetched(const CamelFolderInfoArrayVariant& folders);
     void checkIfListPopulatedTillUuid();
     void cancelPendingFolderOperations();
 
@@ -161,7 +164,10 @@ private:
     void sortMails ();
     void setMessageFlag (QString uid, uint flag, uint set);
     QString mimeMessage (QString &uid);
-    void addPendingFolderApp(AsyncOperation* op);
+    void addPendingFolderOp(AsyncOperation* op);
+
+    void addPendingOpToList(AsyncOperationList& list, AsyncOperation* op);
+    void cancelPendingOperations(const AsyncOperationList& list);
 
 private:
     CamelFolderInfoArrayVariant m_folders; 
@@ -194,7 +200,10 @@ private:
     QList<QString> m_selectedMsgIds;
 
     QString m_UuidToShow;
-    QList<QPointer<AsyncOperation> > m_pending_folder_ops;
+
+    AsyncOperationList m_pending_folder_ops;
+    AsyncOperationList m_pending_account_ops;
+    bool m_pending_account_init;
 };
 
 #endif

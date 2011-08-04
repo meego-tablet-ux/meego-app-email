@@ -254,10 +254,15 @@ QString EmailMessageListModel::bodyText(QString &uid, bool plain) const
 	return QString::fromUtf8(reparray);
 }
 
-void EmailMessageListModel::addPendingFolderApp(AsyncOperation *op)
+void EmailMessageListModel::addPendingFolderOp(AsyncOperation *op)
+{
+    addPendingOpToList(m_pending_folder_ops, op);
+}
+
+void EmailMessageListModel::addPendingOpToList(AsyncOperationList &list, AsyncOperation *op)
 {
     Q_ASSERT (op);
-    QMutableListIterator<QPointer<AsyncOperation> > i(m_pending_folder_ops);
+    QMutableListIterator<QPointer<AsyncOperation> > i(list);
     while (i.hasNext()) {
         QPointer<AsyncOperation> val = i.next();
         if (val.isNull()) {
@@ -265,7 +270,7 @@ void EmailMessageListModel::addPendingFolderApp(AsyncOperation *op)
         }
     }
 
-    m_pending_folder_ops.append(QPointer<AsyncOperation>(op));
+    list.append(QPointer<AsyncOperation>(op));
 }
 
 void EmailMessageListModel::createChecksum()
@@ -319,7 +324,7 @@ void parseMultipartAttachmentName (QStringList &attachments, CamelMimePart *mpar
 
 //![0]
 EmailMessageListModel::EmailMessageListModel(QObject *parent)
-    : QAbstractItemModel (parent)
+    : QAbstractItemModel (parent), m_pending_account_init(false)
 {
     QHash<int, QByteArray> roles;
     roles[MessageAddressTextRole] = "sender";
@@ -671,7 +676,7 @@ void EmailMessageListModel::setFolderKey (QVariant id)
 {
     const QString& newFolder = id.toString();
     if (m_current_folder == newFolder || newFolder.isEmpty()) {
-		return;
+        return;
     }
     cancelPendingFolderOperations();
 
@@ -680,7 +685,7 @@ void EmailMessageListModel::setFolderKey (QVariant id)
     connect (op, SIGNAL(result(QString,QString)), this, SLOT(setFolder(QString,QString)));
     connect (op, SIGNAL(finished()), op, SLOT(deleteLater()));
     op->start();
-    addPendingFolderApp(op);
+    addPendingFolderOp(op);
 }
 
 void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
@@ -698,8 +703,8 @@ void EmailMessageListModel::onFolderUidsReset(const QStringList &uids)
         connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
         connect(op, SIGNAL(result(CamelMessageInfoVariant)),this, SLOT(messageInfoAdded(CamelMessageInfoVariant)));
         op->start(WINDOW_LIMIT);
-        addPendingFolderApp(op);
-        emit folderUidsReset();
+        addPendingFolderOp(op);
+        emit folderReset();
 }
 
 void EmailMessageListModel::messageInfoAdded(const CamelMessageInfoVariant &info)
@@ -787,7 +792,34 @@ void EmailMessageListModel::setFolder(const QString& newFolder, const QString& o
     connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
     connect(op, SIGNAL(finished()), this, SLOT(sendReceive()), Qt::QueuedConnection);
     op->start();
-    addPendingFolderApp(op);
+    addPendingFolderOp(op);
+}
+
+void EmailMessageListModel::setAccount(EAccount* account, const QString& objectPath)
+{
+    qDebug() << Q_FUNC_INFO << account->name;
+    m_folders.clear();
+    Q_ASSERT (account);
+    m_account = account;
+    m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
+                                                                    objectPath,
+                                                                    QDBusConnection::sessionBus(), this);
+
+    InitFolders* op  = new InitFolders(account, m_store_proxy, this);
+    Q_ASSERT (m_lstore_proxy);
+    op->setLocalStore(m_lstore_proxy);
+    connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+    connect(op, SIGNAL(result(CamelFolderInfoArrayVariant)), this, SLOT(onAccountFoldersFetched(CamelFolderInfoArrayVariant)));
+    op->start();
+    addPendingOpToList(m_pending_account_ops, op);
+}
+
+void EmailMessageListModel::onAccountFoldersFetched(const CamelFolderInfoArrayVariant& folders)
+{
+    qDebug() << Q_FUNC_INFO;
+    Q_ASSERT (m_folders.isEmpty());
+    m_folders.append(folders);
+    emit accountReset(); // account is finally set
 }
 
 bool EmailMessageListModel::stillMoreMessages ()
@@ -887,47 +919,32 @@ void EmailMessageListModel::onFolderChanged(const QStringList &added, const QStr
         }
 }
 
+QString EmailMessageListModel::accountKey() const
+{
+    if (m_account &&  m_account->uid) {
+        return  m_account->uid;
+    }
+    return QString();
+}
+
 void EmailMessageListModel::setAccountKey (QVariant id)
 {
-    GConfClient *client;
-    EIterator *iter;
-    EAccountList *account_list;
-    EAccount *acc;
-    QString aid = id.toString ();
-    int index=-1;
-    char *folder_name = NULL;
 
-    if (m_account && m_account->uid && strcmp (m_account->uid, (const char *)id.toString().toLocal8Bit().constData()) == 0) {
-	g_debug("Setting same account");
-	return;
+    const QString& aid = id.toString ();
+
+    if (aid == accountKey()) {
+        qDebug() << Q_FUNC_INFO << "Setting same account";
+        return;
     }
 	 
-    qDebug() << "Set Account: " << id.toString();
-    if (id.toString().isEmpty())
+    qDebug() << "Set Account: " << aid;
+    if (aid.isEmpty())
 	return;
 
-    client = gconf_client_get_default ();
-    account_list = e_account_list_new (client);
-    g_object_unref (client);
+    cancelPendingFolderOperations();
+    cancelPendingOperations(m_pending_account_ops);
 
-    iter = e_list_get_iterator (E_LIST (account_list));
-    while (e_iterator_is_valid (iter)) {
-        index++;
-        acc = (EAccount *) e_iterator_get (iter);
-        if (strcmp ((const char *)aid.toLocal8Bit().constData(), acc->uid) == 0)
-             m_account = acc;
-        e_iterator_next (iter);
-    }
-
-    g_object_ref (m_account);
-    g_object_unref (iter);
-    g_object_unref (account_list);
-
-    const char *url;
-
-    url = e_account_get_string (m_account, E_ACCOUNT_SOURCE_URL);
-
-    if (!m_lstore_proxy) {
+    if (!m_lstore_proxy) { // questionable ..??
 	QDBusPendingReply<QDBusObjectPath> reply;
 	reply = session_instance->getLocalStore();
         m_lstore_proxy_id = reply.value();
@@ -937,73 +954,11 @@ void EmailMessageListModel::setAccountKey (QVariant id)
 									QDBusConnection::sessionBus(), this);
     }
 
-
-    if (session_instance && session_instance->isValid() && url && *url) {
-        QDBusPendingReply<QDBusObjectPath> reply ;
-	const char *email = NULL;
-
-	if (strncmp (url, "pop:", 4) == 0)
-		reply = session_instance->getLocalStore();
-	else 
-		reply = session_instance->getStore (QString(url));
-        reply.waitForFinished();
-        m_store_proxy_id = reply.value();
-
-	if (strncmp (url, "pop:", 4) == 0) {
-
-		email = e_account_get_string(m_account, E_ACCOUNT_ID_ADDRESS);
-	}
-
-        m_store_proxy = new OrgGnomeEvolutionDataserverMailStoreInterface (QString ("org.gnome.evolution.dataserver.Mail"),
-                                                                        m_store_proxy_id.path(),
-                                                                        QDBusConnection::sessionBus(), this);
-
-        if (m_store_proxy && m_store_proxy->isValid()) {
-                QDBusPendingReply<CamelFolderInfoArrayVariant> reply = m_store_proxy->getFolderInfo (QString(email ? email : ""),
-                                                                        CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
-                reply.waitForFinished();
-                m_folders = reply.value ();
-		if ((reply.isError() || m_folders.length()) == 0 && strncmp (url, "pop:", 4) == 0) {
-			QDBusPendingReply<CamelFolderInfoArrayVariant> reply2;
-
-			/* Create base first*/
-			folder_name = g_strdup_printf ("%s/Inbox", email);
-			reply2 = m_store_proxy->createFolder ("", folder_name);
-			reply2.waitForFinished();
-			g_free (folder_name);		
-			folder_name = g_strdup_printf ("%s/Drafts", email);
-			reply2 = m_store_proxy->createFolder ("", folder_name);
-			reply2.waitForFinished();
-	
-			g_free (folder_name);		
-			folder_name = g_strdup_printf ("%s/Sent", email);
-			reply2 = m_store_proxy->createFolder ("", folder_name);
-			reply2.waitForFinished();
-			g_free (folder_name);
-
-			reply2 = m_store_proxy->getFolderInfo (QString(email), 
-							CAMEL_STORE_FOLDER_INFO_RECURSIVE|CAMEL_STORE_FOLDER_INFO_FAST | CAMEL_STORE_FOLDER_INFO_SUBSCRIBED);
-
-			reply2.waitForFinished();
-			m_folders = reply2.value ();
-			m_folders.removeLast();	
-		}
-
-		if (!reply.isError())
-			m_folders.removeLast();
-
-		CamelFolderInfoArrayVariant ouboxlist;
-		reply = m_lstore_proxy->getFolderInfo ("Outbox", CAMEL_STORE_FOLDER_INFO_FAST);
-		reply.waitForFinished();
-		ouboxlist = reply.value();
-		ouboxlist.removeLast();
-		m_folders.append (ouboxlist);
-
-        }
-
-    }
-
-    
+    GetAccount* op = new GetAccount(session_instance, this);
+    op->setAccountName(aid);
+    connect(op, SIGNAL(finished()), op, SLOT(deleteLater()));
+    connect(op, SIGNAL(result(EAccount*,QString)),this, SLOT(setAccount(EAccount*,QString)));
+    op->start();
 }
 
 void EmailMessageListModel::sortBySender(int key)
@@ -1107,12 +1062,17 @@ void EmailMessageListModel::checkIfListPopulatedTillUuid()
 
 void EmailMessageListModel::cancelPendingFolderOperations()
 {
-    const int count = m_pending_folder_ops.count();
+   cancelPendingOperations(m_pending_folder_ops);
+}
+
+void EmailMessageListModel::cancelPendingOperations(const AsyncOperationList& list)
+{
+    const int count = list.count();
     if (count > 0) {
         qWarning() << Q_FUNC_INFO << "cancelling folder ops" << count;
     }
 
-    foreach(QPointer<AsyncOperation> op, m_pending_folder_ops) {
+    foreach(QPointer<AsyncOperation> op, list) {
         if (!op.isNull()) {
             op->cancel();
         }
@@ -1127,7 +1087,7 @@ void EmailMessageListModel::populateListTillUuid (const QString& account, const 
     } else {
         setAccountKey(account);
         setFolderKey(folder);
-        connect (this, SIGNAL(folderUidsReset()), SLOT(checkIfListPopulatedTillUuid()), Qt::UniqueConnection);
+        connect (this, SIGNAL(folderReset()), SLOT(checkIfListPopulatedTillUuid()), Qt::UniqueConnection);
     }
 }
 

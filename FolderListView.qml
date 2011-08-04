@@ -59,10 +59,9 @@ Item {
 
     Component.onCompleted: { 
         messageListModel.setAccountKey (window.currentMailAccountId);
-        if (window.currentFolderId)
-            messageListModel.setFolderKey (window.currentFolderId);
 
-        folderServerCount = messageListModel.totalCount();
+        if (messageListModel.accountKey() == window.currentMailAccountId && window.currentFolderId)
+            messageListModel.setFolderKey (window.currentFolderId); // account is already set
 
         window.folderListViewClickCount = 0;
         gettingMoreMessages = false;
@@ -73,6 +72,15 @@ Item {
         onMessageRetrievalCompleted: {
             gettingMoreMessages = false;
             window.refreshInProgress = false;
+        }
+        onAccountReset: {
+            console.log ("account reset");
+            if (window.currentFolderId)
+                messageListModel.setFolderKey (window.currentFolderId);
+        }
+        onFolderReset: {
+            console.log ("folder reset");
+            folderServerCount = messageListModel.totalCount();
         }
     }
 
