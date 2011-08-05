@@ -418,6 +418,14 @@ Window {
             executePendingCall(index, uuid);
         }
 
+        onMessageDownloadCompleted: {
+            // here we assume that the corresponding message list is opened already
+            var msgInd = messageListModel.indexOf(uuid);
+            console.log("got message", uuid, msgInd, window.currentMessageIndex);
+            if (msgInd == window.currentMessageIndex)
+                updateReadingView(msgInd);
+        }
+
     }
 
     Connections {

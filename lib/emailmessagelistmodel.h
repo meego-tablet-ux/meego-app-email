@@ -86,9 +86,10 @@ public:
     QModelIndex generateIndex(int row, int column, void *ptr);
 
     Q_INVOKABLE QString accountKey() const;
+    Q_INVOKABLE int indexOf(const QString& uuid) const;
 
 signals:
-    void messageDownloadCompleted();
+    void messageDownloadCompleted(QString uuid);
     void messageRetrievalCompleted();
     void sendReceiveCompleted ();
     void sendReceiveBegin ();
@@ -97,7 +98,7 @@ signals:
     void accountReset();
     void listPopulatedTillUuid (int index, QString uuid);
 
-public slots:
+public slots: // TO DO: slots do not need Q_INVOKABLE, getters cannot be slots!!!!
     Q_INVOKABLE void setFolderKey (QVariant id);
     Q_INVOKABLE void setAccountKey (QVariant id);
     Q_INVOKABLE void sortBySender (int key);
@@ -157,6 +158,7 @@ private slots:
     void onAccountFoldersFetched(const CamelFolderInfoArrayVariant& folders);
     void checkIfListPopulatedTillUuid();
     void cancelPendingFolderOperations();
+    void onMessageDownloadCompleted(QDBusPendingCallWatcher* watcher);
 
 private:
     void initMailServer ();

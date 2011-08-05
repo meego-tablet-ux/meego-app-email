@@ -49,12 +49,14 @@ Item {
     // @todo For some reason the mailCc array length is 1 even though it is really empty.  Why?
     property bool ccListAvailable: mailCc.length > 0 && !(mailCc.length == 1 && mailCc[0] == "")
 
-    Connections {
-        target: messageListModel
-        onMessageDownloadCompleted: {
-            window.mailHtmlBody = messageListModel.htmlBody(window.currentMessageIndex);
-        }
-    }
+//    Connections {
+//        target: messageListModel
+//        onMessageDownloadCompleted: {
+//            window.mailHtmlBody = messageListModel.htmlBody(window.currentMessageIndex);
+//            window.mailBody = messageListModel.body(window.currentMessageIndex);
+//            window.mailBody = messageListModel.body(window.currentMessageIndex);
+//        }
+//    }
 
     function save(saveRestore)
     {

@@ -127,6 +127,7 @@ namespace {
             return sortInfoFunction (info1, info2, EmailMessageListModel::SortDate, false);
     }
 
+    const char* UUID_property = "UUID";
 }
 
 typedef enum _CamelMessageFlags {
@@ -212,21 +213,14 @@ void parseMultipartBody (QByteArray &reparray, CamelMimePart *mpart, bool plain)
 
 QString EmailMessageListModel::mimeMessage (QString &uid)
 {
-    	QDBusPendingReply<QString> reply;
-	QString qmsg;
-
-	qmsg = (*m_messages)[uid];
+    QString qmsg = (*m_messages)[uid];
 	if (qmsg.isEmpty()) {
-		reply = m_folder_proxy->getMessage(uid);
-		reply.waitForFinished();
-		if (!reply.isError()) {
-			qmsg = reply.value ();
-			m_messages->insert (uid, qmsg);
-                	qDebug() << "Fetching message " << uid;
-		} else
-			return QString("");
+            QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(m_folder_proxy->getMessage(uid));
+            watcher->setProperty(UUID_property, uid);
+            connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(onMessageDownloadCompleted(QDBusPendingCallWatcher*)));
+            connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), watcher, SLOT(deleteLater()));
         } else {
-                qDebug() << "Got message from cache " << uid;
+            qDebug() << "Got message from cache " << uid;
 	}
 
 	return qmsg;
@@ -1079,6 +1073,11 @@ void EmailMessageListModel::cancelPendingOperations(const AsyncOperationList& li
     }
 }
 
+int EmailMessageListModel::indexOf(const QString& uuid) const
+{
+    return shown_uids.indexOf (uuid);
+}
+
 void EmailMessageListModel::populateListTillUuid (const QString& account, const QString& folder, const QString& uuid)
 {
     m_UuidToShow = uuid;
@@ -1260,7 +1259,7 @@ void EmailMessageListModel::setMessageFlag (QString uid, uint flag, uint set)
 
 	if (uid.length() < 1) return;
 	reply = m_folder_proxy->setMessageFlags (uid, flag, set);
-	reply.waitForFinished();
+        //reply.waitForFinished(); just do not wait for it
 }
 
 void EmailMessageListModel::deleteMessage(QVariant id)
@@ -1331,28 +1330,21 @@ int EmailMessageListModel::columnCount(const QModelIndex &idx) const
     Q_UNUSED(idx)
 }
 
-
-#if 0
-void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity activity)
+void EmailMessageListModel::onMessageDownloadCompleted(QDBusPendingCallWatcher* watcher)
 {
-	Q_UNUSED (activity)
-    if (QMailServiceAction *action = static_cast<QMailServiceAction*>(sender()))
-    {
-        if (activity == QMailServiceAction::Successful)
-        {
-            if (action == m_retrievalAction)
-            {
-                emit messageDownloadCompleted();
-            }
-        }
-        else if (activity == QMailServiceAction::Failed)
-        {
-            //  Todo:  hmm.. may be I should emit an error here.
-            emit messageDownloadCompleted();
-        }
+    Q_ASSERT (watcher);
+
+    if (watcher->isError()) {
+        qWarning() << Q_FUNC_INFO << "dbus error occured";
+    } else {
+        QDBusPendingReply <QString> reply = *watcher;
+        const QString& qmsg = reply.value ();
+        const QString& uuid = watcher->property(UUID_property).toString();
+        m_messages->insert(uuid, qmsg);
+        emit messageDownloadCompleted(uuid);
     }
+
 }
-#endif
 
 void saveMimePart (QString uri, CamelMimePart *part, bool tmp)
 {
