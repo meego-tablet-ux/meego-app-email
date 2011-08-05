@@ -36,7 +36,7 @@ EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent, bool isSearchF
 
     m_source = new EmailMessageListModel(this);
     m_source->setAccountKey(account);
-    m_source->setFolderKey(folders->inboxFolderId()); 
+    m_InboxId = folders->inboxFolderId();
     m_actions = new McaActions;
 
     delete folders;
@@ -51,6 +51,9 @@ EmailFeedModel::EmailFeedModel(QVariant account, QObject *parent, bool isSearchF
             this, SLOT(resetModel()));
     connect(m_actions, SIGNAL(standardAction(QString,QString)),
             this, SLOT(performAction(QString,QString)));
+
+    connect(m_source, SIGNAL(accountReset()), this, SLOT(onAccountSet()));
+
     if(canFetchMore(QModelIndex())) fetchMore(QModelIndex());
 }
 
@@ -223,6 +226,12 @@ void EmailFeedModel::performAction(QString action, QString uniqueid)
         parameters << "--cdata" << uniqueid;
         QProcess::startDetached(executable, parameters);
     }
+}
+
+void EmailFeedModel::onAccountSet()
+{
+    Q_ASSERT (m_source);
+    m_source->setFolderKey(m_InboxId);
 }
 
 //

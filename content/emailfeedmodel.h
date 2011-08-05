@@ -48,6 +48,7 @@ protected slots:
     void sourceDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight);
     void resetModel();
     void performAction(QString uniqueid, QString action);
+    void onAccountSet();
 
 protected:
     void copyRowsFromSource(int first, int last);
@@ -59,6 +60,7 @@ private:
     QString m_searchText;
     McaActions *m_actions;
     bool m_isSearchFeed;
+    QVariant m_InboxId;
 };
 
 #endif  // __emailfeedmodel_h
